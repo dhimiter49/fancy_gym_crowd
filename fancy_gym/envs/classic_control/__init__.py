@@ -1,3 +1,6 @@
 from .hole_reacher.hole_reacher import HoleReacherEnv
 from .simple_reacher.simple_reacher import SimpleReacherEnv
 from .viapoint_reacher.viapoint_reacher import ViaPointReacherEnv
+from .crowd_navigation.crowd_navigation import CrowdNavigationEnv
+from .crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
+from .crowd_navigation.navigation import NavigationEnv
