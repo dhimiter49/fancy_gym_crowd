@@ -7,6 +7,7 @@ from gymnasium.core import ObsType
 from mp_pytorch.mp.mp_interfaces import MPInterface
 
 from fancy_gym.black_box.controller.base_controller import BaseController
+from fancy_gym.black_box.controller.mpc_controller import MPCController
 from fancy_gym.black_box.raw_interface_wrapper import RawInterfaceWrapper
 from fancy_gym.utils.utils import get_numpy
 
@@ -172,11 +173,17 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             return self.observation(obs), trajectory_return, terminated, truncated, infos
 
         self.plan_steps += 1
+        if isinstance(self.tracking_controller, MPCController):
+            step_actions = self.tracking_controller.get_action(
+                position, velocity, self.env.get_wrapper_attr('current_pos'), self.env.get_wrapper_attr('current_vel'))
         for t, (pos, vel) in enumerate(zip(position, velocity)):
-            step_action = self.tracking_controller.get_action(
-                pos, vel, self.env.get_wrapper_attr('current_pos'), self.env.get_wrapper_attr('current_vel'))
-            c_action = np.clip(
-                step_action, self.env.action_space.low, self.env.action_space.high)
+            if not isinstance(self.tracking_controller, MPCController):
+                step_action = self.tracking_controller.get_action(
+                    pos, vel, self.env.get_wrapper_attr('current_pos'), self.env.get_wrapper_attr('current_vel'))
+                c_action = np.clip(
+                    step_action, self.env.action_space.low, self.env.action_space.high)
+            else:
+                c_action = step_actions[t]
             obs, c_reward, terminated, truncated, info = self.env.step(
                 c_action)
             rewards[t] = c_reward
