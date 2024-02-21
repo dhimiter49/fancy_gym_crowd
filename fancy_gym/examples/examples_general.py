@@ -4,9 +4,9 @@ import gymnasium as gym
 import numpy as np
 
 import fancy_gym
+from manual_control import ManualControl
 
-
-def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True):
+def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, manual_control=False):
     """
     Example for running any env in the step based setting.
     This also includes DMC environments when leveraging our custom make_env function.
@@ -27,9 +27,15 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True):
     print("Observation shape: ", env.observation_space.shape)
     print("Action shape: ", env.action_space.shape)
 
-    # number of environment steps
+    manual_controller = ManualControl(env.action_space.shape) if manual_control else None
+
     for i in range(iterations):
-        obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
+        if manual_control:
+            action = manual_controller.action
+        else:
+            action = env.action_space.sample()
+
+        obs, reward, terminated, truncated, info = env.step(action)
         rewards += reward
 
         if render:
@@ -39,7 +45,6 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True):
             print(rewards)
             rewards = 0
             obs = env.reset()
-
 
 def example_async(env_id="fancy/HoleReacher-v0", n_cpu=4, seed=int('533D', 16), n_samples=800):
     """
@@ -87,13 +92,7 @@ def example_async(env_id="fancy/HoleReacher-v0", n_cpu=4, seed=int('533D', 16), 
 
 def main(render = True):
     # Basic gym task
-    example_general("Pendulum-v1", seed=10, iterations=200, render=render)
-
-    # Mujoco task from framework
-    example_general("fancy/Reacher5d-v0", seed=10, iterations=200, render=render)
-
-    # # OpenAI Mujoco task
-    example_general("HalfCheetah-v2", seed=10, render=render)
+    example_general("fancy/CrowdNavigationStatic", seed=10, iterations=2000, render=render, manual_control=True)
 
     # Vectorized multiprocessing environments
     # example_async(env_id="HoleReacher-v0", n_cpu=2, seed=int('533D', 16), n_samples=2 * 200)
