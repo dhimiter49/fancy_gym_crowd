@@ -102,11 +102,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ax.set_xlim(-self.W_BORDER - 1, self.W_BORDER + 1)
             ax.set_ylim(-self.H_BORDER - 1, self.H_BORDER + 1)
 
-            self.pos_agent, = ax.plot(
-                self._agent_pos[0],
-                self._agent_pos[1],
-                "go", markersize=4, ls='',
-            )
             self.vel_agent = ax.arrow(
                 self._agent_pos[0], self._agent_pos[1],
                 self._agent_vel[0], self._agent_vel[1],
@@ -115,15 +110,25 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 head_length=0.2,
                 ec="g"
             )
-            self.pos_crowd, = ax.plot(
-                self._crowd_poss[:, 0],
-                self._crowd_poss[:, 1],
-                "ro", markersize=4, ls='',
-            )
+            self.vel_crowd = []
+            for i in range(self.n_crowd):
+                self.vel_crowd.append(ax.arrow(
+                    self._crowd_poss[i][0], self._crowd_poss[i][1],
+                    self._crowd_vels[i][0], self._crowd_vels[i][1],
+                    head_width=self.PERSONAL_SPACE / 4,
+                    overhang=1,
+                    head_length=0.2,
+                    ec="r"
+                ))
+
             self.space_agent = plt.Circle(
+                self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
+            )
+            self.personal_space_agent = plt.Circle(
                 self._agent_pos, self.PERSONAL_SPACE, color="g", fill=False
             )
             ax.add_patch(self.space_agent)
+            ax.add_patch(self.personal_space_agent)
             self.space_crowd = []
             for m in self._crowd_poss:
                 self.space_crowd.append(
@@ -132,7 +137,22 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     )
                 )
                 ax.add_patch(self.space_crowd[-1])
+            self.personal_space_crowd = []
+            for m in self._crowd_poss:
+                self.personal_space_crowd.append(
+                    plt.Circle(
+                        m, self.PHYSICAL_SPACE, color="r", alpha=0.5
+                    )
+                )
+                ax.add_patch(self.personal_space_crowd[-1])
+
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
+
+            self.trajectory_line, = ax.plot(
+                self.current_trajectory[:, 0],
+                self.current_trajectory[:, 1],
+                "k",
+            )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
             ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
@@ -147,15 +167,23 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
 
-        self.pos_agent.set_data(self._agent_pos[0], self._agent_pos[1])
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],
             dx=self._agent_vel[0], dy=self._agent_vel[1]
         )
-        self.pos_crowd.set_data(self._crowd_poss[:, 0], self._crowd_poss[:, 1])
         self.space_agent.center = self._agent_pos
         for i, member in enumerate(self._crowd_poss):
             self.space_crowd[i].center = member
+            self.personal_space_crowd[i].center = member
+        for i in range(self.n_crowd):
+            self.vel_crowd[i].set_data(
+                x=self._crowd_poss[i][0], y=self._crowd_poss[i][1],
+                dx=self._crowd_vels[i][0], dy=self._crowd_vels[i][1]
+            )
+        self.personal_space_agent.center = self._agent_pos
+        self.trajectory_line.set_data(
+            self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+        )
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
