@@ -21,10 +21,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
         self.CROWD_MAX_VEL = 0
         self.REW_TASK_COEFF = 10
-        self.REW_GOAL_POS_COEFF = 1
-        self.REW_GOAL_DIST_COEFF = -2 * self.REW_GOAL_POS_COEFF / np.linalg.norm(
-            np.array([self.WIDTH, self.HEIGHT])
-        ) / self.MAX_EPISODE_STEPS
+        self.REW_GOAL_POS_COEFF = 0.06
 
         self.discrete_action = discrete_action
         if self.discrete_action:
@@ -60,13 +57,12 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dist_goal = np.linalg.norm(self._agent_pos - self._goal_pos)
-        if self._goal_reached:
-            rew_dist = self.REW_TASK_COEFF
-        elif dist_goal < self.PERSONAL_SPACE / 4:
-            rew_dist = self.REW_GOAL_POS_COEFF - np.linalg.norm(self._agent_vel)
-        else:
-            rew_dist = self.REW_GOAL_DIST_COEFF * dist_goal ** 2
+        dist_goal = max(
+            np.linalg.norm(self._agent_pos - self._goal_pos),
+            self.PHYSICAL_SPACE
+        )
+        rew_dist = np.exp(self.REW_GOAL_POS_COEFF / dist_goal) -\
+           np.exp(self.REW_GOAL_POS_COEFF / self.PHYSICAL_SPACE)
 
         reward = rew_dist
         return reward, dict(dist_goal=rew_dist)

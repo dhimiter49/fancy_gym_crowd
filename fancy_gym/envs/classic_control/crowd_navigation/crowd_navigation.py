@@ -21,14 +21,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         super().__init__(n_crowd, width, height, allow_collision=False)
 
         self.REW_TASK_COEFF = 10
-        self.REW_GOAL_POS_COEFF = 1
-        self.REW_COLLISION_COEFF = -0.5
-        self.REW_GOAL_DIST_COEFF = -2 * self.REW_GOAL_POS_COEFF / np.linalg.norm(
-            np.array([self.WIDTH, self.HEIGHT])
-        ) / self.MAX_EPISODE_STEPS
-        self.REW_COLLISION_DIST_COEFF = 2 * self.REW_COLLISION_COEFF / np.linalg.norm(
-            np.array([self.WIDTH, self.HEIGHT])
-        ) / self.MAX_EPISODE_STEPS
+        self.REW_GOAL_POS_COEFF = 0.019
+        self.REW_COLLISION_COEFF = -10
+        self.REW_COLLISION_DIST_COEFF = 0.09
 
         self.discrete_action = discrete_action
         if self.discrete_action:
@@ -59,29 +54,27 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dist_goal = np.linalg.norm(self._agent_pos - self._goal_pos)
-        if self._goal_reached:
-            rew_dist = self.REW_TASK_COEFF
-        elif dist_goal < self.PERSONAL_SPACE / 4:
-            rew_dist = self.REW_GOAL_POS_COEFF - np.linalg.norm(self._agent_vel)
+        dist_goal = max(
+            np.linalg.norm(self._agent_pos - self._goal_pos),
+            self.PHYSICAL_SPACE
+        )
+        rew_dist = np.exp(self.REW_GOAL_POS_COEFF / dist_goal) -\
+            np.exp(self.REW_GOAL_POS_COEFF / self.PHYSICAL_SPACE)
+
+        if self._is_collided:
+            rew_collision = self.REW_COLLISION_COEFF
         else:
-            rew_dist = self.REW_GOAL_DIST_COEFF * dist_goal ** 2
+            dist_crowd = np.linalg.norm(
+                self._agent_pos - self._crowd_poss,
+                axis=-1
+            )
+            rew_collision = np.sum(
+                (1 - np.exp(self.REW_COLLISION_DIST_COEFF / dist_crowd)) * \
+                (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
+            )
 
-        rew_collision = self.REW_COLLISION_COEFF if self._is_collided else 0.0
-        dist_crowd = np.linalg.norm(
-            self._agent_pos - self._crowd_poss,
-            axis=-1
-        )
-        rew_collision_dist = self.REW_COLLISION_DIST_COEFF * np.sum(
-            dist_crowd * (dist_crowd < [self.PERSONAL_SPACE * 3] * self.n_crowd)
-        )
-
-        reward = rew_dist + rew_collision + rew_collision_dist
-        return reward, dict(
-            dist_goal=rew_dist,
-            collision=rew_collision,
-            dist_crowd=rew_collision_dist
-        )
+        reward = rew_dist + rew_collision
+        return reward, dict(dist_goal=rew_dist, collision=rew_collision)
 
 
     def _terminate(self, info):

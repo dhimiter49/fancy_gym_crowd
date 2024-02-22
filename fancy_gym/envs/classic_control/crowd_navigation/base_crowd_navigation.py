@@ -35,7 +35,9 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.H_BORDER = self.HEIGHT / 2
         self.AGENT_MAX_VEL = 3.0
         self.CROWD_MAX_VEL = 2.5
-        self.PERSONAL_SPACE = 0.8
+        self.PHYSICAL_SPACE = 0.4
+        self.PERSONAL_SPACE = 1.4
+        self.SOCIAL_SPACE = 1.9
         self.MAX_ACC_DT = 1.5 * self._dt  # 1.5m/s^2
 
         self.n_crowd = n_crowd
@@ -69,7 +71,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._steps = 0
         self._goal_reached = False
         self.check_goal_reached = lambda : (
-            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PERSONAL_SPACE / 4 and
+            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC_DT
         )
         self.current_trajectory = np.zeros((40, 2))
@@ -151,7 +153,7 @@ class BaseCrowdNavigationEnv(gym.Env):
     def _check_collisions(self) -> bool:
         """Checks whether agent is to close to at leas one member of the crowd"""
         if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
-            [self.PERSONAL_SPACE * 2] * self.n_crowd):
+            [self.PHYSICAL_SPACE * 2] * self.n_crowd):
             return True
 
         return False
