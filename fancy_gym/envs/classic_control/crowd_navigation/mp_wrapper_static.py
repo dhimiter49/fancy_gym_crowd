@@ -26,7 +26,22 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'alpha_phase': 2,
             },
         },
-        'ProDMP': {},
+        'ProDMP': {
+            'phase_generator_kwargs': {
+                'tau': 10.,
+            },
+            'controller_kwargs': {
+                'p_gains': 0.6,
+                'd_gains': 0.075,
+            },
+            'basis_generator_kwargs': {
+                'num_basis': 4,
+            },
+            'black_box_kwargs': {
+                # one second for dt of 0.1
+                'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
+            }
+        },
     }
 
     @property
