@@ -20,11 +20,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     ):
         super().__init__(n_crowd, width, height, allow_collision=False)
 
-        self.REW_TASK_COEFF = 10
-        self.REW_GOAL_POS_COEFF = 0.019
-        self.REW_COLLISION_COEFF = -10
-        self.REW_COLLISION_DIST_COEFF = 0.09
-
         self.discrete_action = discrete_action
         if self.discrete_action:
             self.CARTESIAN_ACC = np.arange(
@@ -54,31 +49,28 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dist_goal = max(
-            np.linalg.norm(self._agent_pos - self._goal_pos),
-            self.PHYSICAL_SPACE
-        )
-        rew_dist = np.exp(self.REW_GOAL_POS_COEFF / dist_goal) -\
-            np.exp(self.REW_GOAL_POS_COEFF / self.PHYSICAL_SPACE)
+        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+        Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
+            np.exp(self.Cg / self.PHYSICAL_SPACE)
 
         if self._is_collided:
-            rew_collision = self.REW_COLLISION_COEFF
+            Rc = self.COLLISION_REWARD
         else:
             dist_crowd = np.linalg.norm(
                 self._agent_pos - self._crowd_poss,
                 axis=-1
             )
-            rew_collision = np.sum(
-                (1 - np.exp(self.REW_COLLISION_DIST_COEFF / dist_crowd)) * \
+            Rc = np.sum(
+                (1 - np.exp(self.Cc / dist_crowd)) * \
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
-        reward = rew_dist + rew_collision
-        return reward, dict(dist_goal=rew_dist, collision=rew_collision)
+        reward = Rg + Rc
+        return reward, dict(goal=Rg, collision=Rc)
 
 
     def _terminate(self, info):
-        return self._is_collided or self._goal_reached
+        return self._is_collided
 
 
     def _get_obs(self) -> ObsType:
@@ -225,7 +217,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         )
 
         self._is_collided = self._check_collisions()
-        self._goal_reached = self.check_goal_reached()
         reward, info = self._get_reward(action)
 
         self._steps += 1

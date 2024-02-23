@@ -19,10 +19,6 @@ class NavigationEnv(BaseCrowdNavigationEnv):
     ):
         super().__init__(0, width, height, allow_collision=False)
 
-        self.CROWD_MAX_VEL = 0
-        self.REW_TASK_COEFF = 10
-        self.REW_GOAL_POS_COEFF = 0.06
-
         self.discrete_action = discrete_action
         if self.discrete_action:
             self.CARTESIAN_ACC = np.arange(
@@ -57,19 +53,15 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dist_goal = max(
-            np.linalg.norm(self._agent_pos - self._goal_pos),
-            self.PHYSICAL_SPACE
-        )
-        rew_dist = np.exp(self.REW_GOAL_POS_COEFF / dist_goal) -\
-           np.exp(self.REW_GOAL_POS_COEFF / self.PHYSICAL_SPACE)
+        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+        Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
+            np.exp(self.Cg / self.PHYSICAL_SPACE)
 
-        reward = rew_dist
-        return reward, dict(dist_goal=rew_dist)
+        return Rg, dict(goal=Rg)
 
 
     def _terminate(self, info) -> bool:
-        return self._goal_reached
+        return False
 
 
     def _get_obs(self) -> ObsType:
@@ -166,7 +158,6 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             [self.W_BORDER, self.H_BORDER]
         )
 
-        self._goal_reached = self.check_goal_reached()
         reward, info = self._get_reward(action)
 
         self._steps += 1
