@@ -20,17 +20,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
     ):
         super().__init__(n_crowd, width, height, allow_collision=False)
 
-        self.CROWD_MAX_VEL = 0
-        self.REW_TASK_COEFF = 10
-        self.REW_GOAL_POS_COEFF = 1
-        self.REW_COLLISION_COEFF = -10
-        self.REW_GOAL_DIST_COEFF = -2 * self.REW_GOAL_POS_COEFF / np.linalg.norm(
-            np.array([self.WIDTH, self.HEIGHT])
-        ) / self.MAX_EPISODE_STEPS
-        self.REW_COLLISION_DIST_COEFF = 2 * self.REW_COLLISION_COEFF / np.linalg.norm(
-            np.array([self.WIDTH, self.HEIGHT])
-        ) / self.MAX_EPISODE_STEPS
-
         self.discrete_action = discrete_action
         if self.discrete_action:
             self.CARTESIAN_ACC = np.arange(
@@ -70,36 +59,28 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dist_goal = np.linalg.norm(self._agent_pos - self._goal_pos)
-        if self._goal_reached:
-            rew_dist = self.REW_TASK_COEFF
-        elif dist_goal < self.PERSONAL_SPACE / 4:
-            rew_dist = self.REW_GOAL_POS_COEFF - np.linalg.norm(self._agent_vel)
-        else:
-            rew_dist = self.REW_GOAL_DIST_COEFF * dist_goal ** 2
+        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+        Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
+            np.exp(self.Cg / self.PHYSICAL_SPACE)
 
         if self._is_collided:
-            rew_collision = self.REW_COLLISION_COEFF
+            Rc = self.COLLISION_REWARD
         else:
             dist_crowd = np.linalg.norm(
                 self._agent_pos - self._crowd_poss,
                 axis=-1
-            ) - self.PERSONAL_SPACE * 3
-            rew_collision = self.REW_COLLISION_DIST_COEFF * np.sum(
-                dist_crowd ** 2 * (dist_crowd < [0] * self.n_crowd)
+            )
+            Rc = np.sum(
+                (1 - np.exp(self.Cc / dist_crowd)) * \
+                (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
-        # print(dict(dist_goal=rew_dist, collision=rew_collision))
-
-        reward = rew_dist + rew_collision
-        return reward, dict(
-            dist_goal=rew_dist,
-            collision=rew_collision,
-        )
+        reward = Rg + Rc
+        return reward, dict(goal=Rg, collision=Rc)
 
 
     def _terminate(self, info):
-        return self._is_collided or self._goal_reached
+        return self._is_collided
 
 
     def _get_obs(self) -> ObsType:
@@ -122,11 +103,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             ax.set_xlim(-self.W_BORDER - 1, self.W_BORDER + 1)
             ax.set_ylim(-self.H_BORDER - 1, self.H_BORDER + 1)
 
-            self.pos_agent, = ax.plot(
-                self._agent_pos[0],
-                self._agent_pos[1],
-                "go", markersize=4, ls='',
-            )
             self.vel_agent = ax.arrow(
                 self._agent_pos[0], self._agent_pos[1],
                 self._agent_vel[0], self._agent_vel[1],
@@ -135,15 +111,15 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 head_length=0.2,
                 ec="g"
             )
-            self.pos_crowd, = ax.plot(
-                self._crowd_poss[:, 0],
-                self._crowd_poss[:, 1],
-                "ro", markersize=4, ls='',
-            )
+
             self.space_agent = plt.Circle(
+                self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
+            )
+            self.personal_space_agent = plt.Circle(
                 self._agent_pos, self.PERSONAL_SPACE, color="g", fill=False
             )
             ax.add_patch(self.space_agent)
+            ax.add_patch(self.personal_space_agent)
             self.space_crowd = []
             for m in self._crowd_poss:
                 self.space_crowd.append(
@@ -152,7 +128,22 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                     )
                 )
                 ax.add_patch(self.space_crowd[-1])
+            self.personal_space_crowd = []
+            for m in self._crowd_poss:
+                self.personal_space_crowd.append(
+                    plt.Circle(
+                        m, self.PHYSICAL_SPACE, color="r", alpha=0.5
+                    )
+                )
+                ax.add_patch(self.personal_space_crowd[-1])
+
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
+
+            self.trajectory_line, = ax.plot(
+                self.current_trajectory[:, 0],
+                self.current_trajectory[:, 1],
+                "k",
+            )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
             ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
@@ -166,16 +157,19 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
-            self.pos_crowd.set_data(self._crowd_poss[:, 0], self._crowd_poss[:, 1])
             for i, member in enumerate(self._crowd_poss):
                 self.space_crowd[i].center = member
+                self.personal_space_crowd[i].center = member
 
-        self.pos_agent.set_data(self._agent_pos[0], self._agent_pos[1])
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],
             dx=self._agent_vel[0], dy=self._agent_vel[1]
         )
         self.space_agent.center = self._agent_pos
+        self.personal_space_agent.center = self._agent_pos
+        self.trajectory_line.set_data(
+            self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+        )
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
@@ -206,7 +200,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
         self._is_collided = self._check_collisions()
-        self._goal_reached = self.check_goal_reached()
         reward, info = self._get_reward(action)
 
         self._steps += 1

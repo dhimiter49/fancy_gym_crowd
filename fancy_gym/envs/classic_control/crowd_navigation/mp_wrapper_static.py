@@ -81,7 +81,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'num_basis': 4,
             },
             'black_box_kwargs': {
-                'max_planning_times': 8,
+                # one second for dt of 0.1
                 'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
             }
         },

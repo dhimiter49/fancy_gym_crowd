@@ -88,7 +88,7 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
                 'num_basis': 3,
             },
             'black_box_kwargs': {
-                'max_planning_times': 6,
+                # one second for dt of 0.1
                 'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
             }
         },
