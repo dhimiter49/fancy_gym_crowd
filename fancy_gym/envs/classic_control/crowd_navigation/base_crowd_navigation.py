@@ -29,7 +29,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self._dt = 0.1
 
-        self.MAX_EPISODE_STEPS = 40
+        self.MAX_EPISODE_STEPS = 80
         self.WIDTH = width
         self.HEIGHT = height
         self.W_BORDER = self.WIDTH / 2
@@ -42,6 +42,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.MAX_ACC_DT = 1.5 * self._dt  # 1.5m/s^2
         self.COLLISION_REWARD = -10
 
+        self.Tc = 1
         self.Cc = 2 * self.PHYSICAL_SPACE * \
             math.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
         self.Cg = (self.PHYSICAL_SPACE * self.Cc) / self.SOCIAL_SPACE
@@ -75,6 +76,11 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.fig = None
 
         self._steps = 0
+        self._goal_reached = False
+        self.check_goal_reached = lambda : (
+            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
+            np.linalg.norm(self._agent_vel) < self.MAX_ACC_DT
+        )
         self.current_trajectory = np.zeros((40, 2))
 
 

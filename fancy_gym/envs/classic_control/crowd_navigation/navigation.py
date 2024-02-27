@@ -53,15 +53,18 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
-        Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
-            np.exp(self.Cg / self.PHYSICAL_SPACE)
+        if self._goal_reached:
+            Rg = self.Tc
+        else:
+            dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+            Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
+                np.exp(self.Cg / self.PHYSICAL_SPACE)
 
         return Rg, dict(goal=Rg)
 
 
     def _terminate(self, info) -> bool:
-        return False
+        return self._goal_reached
 
 
     def _get_obs(self) -> ObsType:
@@ -158,6 +161,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             [self.W_BORDER, self.H_BORDER]
         )
 
+        self._goal_reached = self.check_goal_reached()
         reward, info = self._get_reward(action)
 
         self._steps += 1
