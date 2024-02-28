@@ -33,13 +33,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.discrete_action = discrete_action
         if self.discrete_action:
             self.CARTESIAN_ACC = np.arange(
-                -self.MAX_ACC_DT, self.MAX_ACC_DT, self.MAX_ACC_DT * 2 / 20
+                -self.MAX_ACC, self.MAX_ACC, self.MAX_ACC * 2 / 20
             )
             self.action_space = spaces.MultiDiscrete(
                 [len(self.CARTESIAN_ACC), len(self.CARTESIAN_ACC)]
             )
         else:
-            action_bound = np.array([self.MAX_ACC_DT, self.MAX_ACC_DT])
+            action_bound = np.array([self.MAX_ACC, self.MAX_ACC])
             self.action_space = spaces.Box(
                 low=-action_bound, high=action_bound, shape=action_bound.shape
             )
@@ -172,26 +172,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         A single step with action in angular velocity space
         """
-        if self.discrete_action:
-            action = np.array([
-                self.CARTESIAN_ACC[action[0]], self.CARTESIAN_ACC[action[1]]
-            ])
-
-        action_speed = np.linalg.norm(action)
-        if action_speed > self.MAX_ACC_DT:
-            action *= self.MAX_ACC_DT / action_speed
-        self._agent_vel += action
-
-        agent_speed = np.linalg.norm(self._agent_vel)
-        if agent_speed > self.AGENT_MAX_VEL:
-            self._agent_vel *= self.AGENT_MAX_VEL / agent_speed
-        self._agent_pos += self._agent_vel * self._dt
-        self._agent_pos = np.clip(
-            self._agent_pos,
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER]
-        )
-
+        self.update_state(action)
         # crowd_vels = np.linalg.norm(self._crowd_vels, axis=-1)
         # crowd_vels_over = crowd_vels > self.CROWD_MAX_VEL
         # clipped_max_vels = self.CROWD_MAX_VEL / crowd_vels
