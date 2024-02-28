@@ -37,7 +37,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.PHYSICAL_SPACE = 0.4
         self.PERSONAL_SPACE = 1.4
         self.SOCIAL_SPACE = 1.9
-        self.MAX_ACC_DT = 1.5 * self._dt  # 1.5m/s^2
+        self.MAX_ACC = 1.5
         self.COLLISION_REWARD = -10
 
         self.Cc = 2 * self.PHYSICAL_SPACE * \
@@ -77,7 +77,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._goal_reached = False
         self.check_goal_reached = lambda : (
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
-            np.linalg.norm(self._agent_vel) < self.MAX_ACC_DT
+            np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
         self.current_trajectory = np.zeros((40, 2))
 
@@ -160,6 +160,36 @@ class BaseCrowdNavigationEnv(gym.Env):
             -self.CROWD_MAX_VEL, self.CROWD_MAX_VEL, (self.n_crowd, 2)
         )
         return agent_pos, agent_vel, goal_pos, crowd_poss, crowd_vels
+
+
+    def update_state(self, acc):
+        """
+        Update robot position and velocity for time self._dt based on its dynamics.
+
+        Args:
+            acc (numpy.ndarray): 2D array representing the accelaration for current step
+        """
+        if self.discrete_action:
+            action = np.array([
+                self.CARTESIAN_ACC[action[0]], self.CARTESIAN_ACC[action[1]]
+            ])
+
+        acc_norm = np.linalg.norm(acc)
+        if acc_norm > self.MAX_ACC:
+            acc *= self.MAX_ACC / acc_norm
+
+        self._agent_pos += self._agent_vel * self._dt + acc * 0.5 * self._dt ** 2
+        self._agent_vel += acc * self._dt
+
+        # check bounds of the environment and the bounds of the maximum velocity
+        self._agent_pos = np.clip(
+            self._agent_pos,
+            [-self.W_BORDER, -self.H_BORDER],
+            [self.W_BORDER, self.H_BORDER]
+        )
+        agent_speed = np.linalg.norm(self._agent_vel)
+        if agent_speed > self.AGENT_MAX_VEL:
+            self._agent_vel *= self.AGENT_MAX_VEL / agent_speed
 
 
     def _get_reward(self, action: np.ndarray) -> (float, dict):
