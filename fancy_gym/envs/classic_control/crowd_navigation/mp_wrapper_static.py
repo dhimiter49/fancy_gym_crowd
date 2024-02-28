@@ -7,9 +7,10 @@ from fancy_gym.black_box.raw_interface_wrapper import RawInterfaceWrapper
 
 
 def gen_mat_pos_acc(horizon, dt):
-    M_xa = scipy.linalg.toeplitz(np.arange(horizon, 0, -1) * dt ** 2, np.zeros(horizon))
-    M_xa[0] = (3 * horizon - 1) / 6 * dt ** 2
-    M_xa[-1] = 1 / 6 * dt ** 2
+    M_xa = scipy.linalg.toeplitz(
+        np.array([(2 * i - 1) / 2 * dt ** 2 for i in range(horizon, 0, -1)]),
+        np.zeros(horizon)
+    )
     M_xa = np.stack(
         [np.hstack([M_xa, M_xa * 0]), np.hstack([M_xa * 0, M_xa])]
     ).reshape(2 * horizon,2 * horizon)
@@ -17,10 +18,8 @@ def gen_mat_pos_acc(horizon, dt):
 
 
 def gen_vec_pos_vel(horizon, dt):
-    M_va = np.hstack([np.arange(1, horizon + 1)] * 2) * dt
-    M_va[0] *= 0.5
-    M_va[-1] *= 0.5
-    return M_va
+    M_xv = np.hstack([np.arange(1, horizon + 1)] * 2) * dt
+    return M_xv
 
 
 def gen_vec_vel_acc(horizon, dt):
