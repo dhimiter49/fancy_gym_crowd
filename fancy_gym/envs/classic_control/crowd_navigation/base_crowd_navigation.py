@@ -2,7 +2,6 @@ from typing import Union, Tuple, Optional, Any, Dict
 
 import gymnasium as gym
 import numpy as np
-import math
 from gymnasium import spaces
 from gymnasium.core import ObsType
 
@@ -29,7 +28,6 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self._dt = 0.1
 
-        self.MAX_EPISODE_STEPS = 80
         self.WIDTH = width
         self.HEIGHT = height
         self.W_BORDER = self.WIDTH / 2
@@ -42,10 +40,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.MAX_ACC_DT = 1.5 * self._dt  # 1.5m/s^2
         self.COLLISION_REWARD = -10
 
-        self.Tc = 1
         self.Cc = 2 * self.PHYSICAL_SPACE * \
-            math.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
+            np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
         self.Cg = (self.PHYSICAL_SPACE * self.Cc) / self.SOCIAL_SPACE
+        self.Tc = -self.MAX_EPISODE_STEPS * (1 - np.exp(self.Cg / self.PHYSICAL_SPACE))
 
         self.n_crowd = n_crowd
         self.allow_collision = allow_collision

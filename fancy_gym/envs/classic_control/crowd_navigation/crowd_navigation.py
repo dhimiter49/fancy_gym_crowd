@@ -18,6 +18,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         height: int = 20,
         discrete_action : bool = False
     ):
+        self.MAX_EPISODE_STEPS = 100
         super().__init__(n_crowd, width, height, allow_collision=False)
 
         self.discrete_action = discrete_action

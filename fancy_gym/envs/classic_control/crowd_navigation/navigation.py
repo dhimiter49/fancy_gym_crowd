@@ -17,6 +17,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         height: int = 20,
         discrete_action : bool = False
     ):
+        self.MAX_EPISODE_STEPS = 60
         super().__init__(0, width, height, allow_collision=False)
 
         self.discrete_action = discrete_action
