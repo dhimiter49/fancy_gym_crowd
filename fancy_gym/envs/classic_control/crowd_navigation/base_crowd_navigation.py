@@ -82,6 +82,22 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.current_trajectory = np.zeros((40, 2))
 
 
+    def set_trajectory(self, positions, velocities):
+        positions = positions[:10]
+        velocities = velocities[:10]
+
+        positions -= positions[0]
+        positions += self._agent_pos + self._agent_vel * self._dt
+
+        # velocities[0] += self._agent_vel * self._dt
+        # positions *= 0
+        # distances = velocities * self._dt
+        # positions[0] = self._agent_pos
+        # positions += distances
+        # positions = np.cumsum(positions, 0)
+        self.current_trajectory = positions
+
+
     @property
     def dt(self) -> Union[float, int]:
         return self._dt
