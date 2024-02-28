@@ -60,9 +60,12 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
-        Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
-            np.exp(self.Cg / self.PHYSICAL_SPACE)
+        if self._goal_reached:
+            Rg = self.Tc
+        else:
+            dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+            Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
+                np.exp(self.Cg / self.PHYSICAL_SPACE)
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD
@@ -81,7 +84,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
 
     def _terminate(self, info):
-        return self._is_collided
+        return self._is_collided or self._goal_reached
 
 
     def _get_obs(self) -> ObsType:
