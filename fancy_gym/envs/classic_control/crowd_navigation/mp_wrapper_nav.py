@@ -81,7 +81,7 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
                 'mat_vel_acc': gen_vec_vel_acc(10, 0.1),
                 'horizon': 10,
                 'dt': 0.1,
-                'control_limit': [-0.15, 0.15],
+                'control_limit': [-1.5, 1.5],
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
