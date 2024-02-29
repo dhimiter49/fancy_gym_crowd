@@ -22,8 +22,12 @@ def gen_vec_pos_vel(horizon, dt):
     return M_xv
 
 
-def gen_vec_vel_acc(horizon, dt):
-    return np.ones(horizon * 2) * dt
+def gen_mat_vel_acc(horizon, dt):
+    M_va = scipy.linalg.toeplitz(np.ones(horizon) * dt, np.zeros(horizon))
+    M_va = np.stack(
+        [np.hstack([M_va, M_va * 0]), np.hstack([M_va * 0, M_va])]
+    ).reshape(2 * horizon,2 * horizon)
+    return M_va
 
 
 class MPWrapper_CrowdStatic(RawInterfaceWrapper):
@@ -71,10 +75,10 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'controller_type': 'mpc',
                 'mat_pos_acc': gen_mat_pos_acc(10, 0.1),
                 'mat_pos_vel': gen_vec_pos_vel(10, 0.1),
-                'mat_vel_acc': gen_vec_vel_acc(10, 0.1),
+                'mat_vel_acc': gen_mat_vel_acc(10, 0.1),
                 'horizon': 10,
                 'dt': 0.1,
-                'control_limit': [-0.15, 0.15],
+                'control_limit': [-1.5, 1.5],
             },
             'basis_generator_kwargs': {
                 'num_basis': 4,
