@@ -19,13 +19,6 @@ class NavigationEnv(BaseCrowdNavigationEnv):
     ):
         super().__init__(0, width, height, allow_collision=False)
 
-        self.CROWD_MAX_VEL = 0
-        self.REW_TASK_COEFF = 10
-        self.REW_GOAL_POS_COEFF = 1
-        self.REW_GOAL_DIST_COEFF = -2 * self.REW_GOAL_POS_COEFF / np.linalg.norm(
-            np.array([self.WIDTH, self.HEIGHT])
-        ) / self.MAX_EPISODE_STEPS
-
         self.discrete_action = discrete_action
         if self.discrete_action:
             self.CARTESIAN_ACC = np.arange(
@@ -60,20 +53,15 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dist_goal = np.linalg.norm(self._agent_pos - self._goal_pos)
-        if self._goal_reached:
-            rew_dist = self.REW_TASK_COEFF
-        elif dist_goal < self.PERSONAL_SPACE / 4:
-            rew_dist = self.REW_GOAL_POS_COEFF - np.linalg.norm(self._agent_vel)
-        else:
-            rew_dist = self.REW_GOAL_DIST_COEFF * dist_goal ** 2
+        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+        Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
+            np.exp(self.Cg / self.PHYSICAL_SPACE)
 
-        reward = rew_dist
-        return reward, dict(dist_goal=rew_dist)
+        return Rg, dict(goal=Rg)
 
 
     def _terminate(self, info) -> bool:
-        return self._goal_reached
+        return False
 
 
     def _get_obs(self) -> ObsType:
@@ -94,11 +82,6 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             ax.set_xlim(-self.W_BORDER - 1, self.W_BORDER + 1)
             ax.set_ylim(-self.H_BORDER - 1, self.H_BORDER + 1)
 
-            self.pos_agent, = ax.plot(
-                self._agent_pos[0],
-                self._agent_pos[1],
-                "go", markersize=4, ls='',
-            )
             self.vel_agent = ax.arrow(
                 self._agent_pos[0], self._agent_pos[1],
                 self._agent_vel[0], self._agent_vel[1],
@@ -108,11 +91,21 @@ class NavigationEnv(BaseCrowdNavigationEnv):
                 ec="g"
             )
             self.space_agent = plt.Circle(
+                self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
+            )
+            self.personal_space_agent = plt.Circle(
                 self._agent_pos, self.PERSONAL_SPACE, color="g", fill=False
             )
             ax.add_patch(self.space_agent)
+            ax.add_patch(self.personal_space_agent)
 
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
+
+            self.trajectory_line, = ax.plot(
+                self.current_trajectory[:, 0],
+                self.current_trajectory[:, 1],
+                "k",
+            )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
             ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
@@ -127,12 +120,15 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
 
-        self.pos_agent.set_data(self._agent_pos[0], self._agent_pos[1])
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],
             dx=self._agent_vel[0], dy=self._agent_vel[1]
         )
         self.space_agent.center = self._agent_pos
+        self.personal_space_agent.center = self._agent_pos
+        self.trajectory_line.set_data(
+            self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+        )
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()

@@ -2,6 +2,7 @@ from fancy_gym.black_box.controller.meta_world_controller import MetaWorldContro
 from fancy_gym.black_box.controller.pd_controller import PDController
 from fancy_gym.black_box.controller.pos_controller import PosController
 from fancy_gym.black_box.controller.vel_controller import VelController
+from fancy_gym.black_box.controller.mpc_controller import MPCController
 
 ALL_TYPES = ["motor", "velocity", "position", "metaworld"]
 
@@ -16,6 +17,8 @@ def get_controller(controller_type: str, **kwargs):
         return PosController(**kwargs)
     elif controller_type == "metaworld":
         return MetaWorldController(**kwargs)
+    elif controller_type == "mpc":
+        return MPCController(**kwargs)
     else:
         raise ValueError(f"Specified controller type {controller_type} not supported, "
                          f"please choose one of {ALL_TYPES}.")
