@@ -38,8 +38,8 @@ class MPCController(BaseController):
             np.hstack([des_pos[:self.N, 0], des_pos[:self.N, 1]])
         reference_vel = np.repeat(c_vel, self.N) -\
             np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
-        opt_M =  50000 * self.mat_pos_acc ** 2 + 80 * self.mat_vel_acc ** 2
-        opt_V =  (reference_pos + self.vec_pos_vel * np.repeat(c_vel, self.N)) @\
+        opt_M = 500 * self.mat_pos_acc ** 2 + 8 * self.mat_vel_acc ** 2
+        opt_V = (reference_pos + self.vec_pos_vel * np.repeat(c_vel, self.N)) @\
             self.mat_pos_acc + 0.1 * reference_vel @ self.mat_vel_acc
         acc_b_min = np.ones(2 * self.N) * self.control_limit[0]
         acc_b_max = np.ones(2 * self.N) * self.control_limit[1]
