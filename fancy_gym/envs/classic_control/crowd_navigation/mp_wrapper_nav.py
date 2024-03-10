@@ -8,7 +8,7 @@ from fancy_gym.black_box.raw_interface_wrapper import RawInterfaceWrapper
 
 def gen_mat_pos_acc(horizon, dt):
     M_xa = scipy.linalg.toeplitz(
-        np.array([(2 * i - 1) / 2 * dt ** 2 for i in range(horizon, 0, -1)]),
+        np.array([(2 * i - 1) / 2 * dt ** 2 for i in range(1, horizon + 1)]),
         np.zeros(horizon)
     )
     M_xa = np.stack(
