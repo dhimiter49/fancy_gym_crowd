@@ -117,11 +117,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.space_agent = plt.Circle(
                 self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
             )
-            self.personal_space_agent = plt.Circle(
-                self._agent_pos, self.PERSONAL_SPACE, color="g", fill=False
-            )
             ax.add_patch(self.space_agent)
-            ax.add_patch(self.personal_space_agent)
             self.space_crowd = []
             for m in self._crowd_poss:
                 self.space_crowd.append(
@@ -173,7 +169,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 x=self._crowd_poss[i][0], y=self._crowd_poss[i][1],
                 dx=self._crowd_vels[i][0], dy=self._crowd_vels[i][1]
             )
-        self.personal_space_agent.center = self._agent_pos
         self.trajectory_line.set_data(
             self.current_trajectory[:, 0], self.current_trajectory[:, 1]
         )

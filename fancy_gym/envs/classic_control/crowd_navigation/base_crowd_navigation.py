@@ -170,8 +170,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             acc (numpy.ndarray): 2D array representing the accelaration for current step
         """
         if self.discrete_action:
-            action = np.array([
-                self.CARTESIAN_ACC[action[0]], self.CARTESIAN_ACC[action[1]]
+            acc = np.array([
+                self.CARTESIAN_ACC[acc[0]], self.CARTESIAN_ACC[acc[1]]
             ])
 
         acc_norm = np.linalg.norm(acc)

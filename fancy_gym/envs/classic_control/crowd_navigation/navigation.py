@@ -97,11 +97,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             self.space_agent = plt.Circle(
                 self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
             )
-            self.personal_space_agent = plt.Circle(
-                self._agent_pos, self.PERSONAL_SPACE, color="g", fill=False
-            )
             ax.add_patch(self.space_agent)
-            ax.add_patch(self.personal_space_agent)
 
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
 
@@ -129,7 +125,6 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             dx=self._agent_vel[0], dy=self._agent_vel[1]
         )
         self.space_agent.center = self._agent_pos
-        self.personal_space_agent.center = self._agent_pos
         self.trajectory_line.set_data(
             self.current_trajectory[:, 0], self.current_trajectory[:, 1]
         )
