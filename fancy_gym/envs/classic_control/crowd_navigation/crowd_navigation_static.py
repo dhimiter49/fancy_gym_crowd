@@ -34,11 +34,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 low=-action_bound, high=action_bound, shape=action_bound.shape
             )
 
-        action_bound = np.array([self.MAX_ACC, np.pi])
-        self.action_space = spaces.Box(
-            low=-action_bound, high=action_bound, shape=action_bound.shape
-        )
-
         state_bound_min = np.hstack([
             [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
             [0, 0],
