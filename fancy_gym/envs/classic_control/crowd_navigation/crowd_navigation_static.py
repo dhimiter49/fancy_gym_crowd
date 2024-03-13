@@ -55,12 +55,11 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
+        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
         if self._goal_reached:
             Rg = self.Tc
         else:
-            dg = np.linalg.norm(self._agent_pos - self._goal_pos)
-            Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
-                np.exp(self.Cg / self.PHYSICAL_SPACE)
+            Rg = -self.Cg * dg
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD
@@ -74,8 +73,11 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
-        reward = Rg + Rc
-        return reward, dict(goal=Rg, collision=Rc)
+        Rs = max(dg - 3, 0) / np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2) * \
+            (np.linalg.norm(action) - self.MAX_ACC) / self.MAX_ACC
+
+        reward = Rg + Rc + Rs
+        return reward, dict(goal=Rg, collision=Rc, stalling=Rs)
 
 
     def _terminate(self, info):
