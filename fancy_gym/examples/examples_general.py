@@ -1,12 +1,30 @@
 from collections import defaultdict
 
 import gymnasium as gym
+from matplotlib import pyplot as plt
 import numpy as np
 
 import fancy_gym
 from manual_control import ManualControl
 
-def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, manual_control=False):
+def plot_rewards(rewards: list):
+    cumulative_rewards = [sum(rewards[:i+1]) for i in range(len(rewards))]
+    fig, axs = plt.subplots(2, 1, figsize=(10, 5))
+
+    axs[0].plot(cumulative_rewards)
+    axs[0].set_title('Cumulative Rewards')
+    axs[0].set_xlabel('Step')
+    axs[0].set_ylabel('Cumulative Reward')
+
+    axs[1].plot(rewards)
+    axs[1].set_title('Reward per Step')
+    axs[1].set_xlabel('Step')
+    axs[1].set_ylabel('Reward')
+
+    plt.tight_layout()
+    plt.show()
+
+def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, manual_control=False, plot=False):
     """
     Example for running any env in the step based setting.
     This also includes DMC environments when leveraging our custom make_env function.
@@ -22,7 +40,7 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, 
     """
 
     env = gym.make(env_id)
-    rewards = 0
+    rewards = []
     obs = env.reset(seed=seed)
     print("Observation shape: ", env.observation_space.shape)
     print("Action shape: ", env.action_space.shape)
@@ -36,13 +54,16 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, 
             action = env.action_space.sample()
 
         obs, reward, terminated, truncated, info = env.step(action)
-        rewards += reward
+        rewards.append(reward)
         if render:
             env.render()
 
         if terminated or truncated:
-            print(rewards)
-            rewards = 0
+            print(sum(rewards))
+            if plot:
+                plot_rewards(rewards)
+                input()
+            rewards = []
             obs = env.reset()
 
 def example_async(env_id="fancy/HoleReacher-v0", n_cpu=4, seed=int('533D', 16), n_samples=800):
@@ -91,7 +112,7 @@ def example_async(env_id="fancy/HoleReacher-v0", n_cpu=4, seed=int('533D', 16), 
 
 def main(render = True):
     # Basic gym task
-    example_general("fancy/CrowdNavigationStatic-v0", seed=10, iterations=2000, render=render, manual_control=True)
+    example_general("fancy/CrowdNavigationStatic-v0", seed=10, iterations=2000, render=render, manual_control=True, plot=True)
 
     # Vectorized multiprocessing environments
     # example_async(env_id="HoleReacher-v0", n_cpu=2, seed=int('533D', 16), n_samples=2 * 200)
