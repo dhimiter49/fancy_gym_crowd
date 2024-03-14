@@ -78,6 +78,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.fig = None
 
         self._steps = 0
+        self._current_reward = 0
         self._goal_reached = False
         self.check_goal_reached = lambda : (
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
@@ -143,8 +144,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         agent_vel = np.zeros(2)
         while True:
             goal_pos = np.random.uniform(
-                [-self.WIDTH / 2, -self.HEIGHT / 2],
-                [self.WIDTH / 2, self.HEIGHT / 2]
+                [-self.WIDTH / 2 + self.PHYSICAL_SPACE, -self.HEIGHT / 2 + self.PHYSICAL_SPACE],
+                [self.WIDTH / 2 - self.PHYSICAL_SPACE, self.HEIGHT / 2 - self.PHYSICAL_SPACE]
             )
 
             # Place the first crowd member between the agent and the goal
@@ -226,11 +227,14 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def _check_collisions(self) -> bool:
-        """Checks whether agent is to close to at leas one member of the crowd"""
+        """Checks whether agent is to close to at leas one member of the crowd or is colliding with a wall"""
+        # Crowd
         if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
             [self.PHYSICAL_SPACE * 2] * self.n_crowd):
             return True
-
+        # Walls
+        if (np.abs(self._agent_pos) > np.subtract([self.W_BORDER, self.H_BORDER], self.PHYSICAL_SPACE)).any():
+            return True
         return False
 
 
