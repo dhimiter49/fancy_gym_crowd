@@ -65,7 +65,7 @@ register(
     id='fancy/CrowdNavigationStatic-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,
-    max_episode_steps=100,
+    max_episode_steps=80,
     kwargs={
         "n_crowd": 4,
         "width": 16,

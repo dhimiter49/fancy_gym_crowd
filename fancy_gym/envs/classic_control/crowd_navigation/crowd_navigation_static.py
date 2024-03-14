@@ -19,7 +19,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         interceptor_percentage: float = 0.5,
         discrete_action : bool = False,
     ):
-        self.MAX_EPISODE_STEPS = 100
+        self.MAX_EPISODE_STEPS = 80
         super().__init__(
             n_crowd, width, height, interceptor_percentage,  allow_collision=False
         )
