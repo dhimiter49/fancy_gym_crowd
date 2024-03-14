@@ -179,14 +179,24 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
             # Walls penalization
             border_penalization = self.PHYSICAL_SPACE * 2
-            ax.add_patch(plt.Rectangle((-self.W_BORDER + border_penalization, -self.H_BORDER + border_penalization),
-                           2 * (self.W_BORDER - border_penalization), 2 * (self.H_BORDER - border_penalization),
-                           fill=False, linestyle=":", edgecolor="r", linewidth=0.7))
+            ax.add_patch(plt.Rectangle(
+                (
+                    -self.W_BORDER + border_penalization,
+                    -self.H_BORDER + border_penalization
+                ),
+                2 * (self.W_BORDER - border_penalization),
+                2 * (self.H_BORDER - border_penalization),
+                fill=False, linestyle=":", edgecolor="r", linewidth=0.7
+            ))
 
             self.fig.show()
 
         self.fig.suptitle(f"Iteration: {self._steps}")
-        self.fig.gca().set_title(f"Reward at this step: {self._current_reward:.4f}", fontsize=11, fontweight='bold')
+        self.fig.gca().set_title(
+            f"Reward at this step: {self._current_reward:.4f}",
+            fontsize=11,
+            fontweight='bold'
+        )
 
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])

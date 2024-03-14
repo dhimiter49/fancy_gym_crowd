@@ -141,16 +141,21 @@ class BaseCrowdNavigationEnv(gym.Env):
         agent_vel = np.zeros(2)
         while True:
             goal_pos = np.random.uniform(
-                [-self.WIDTH / 2 + self.PHYSICAL_SPACE, -self.HEIGHT / 2 + self.PHYSICAL_SPACE],
-                [self.WIDTH / 2 - self.PHYSICAL_SPACE, self.HEIGHT / 2 - self.PHYSICAL_SPACE]
+                [-self.WIDTH / 2 + self.PHYSICAL_SPACE,
+                 -self.HEIGHT / 2 + self.PHYSICAL_SPACE],
+                [self.WIDTH / 2 - self.PHYSICAL_SPACE,
+                 self.HEIGHT / 2 - self.PHYSICAL_SPACE]
             )
 
             # Place the first crowd member between the agent and the goal
             direction_to_goal = goal_pos - agent_pos
             distance_to_goal = np.linalg.norm(direction_to_goal)
             norm_to_goal = direction_to_goal / distance_to_goal
-            interceptor_pos = agent_pos + norm_to_goal * np.random.uniform(self.PERSONAL_SPACE, distance_to_goal - self.PERSONAL_SPACE)
-            if np.linalg.norm(interceptor_pos - agent_pos) > self.PERSONAL_SPACE * 2 and np.linalg.norm(interceptor_pos - goal_pos) > self.PERSONAL_SPACE:
+            interceptor_pos = agent_pos + norm_to_goal * np.random.uniform(
+                self.PERSONAL_SPACE, distance_to_goal - self.PERSONAL_SPACE
+            )
+            if np.linalg.norm(interceptor_pos - agent_pos) > self.PERSONAL_SPACE * 2 and\
+               np.linalg.norm(interceptor_pos - goal_pos) > self.PERSONAL_SPACE:
                 break
         # Add perpendicular noise
         perp_direction = np.array([-norm_to_goal[1], norm_to_goal[0]])
@@ -232,7 +237,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             [self.PHYSICAL_SPACE * 2] * self.n_crowd):
             return True
         # Walls
-        if (np.abs(self._agent_pos) > np.subtract([self.W_BORDER, self.H_BORDER], self.PHYSICAL_SPACE)).any():
+        if np.sum(np.abs(self._agent_pos) >
+            np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE):
             return True
         return False
 
