@@ -68,9 +68,9 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 4,
-        "interceptor_percentage": 0.3,
         "width": 16,
         "height": 16,
+        "interceptor_percentage": 0.3,
     }
 )
 

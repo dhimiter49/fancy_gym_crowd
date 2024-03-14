@@ -14,13 +14,15 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
     def __init__(
         self,
         n_crowd: int,
-        interceptor_percentage: float = 0.5,
         width: int = 20,
         height: int = 20,
+        interceptor_percentage: float = 0.5,
         discrete_action : bool = False,
     ):
         self.MAX_EPISODE_STEPS = 100
-        super().__init__(n_crowd, interceptor_percentage, width, height, allow_collision=False)
+        super().__init__(
+            n_crowd, width, height, interceptor_percentage,  allow_collision=False
+        )
 
         self.discrete_action = discrete_action
         if self.discrete_action:
@@ -160,7 +162,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
             # Goal
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
-            
+
             # Trajectory
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],

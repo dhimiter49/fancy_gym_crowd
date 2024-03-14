@@ -20,9 +20,9 @@ class BaseCrowdNavigationEnv(gym.Env):
     def __init__(
         self,
         n_crowd: int,
-        interceptor_percentage: float = 0.5,
         width: int = 20,
         height: int = 20,
+        interceptor_percentage: float = 0.5,
         allow_collision: bool = False,
     ):
         super().__init__()
