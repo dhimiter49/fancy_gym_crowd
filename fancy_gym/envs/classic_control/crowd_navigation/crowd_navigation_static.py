@@ -80,8 +80,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
-            self.WIDTH / 2 - abs(self._agent_pos[0]),
-            self.HEIGHT / 2 - abs(self._agent_pos[1]),
+            self.W_BORDER - abs(self._agent_pos[0]),
+            self.H_BORDER - abs(self._agent_pos[1]),
         ])
         Rw = np.sum(
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
@@ -103,8 +103,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
     def _get_obs(self) -> ObsType:
         rel_crowd_poss = self._crowd_poss - self._agent_pos
         dist_walls = np.array([
-            [self.WIDTH / 2 - self._agent_pos[0], self.WIDTH / 2 + self._agent_pos[0]],
-            [self.HEIGHT / 2 - self._agent_pos[1], self.HEIGHT / 2 + self._agent_pos[1]]
+            [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
+            [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
         ])
         return np.concatenate([
             [self._goal_pos - self._agent_pos],

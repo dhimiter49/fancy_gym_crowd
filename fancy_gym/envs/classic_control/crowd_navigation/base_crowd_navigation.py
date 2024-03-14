@@ -62,11 +62,11 @@ class BaseCrowdNavigationEnv(gym.Env):
         ) = self._start_env_vars()
 
         state_bound_min = np.hstack([
-            [-self.WIDTH / 2 , -self.HEIGHT / 2] * (self.n_crowd + 1),
+            [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
             [0] * (self.n_crowd + 1),
         ])
         state_bound_max = np.hstack([
-            [self.WIDTH / 2 , self.HEIGHT / 2] * (self.n_crowd + 1),
+            [self.WIDTH , self.HEIGHT] * (self.n_crowd + 1),
             [self.AGENT_MAX_VEL],
             [self.CROWD_MAX_VEL] * (self.n_crowd)
         ])
@@ -232,7 +232,10 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def _check_collisions(self) -> bool:
-        """Checks whether agent is to close to at leas one member of the crowd or is colliding with a wall"""
+        """
+        Checks whether agent is to close to at leas one member of the crowd or is
+        colliding with a wall
+        """
         # Crowd
         if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
             [self.PHYSICAL_SPACE * 2] * self.n_crowd):
