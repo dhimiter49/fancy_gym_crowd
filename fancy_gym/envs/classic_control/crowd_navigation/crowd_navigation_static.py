@@ -78,16 +78,22 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
-        # Walls
-        min_wall_distance = min(self._agent_pos[0] + self.WIDTH / 2, self.WIDTH / 2 - self._agent_pos[0], self._agent_pos[1] + self.HEIGHT / 2, self.HEIGHT / 2 - self._agent_pos[1])
-        Rw = np.where(min_wall_distance < self.PHYSICAL_SPACE * 2, (1 - np.exp(self.Cc / min_wall_distance)), 0)
+        # Walls, only one of the walls is closer (irrelevant which)
+        dist_walls = np.array([
+            self.WIDTH / 2 - abs(self._agent_pos[0]),
+            self.HEIGHT / 2 - abs(self._agent_pos[1]),
+        ])
+        Rw = np.sum(
+            (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
+        )
 
         # Stalling reward
-        Rs = max(dg - self.max_stopping_distance, 0) / np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2) * \
-            (np.linalg.norm(action) - self.MAX_ACC) / self.MAX_ACC
+        Rs = max(dg - self.MAX_STOPPING_DIST, 0) * \
+            (np.linalg.norm(action) - self.MAX_ACC) /\
+            np.linalg.norm([self.HEIGHT, self.HEIGHT]) / self.MAX_ACC
 
         reward = Rg + Rc + Rs + Rw
-        return reward, dict(goal=Rg, collision=Rc, stalling=Rs)
+        return reward, dict(goal=Rg, collision=Rc, stalling=Rs, wall=Rw)
 
 
     def _terminate(self, info):
@@ -96,10 +102,15 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
     def _get_obs(self) -> ObsType:
         rel_crowd_poss = self._crowd_poss - self._agent_pos
+        dist_walls = np.array([
+            [self.WIDTH / 2 - self._agent_pos[0], self.WIDTH / 2 + self._agent_pos[0]],
+            [self.HEIGHT / 2 - self._agent_pos[1], self.HEIGHT / 2 + self._agent_pos[1]]
+        ])
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
             rel_crowd_poss if self.n_crowd > 1  else [rel_crowd_poss],
-            [self._agent_vel]
+            [self._agent_vel],
+            dist_walls
         ]).astype(np.float32).flatten()
 
 
