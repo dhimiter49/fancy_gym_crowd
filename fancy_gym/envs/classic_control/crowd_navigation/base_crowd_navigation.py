@@ -115,8 +115,13 @@ class BaseCrowdNavigationEnv(gym.Env):
     @property
     def current_vel(self):
         return self._agent_vel.copy()
-
-
+    
+    @property
+    def max_stopping_distance(self):
+        max_stopping_time = self.AGENT_MAX_VEL / self.MAX_ACC
+        max_stopping_distance = self.AGENT_MAX_VEL * max_stopping_time - 0.5 * self.MAX_ACC * max_stopping_time ** 2
+        return max_stopping_distance
+    
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
         ) -> Tuple[ObsType, Dict[str, Any]]:

@@ -74,7 +74,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
-        Rs = max(dg - 3, 0) / np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2) * \
+        Rs = max(dg - self.max_stopping_distance, 0) / np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2) * \
             (np.linalg.norm(action) - self.MAX_ACC) / self.MAX_ACC
 
         reward = Rg + Rc + Rs
