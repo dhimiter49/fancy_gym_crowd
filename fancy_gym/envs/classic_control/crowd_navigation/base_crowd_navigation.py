@@ -165,7 +165,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         noised_interceptor = interceptor_pos + noise
 
         crowd_poss = np.zeros((self.n_crowd, 2))
-        crowd_poss[0] = noised_interceptor
+        if self.n_crowd > 0:
+            crowd_poss[0] = noised_interceptor
         for i in range(self.n_crowd):
             while True:
                 sampled_pos = np.random.uniform(

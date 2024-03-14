@@ -61,17 +61,32 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
                 np.exp(self.Cg / self.PHYSICAL_SPACE)
 
-        return Rg, dict(goal=Rg)
+        # Walls, only one of the walls is closer (irrelevant which)
+        dist_walls = np.array([
+            self.WIDTH / 2 - abs(self._agent_pos[0]),
+            self.HEIGHT / 2 - abs(self._agent_pos[1]),
+        ])
+        Rw = np.sum(
+            (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
+        )
+        print(Rw)
+
+        return Rg + Rw, dict(goal=Rg, wall=Rw)
 
 
     def _terminate(self, info) -> bool:
-        return self._goal_reached
+        return self._goal_reached or self._is_collided
 
 
     def _get_obs(self) -> ObsType:
+        dist_walls = np.array([
+            [self.WIDTH / 2 - self._agent_pos[0], self.WIDTH / 2 + self._agent_pos[0]],
+            [self.HEIGHT / 2 - self._agent_pos[1], self.HEIGHT / 2 + self._agent_pos[1]]
+        ])
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
-            [self._agent_vel]
+            [self._agent_vel],
+            dist_walls
         ]).astype(np.float32).flatten()
 
 
@@ -113,6 +128,18 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             ax.axhspan(-self.H_BORDER - 100, -self.H_BORDER, hatch='.')
             ax.set_aspect(1.0)
 
+            # Walls penalization
+            border_penalization = self.PHYSICAL_SPACE * 2
+            ax.add_patch(plt.Rectangle(
+                (
+                    -self.W_BORDER + border_penalization,
+                    -self.H_BORDER + border_penalization
+                ),
+                2 * (self.W_BORDER - border_penalization),
+                2 * (self.H_BORDER - border_penalization),
+                fill=False, linestyle=":", edgecolor="r", linewidth=0.7
+            ))
+
             self.fig.show()
 
         self.fig.gca().set_title(f"Iteration: {self._steps}")
@@ -139,6 +166,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         """
         self.update_state(action)
         self._goal_reached = self.check_goal_reached()
+        self._is_collided = self._check_collisions()
         reward, info = self._get_reward(action)
 
         self._steps += 1
