@@ -20,6 +20,7 @@ class BaseCrowdNavigationEnv(gym.Env):
     def __init__(
         self,
         n_crowd: int,
+        interceptor_percentage: float = 0.5,
         width: int = 20,
         height: int = 20,
         allow_collision: bool = False,
@@ -39,6 +40,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.SOCIAL_SPACE = 1.9
         self.MAX_ACC = 1.5
         self.COLLISION_REWARD = -10
+        self.MAX_EPISODE_STEPS = 80
+        self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
 
         self.Cc = 2 * self.PHYSICAL_SPACE * \
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
@@ -54,7 +57,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._goal_pos,
             self._crowd_poss,
             self._crowd_vels
-        ) = self._start_env_vars()
+        ) = self._start_env_vars(self.INTERCEPTOR_PERCENTAGE)
 
         state_bound_min = np.hstack([
             [-self.WIDTH / 2 , -self.HEIGHT / 2] * (self.n_crowd + 1),
@@ -124,21 +127,35 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._goal_pos,
             self._crowd_poss,
             self._crowd_vels
-        ) = self._start_env_vars()
+        ) = self._start_env_vars(self.INTERCEPTOR_PERCENTAGE)
         self._steps = 0
 
         return self._get_obs().copy(), {}
 
 
-    def _start_env_vars(self):
+    def _start_env_vars(self, interceptor_percentage):
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
-        goal_pos = np.random.uniform(
-            [-self.WIDTH / 2, -self.HEIGHT / 2],
-            [self.WIDTH / 2, self.HEIGHT / 2]
-        )
+        while True:
+            goal_pos = np.random.uniform(
+                [-self.WIDTH / 2, -self.HEIGHT / 2],
+                [self.WIDTH / 2, self.HEIGHT / 2]
+            )
 
+            # Place the first crowd member between the agent and the goal
+            direction_to_goal = goal_pos - agent_pos
+            distance_to_goal = np.linalg.norm(direction_to_goal)
+            norm_to_goal = direction_to_goal / distance_to_goal
+            interceptor_pos = agent_pos + norm_to_goal * np.random.uniform(self.PERSONAL_SPACE, distance_to_goal - self.PERSONAL_SPACE)
+            if np.linalg.norm(interceptor_pos - agent_pos) > self.PERSONAL_SPACE * 2 and np.linalg.norm(interceptor_pos - goal_pos) > self.PERSONAL_SPACE:
+                break
+        # Add perpendicular noise
+        perp_direction = np.array([-norm_to_goal[1], norm_to_goal[0]]) 
+        noise = perp_direction * np.random.uniform(-self.PERSONAL_SPACE/interceptor_percentage, self.PERSONAL_SPACE/interceptor_percentage)
+        noised_interceptor = interceptor_pos + noise
+        
         crowd_poss = np.zeros((self.n_crowd, 2))
+        crowd_poss[0] = noised_interceptor
         for i in range(self.n_crowd):
             while True:
                 sampled_pos = np.random.uniform(
@@ -157,6 +174,8 @@ class BaseCrowdNavigationEnv(gym.Env):
                     crowd_poss[i] = sampled_pos
                     break
 
+        # Shuffle crowd positions
+        np.random.shuffle(crowd_poss)
         crowd_vels = np.random.uniform(
             -self.CROWD_MAX_VEL, self.CROWD_MAX_VEL, (self.n_crowd, 2)
         )

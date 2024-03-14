@@ -14,12 +14,13 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
     def __init__(
         self,
         n_crowd: int,
+        interceptor_percentage: float = 0.5,
         width: int = 20,
         height: int = 20,
-        discrete_action : bool = False
+        discrete_action : bool = False,
     ):
         self.MAX_EPISODE_STEPS = 80
-        super().__init__(n_crowd, width, height, allow_collision=False)
+        super().__init__(n_crowd, interceptor_percentage, width, height, allow_collision=False)
 
         self.discrete_action = discrete_action
         if self.discrete_action:
@@ -49,8 +50,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
 
-    def _start_env_vars(self):
-        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
+    def _start_env_vars(self, interceptor_percentage: float):
+        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars(interceptor_percentage)
         return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
 
 

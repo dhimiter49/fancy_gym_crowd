@@ -37,7 +37,6 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, 
 
         obs, reward, terminated, truncated, info = env.step(action)
         rewards += reward
-
         if render:
             env.render()
 
@@ -92,7 +91,7 @@ def example_async(env_id="fancy/HoleReacher-v0", n_cpu=4, seed=int('533D', 16), 
 
 def main(render = True):
     # Basic gym task
-    example_general("fancy/Navigation-v0", seed=10, iterations=2000, render=render, manual_control=True)
+    example_general("fancy/CrowdNavigationStatic-v0", seed=10, iterations=2000, render=render, manual_control=True)
 
     # Vectorized multiprocessing environments
     # example_async(env_id="HoleReacher-v0", n_cpu=2, seed=int('533D', 16), n_samples=2 * 200)
