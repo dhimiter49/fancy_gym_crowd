@@ -187,6 +187,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         # clipped_max_vels = self.CROWD_MAX_VEL / crowd_vels
         # self._crowd_vels[crowd_vels_over] = clipped_max_vels[crowd_vels_over]
         self._crowd_poss += self._crowd_vels * self._dt
+        self._crowd_vels *= 1 - (
+            np.abs(self._crowd_poss) >
+            np.stack([np.array([self.W_BORDER, self.H_BORDER])] * self.n_crowd)
+        ).astype(float)
         self._crowd_poss = np.clip(
             self._crowd_poss,
             [-self.W_BORDER, -self.H_BORDER],
