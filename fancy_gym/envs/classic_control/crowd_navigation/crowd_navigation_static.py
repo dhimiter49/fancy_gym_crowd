@@ -118,22 +118,30 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
             )
             ax.add_patch(self.space_agent)
-            self.space_crowd = []
+            self.ScS_crowd = []
             for m in self._crowd_poss:
-                self.space_crowd.append(
+                self.ScS_crowd.append(
+                    plt.Circle(
+                        m, self.SOCIAL_SPACE, color="r", fill=False, linestyle="--"
+                    )
+                )
+                ax.add_patch(self.ScS_crowd[-1])
+            self.PrS_crowd = []
+            for m in self._crowd_poss:
+                self.PrS_crowd.append(
                     plt.Circle(
                         m, self.PERSONAL_SPACE, color="r", fill=False
                     )
                 )
-                ax.add_patch(self.space_crowd[-1])
-            self.personal_space_crowd = []
+                ax.add_patch(self.PrS_crowd[-1])
+            self.PhS_crowd = []
             for m in self._crowd_poss:
-                self.personal_space_crowd.append(
+                self.PhS_crowd.append(
                     plt.Circle(
                         m, self.PHYSICAL_SPACE, color="r", alpha=0.5
                     )
                 )
-                ax.add_patch(self.personal_space_crowd[-1])
+                ax.add_patch(self.PhS_crowd[-1])
 
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
 
@@ -156,8 +164,9 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
             for i, member in enumerate(self._crowd_poss):
-                self.space_crowd[i].center = member
-                self.personal_space_crowd[i].center = member
+                self.ScS_crowd[i].center = member
+                self.PrS_crowd[i].center = member
+                self.PhS_crowd[i].center = member
 
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],
