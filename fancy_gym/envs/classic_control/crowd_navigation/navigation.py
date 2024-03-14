@@ -37,10 +37,12 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         state_bound_min = np.hstack([
             [-self.WIDTH, -self.HEIGHT],
             [0, 0],
+            [-self.WIDTH, -self.WIDTH, -self.HEIGHT, -self.HEIGHT],  # four directions
         ])
         state_bound_max = np.hstack([
             [self.WIDTH, self.HEIGHT],
             [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+            [self.WIDTH, self.WIDTH, self.HEIGHT, self.HEIGHT],  # four directions
         ])
 
         self.observation_space = spaces.Box(
@@ -69,7 +71,6 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         Rw = np.sum(
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
         )
-        print(Rw)
 
         return Rg + Rw, dict(goal=Rg, wall=Rw)
 
