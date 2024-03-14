@@ -57,7 +57,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._goal_pos,
             self._crowd_poss,
             self._crowd_vels
-        ) = self._start_env_vars(self.INTERCEPTOR_PERCENTAGE)
+        ) = self._start_env_vars()
 
         state_bound_min = np.hstack([
             [-self.WIDTH / 2 , -self.HEIGHT / 2] * (self.n_crowd + 1),
@@ -133,13 +133,13 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._goal_pos,
             self._crowd_poss,
             self._crowd_vels
-        ) = self._start_env_vars(self.INTERCEPTOR_PERCENTAGE)
+        ) = self._start_env_vars()
         self._steps = 0
-
+        self._goal_reached = False
         return self._get_obs().copy(), {}
 
 
-    def _start_env_vars(self, interceptor_percentage):
+    def _start_env_vars(self):
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
         while True:
@@ -156,10 +156,12 @@ class BaseCrowdNavigationEnv(gym.Env):
             if np.linalg.norm(interceptor_pos - agent_pos) > self.PERSONAL_SPACE * 2 and np.linalg.norm(interceptor_pos - goal_pos) > self.PERSONAL_SPACE:
                 break
         # Add perpendicular noise
-        perp_direction = np.array([-norm_to_goal[1], norm_to_goal[0]]) 
-        noise = perp_direction * np.random.uniform(-self.PERSONAL_SPACE/interceptor_percentage, self.PERSONAL_SPACE/interceptor_percentage)
+        perp_direction = np.array([-norm_to_goal[1], norm_to_goal[0]])
+        noise = perp_direction * np.random.uniform(
+            -self.PERSONAL_SPACE / self.INTERCEPTOR_PERCENTAGE,
+            self.PERSONAL_SPACE / self.INTERCEPTOR_PERCENTAGE)
         noised_interceptor = interceptor_pos + noise
-        
+
         crowd_poss = np.zeros((self.n_crowd, 2))
         crowd_poss[0] = noised_interceptor
         for i in range(self.n_crowd):

@@ -52,8 +52,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
 
-    def _start_env_vars(self, interceptor_percentage: float):
-        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars(interceptor_percentage)
+    def _start_env_vars(self):
+        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
         return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
 
 
