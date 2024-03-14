@@ -39,10 +39,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.PERSONAL_SPACE = 1.4
         self.SOCIAL_SPACE = 1.9
         self.MAX_ACC = 1.5
-        self.COLLISION_REWARD = -10
-        self.MAX_EPISODE_STEPS = 80
+        self.MAX_STOPPING_TIME = self.AGENT_MAX_VEL / self.MAX_ACC
+        self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\
+            0.5 * self.MAX_ACC * self.MAX_STOPPING_TIME ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
 
+        self.COLLISION_REWARD = -10
         self.Cc = 2 * self.PHYSICAL_SPACE * \
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
         self.Cg = -(1 - np.exp(self.Cc / self.SOCIAL_SPACE)) /\
@@ -116,13 +118,8 @@ class BaseCrowdNavigationEnv(gym.Env):
     @property
     def current_vel(self):
         return self._agent_vel.copy()
-    
-    @property
-    def max_stopping_distance(self):
-        max_stopping_time = self.AGENT_MAX_VEL / self.MAX_ACC
-        max_stopping_distance = self.AGENT_MAX_VEL * max_stopping_time - 0.5 * self.MAX_ACC * max_stopping_time ** 2
-        return max_stopping_distance
-    
+
+
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
         ) -> Tuple[ObsType, Dict[str, Any]]:
