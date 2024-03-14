@@ -162,7 +162,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         
         crowd_poss = np.zeros((self.n_crowd, 2))
         crowd_poss[0] = noised_interceptor
-        for i in range(self.n_crowd):
+        for i in range(1, self.n_crowd):
             while True:
                 sampled_pos = np.random.uniform(
                     [-self.WIDTH / 2, -self.HEIGHT / 2],
