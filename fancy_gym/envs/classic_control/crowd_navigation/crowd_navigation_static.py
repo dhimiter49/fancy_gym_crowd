@@ -76,7 +76,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 axis=-1
             )
             Rc = np.sum(
-                (1 - np.exp(self.Cc / dist_crowd)) * \
+                (1 - np.exp(self.Cc / dist_crowd)) *\
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
