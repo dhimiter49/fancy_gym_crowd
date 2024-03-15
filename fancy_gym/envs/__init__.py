@@ -70,7 +70,7 @@ register(
         "n_crowd": 4,
         "width": 16,
         "height": 16,
-        "interceptor_percentage": 0.3,
+        "interceptor_percentage": 2,
     }
 )
 

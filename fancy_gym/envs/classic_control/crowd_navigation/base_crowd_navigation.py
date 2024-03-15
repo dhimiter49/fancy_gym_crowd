@@ -53,6 +53,9 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self.n_crowd = n_crowd
         self.allow_collision = allow_collision
+        self.rot_mat = lambda deg : np.array([
+            [np.cos(deg), -np.sin(deg)], [np.sin(deg), np.cos(deg)]
+        ])
         (
             self._agent_pos,
             self._agent_vel,
@@ -139,40 +142,31 @@ class BaseCrowdNavigationEnv(gym.Env):
     def _start_env_vars(self):
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
-        while True:
-            goal_pos = np.random.uniform(
-                [-self.WIDTH / 2 + self.PHYSICAL_SPACE,
-                 -self.HEIGHT / 2 + self.PHYSICAL_SPACE],
-                [self.WIDTH / 2 - self.PHYSICAL_SPACE,
-                 self.HEIGHT / 2 - self.PHYSICAL_SPACE]
-            )
-
-            # Place the first crowd member between the agent and the goal
-            direction_to_goal = goal_pos - agent_pos
-            distance_to_goal = np.linalg.norm(direction_to_goal)
-            norm_to_goal = direction_to_goal / distance_to_goal
-            interceptor_pos = agent_pos + norm_to_goal * np.random.uniform(
-                self.PERSONAL_SPACE, distance_to_goal - self.PERSONAL_SPACE
-            )
-            if np.linalg.norm(interceptor_pos - agent_pos) > self.PERSONAL_SPACE * 2 and\
-               np.linalg.norm(interceptor_pos - goal_pos) > self.PERSONAL_SPACE:
-                break
-        # Add perpendicular noise
-        perp_direction = np.array([-norm_to_goal[1], norm_to_goal[0]])
-        noise = perp_direction * np.random.uniform(
-            -self.PERSONAL_SPACE / self.INTERCEPTOR_PERCENTAGE,
-            self.PERSONAL_SPACE / self.INTERCEPTOR_PERCENTAGE)
-        noised_interceptor = interceptor_pos + noise
+        goal_pos = np.random.uniform(
+            [self.PHYSICAL_SPACE + self.PHYSICAL_SPACE * 2,
+             self.PHYSICAL_SPACE + self.PHYSICAL_SPACE * 2],
+            [self.W_BORDER - self.PHYSICAL_SPACE, self.H_BORDER - self.PHYSICAL_SPACE]
+        ) * np.random.choice([1, -1])
 
         crowd_poss = np.zeros((self.n_crowd, 2))
-        if self.n_crowd > 0:
-            crowd_poss[0] = noised_interceptor
+        try_between = True
         for i in range(self.n_crowd):
             while True:
-                sampled_pos = np.random.uniform(
-                    [-self.WIDTH / 2, -self.HEIGHT / 2],
-                    [self.WIDTH / 2, self.HEIGHT / 2],
-                )
+                if try_between:
+                    direction = goal_pos - agent_pos
+                    rot_deg = np.sign(direction[1]) *\
+                        np.arccos(direction[0] / np.linalg.norm(direction))
+                    # start from a sample between [-0.5, 0.5] and scale to
+                    # [-PHYSICAL_SPACE / 2, INTERCEPTOR_PERCENTAGE * PHYSICAL_SPACE / 2]
+                    rand = (np.random.rand(2) - 0.5) * self.PERSONAL_SPACE
+                    rand[-1] *= self.INTERCEPTOR_PERCENTAGE
+                    sampled_pos = (direction) / 2 + self.rot_mat(rot_deg) @ rand
+                    try_between = False
+                else:
+                    sampled_pos = np.random.uniform(
+                        [-self.WIDTH / 2, -self.HEIGHT / 2],
+                        [self.WIDTH / 2, self.HEIGHT / 2],
+                    )
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
