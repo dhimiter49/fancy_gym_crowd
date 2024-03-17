@@ -143,10 +143,9 @@ class BaseCrowdNavigationEnv(gym.Env):
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
         goal_pos = np.random.uniform(
-            [self.PHYSICAL_SPACE + self.PHYSICAL_SPACE * 2,
-             self.PHYSICAL_SPACE + self.PHYSICAL_SPACE * 2],
-            [self.W_BORDER - self.PHYSICAL_SPACE, self.H_BORDER - self.PHYSICAL_SPACE]
-        ) * np.random.choice([1, -1])
+           [-self.W_BORDER + self.PHYSICAL_SPACE, -self.H_BORDER + self.PHYSICAL_SPACE],
+           [self.W_BORDER - self.PHYSICAL_SPACE, self.H_BORDER - self.PHYSICAL_SPACE]
+        )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
         try_between = True
