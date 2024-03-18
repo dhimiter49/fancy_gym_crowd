@@ -136,6 +136,14 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 head_length=0.2,
                 ec="g"
             )
+            self.sep_planes = []
+            for i in range(self.n_crowd):
+                self.sep_planes.append(ax.arrow(
+                    self.separating_planes[i][0], self.separating_planes[i][1],
+                    self.separating_planes[i][2], self.separating_planes[i][3],
+                    head_width=0.0,
+                    ec="r"
+                ))
 
             # Agent
             self.space_agent = plt.Circle(
@@ -226,6 +234,11 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         self.trajectory_line.set_data(
             self.current_trajectory[:, 0], self.current_trajectory[:, 1]
         )
+        for i in range(self.n_crowd):
+            self.sep_planes[i].set_data(
+                x=self.separating_planes[i][0], y=self.separating_planes[i][1],
+                dx=self.separating_planes[i][2], dy=self.separating_planes[i][3]
+            )
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
