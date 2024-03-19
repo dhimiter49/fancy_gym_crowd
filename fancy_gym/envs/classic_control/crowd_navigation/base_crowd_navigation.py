@@ -151,11 +151,47 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def _start_env_vars(self):
+        """
+        Start positions for agent, goal and crowd in the 2D environment. The agent if
+        initialized at the center with zero velocity.
+
+        The goal is initialized inside the bounds with padding so the agent does not have
+        to crash into the wall. The positions is generated using polar coordinates in
+        order to define a minimal distance from the agent. This distance directly affects
+        the probability for a member of the crowd to spawn between the agent and the goal.
+
+        In order for the positions of each member of the crowd to be viable it should have
+        at least a (PERSONAL_SPACE + PHYSICAL_SPACE) from the agent and at least a
+        SOCIAL_SPACE to the goal. In order to encourage spawning of a crowd member between
+        the agent and the goal, the property is hard coded. The first member of the crowd
+        spawned will be placed exactly between the agent and the goal with some uniform
+        noise of dimension PERSONAL_SPACE. With the parameter INTERCEPTOR_PERCENTAGE it is
+        possible to define the size of the area perpendicular to the semgment connecting
+        the agent and the goal. E.g
+
+                       ┌─────────┐
+                       │         │
+                       │         │
+        (agent)O       │    •    │       x(goal)
+                       │         │
+                       │         │
+                       └─────────┘
+                       <-PERSONAL>
+                       <--SPACE-->
+
+        The rectangle above represents the area from which unifrom sampling happens to
+        find position between the agent and the goal. The random sample is rotated based
+        on the segment connecting the agent and the goal in order for the sampling are to
+        remain in the correct orientation. This sampling process is carried out only for
+        the first member sampled while other members are sampled randomly inside the
+        bounds. The sampled members of the crowd are shuffled in the end in order for the
+        interceptor to be a random index in the list of members.
+        """
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
         goal_pos = np.random.uniform(  # polar
-            [self.PHYSICAL_SPACE + self.PERSONAL_SPACE, -np.pi],
-            [np.linalg.norm([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE, np.pi],
+            [self.PHYSICAL_SPACE, -np.pi],
+            [np.linalg.norm([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE, np.pi]
         )
         goal_pos = np.clip(
             [goal_pos[0] * np.cos(goal_pos[1]), goal_pos[0] * np.sin(goal_pos[1])],
@@ -179,19 +215,20 @@ class BaseCrowdNavigationEnv(gym.Env):
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
-                        [self.PHYSICAL_SPACE + self.PERSONAL_SPACE * 2,  # min dist agent
-                         self.PHYSICAL_SPACE + self.PERSONAL_SPACE * 2],
+                        [-self.W_BORDER + self.PHYSICAL_SPACE,
+                         -self.H_BORDER + self.PHYSICAL_SPACE],
                         [self.W_BORDER - self.PHYSICAL_SPACE,
                          self.H_BORDER - self.PHYSICAL_SPACE]
-                    ) * np.random.choice([1, -1])
+                    )
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
                             crowd_poss[:i] - sampled_pos, axis=-1
                         ) < self.PERSONAL_SPACE * 2
                     ) == 0
-                if (np.linalg.norm(sampled_pos - agent_pos) > self.PERSONAL_SPACE * 2 and
-                    np.linalg.norm(sampled_pos - goal_pos) > self.PERSONAL_SPACE * 2 and
+                if (np.linalg.norm(sampled_pos - agent_pos) >
+                        self.PERSONAL_SPACE + self.PHYSICAL_SPACE and
+                    np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE and
                     no_crowd_collision):
                     crowd_poss[i] = sampled_pos
                     break
