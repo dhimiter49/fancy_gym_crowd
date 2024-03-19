@@ -154,9 +154,9 @@ class BaseCrowdNavigationEnv(gym.Env):
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
         goal_pos = np.random.uniform(
-           [-self.W_BORDER + self.PHYSICAL_SPACE, -self.H_BORDER + self.PHYSICAL_SPACE],
-           [self.W_BORDER - self.PHYSICAL_SPACE, self.H_BORDER - self.PHYSICAL_SPACE]
-        )
+            [self.PHYSICAL_SPACE, self.PHYSICAL_SPACE],
+            [self.W_BORDER - self.PHYSICAL_SPACE, self.H_BORDER - self.PHYSICAL_SPACE]
+        ) * np.random.choice([1, -1])
 
         crowd_poss = np.zeros((self.n_crowd, 2))
         try_between = True
@@ -174,9 +174,11 @@ class BaseCrowdNavigationEnv(gym.Env):
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
-                        [-self.WIDTH / 2, -self.HEIGHT / 2],
-                        [self.WIDTH / 2, self.HEIGHT / 2],
-                    )
+                        [self.PHYSICAL_SPACE + self.PERSONAL_SPACE * 2,  # min dist agent
+                         self.PHYSICAL_SPACE + self.PERSONAL_SPACE * 2],
+                        [self.W_BORDER - self.PHYSICAL_SPACE,
+                         self.H_BORDER - self.PHYSICAL_SPACE]
+                    ) * np.random.choice([1, -1])
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
