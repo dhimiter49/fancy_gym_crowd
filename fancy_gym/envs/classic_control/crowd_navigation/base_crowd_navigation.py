@@ -195,8 +195,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         )
         goal_pos = np.clip(
             [goal_pos[0] * np.cos(goal_pos[1]), goal_pos[0] * np.sin(goal_pos[1])],
-            [-self.W_BORDER + self.PHYSICAL_SPACE, -self.W_BORDER+ self.PHYSICAL_SPACE],
-            [self.W_BORDER - self.PHYSICAL_SPACE, self.W_BORDER- self.PHYSICAL_SPACE]
+            [-self.W_BORDER + 2 * self.PHYSICAL_SPACE,
+             -self.H_BORDER + 2 * self.PHYSICAL_SPACE],
+            [self.W_BORDER - 2 * self.PHYSICAL_SPACE,
+             self.H_BORDER - 2 * self.PHYSICAL_SPACE]
         )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
