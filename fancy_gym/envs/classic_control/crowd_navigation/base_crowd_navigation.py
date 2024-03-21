@@ -53,7 +53,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self.n_crowd = n_crowd
         self.allow_collision = allow_collision
-        self.rot_mat = lambda deg : np.array([
+        self.rot_mat = lambda deg: np.array([
             [np.cos(deg), -np.sin(deg)], [np.sin(deg), np.cos(deg)]
         ])
         (
@@ -69,7 +69,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             [0] * (self.n_crowd + 1),
         ])
         state_bound_max = np.hstack([
-            [self.WIDTH , self.HEIGHT] * (self.n_crowd + 1),
+            [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
             [self.AGENT_MAX_VEL],
             [self.CROWD_MAX_VEL] * (self.n_crowd)
         ])
@@ -85,7 +85,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._steps = 0
         self._current_reward = 0
         self._goal_reached = False
-        self.check_goal_reached = lambda : (
+        self.check_goal_reached = lambda: (
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
@@ -136,7 +136,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
-        ) -> Tuple[ObsType, Dict[str, Any]]:
+    ) -> Tuple[ObsType, Dict[str, Any]]:
         super(BaseCrowdNavigationEnv, self).reset(seed=seed, options=options)
         (
             self._agent_pos,
@@ -225,13 +225,12 @@ class BaseCrowdNavigationEnv(gym.Env):
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
-                            crowd_poss[:i] - sampled_pos, axis=-1
-                        ) < self.PERSONAL_SPACE * 2
-                    ) == 0
+                        crowd_poss[:i] - sampled_pos, axis=-1
+                    ) < self.PERSONAL_SPACE * 2) == 0
                 if (np.linalg.norm(sampled_pos - agent_pos) >
                         self.PERSONAL_SPACE + self.PHYSICAL_SPACE and
-                    np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE and
-                    no_crowd_collision):
+                        np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE and
+                        no_crowd_collision):
                     crowd_poss[i] = sampled_pos
                     break
 
@@ -288,11 +287,11 @@ class BaseCrowdNavigationEnv(gym.Env):
         """
         # Crowd
         if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
-            [self.PHYSICAL_SPACE * 2] * self.n_crowd):
+           [self.PHYSICAL_SPACE * 2] * self.n_crowd):
             return True
         # Walls
         if np.sum(np.abs(self._agent_pos) >
-            np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE):
+           np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE):
             return True
         return False
 

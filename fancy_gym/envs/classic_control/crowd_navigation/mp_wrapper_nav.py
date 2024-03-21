@@ -13,7 +13,7 @@ def gen_mat_pos_acc(horizon, dt):
     )
     M_xa = np.stack(
         [np.hstack([M_xa, M_xa * 0]), np.hstack([M_xa * 0, M_xa])]
-    ).reshape(2 * horizon,2 * horizon)
+    ).reshape(2 * horizon, 2 * horizon)
     return M_xa
 
 
@@ -26,7 +26,7 @@ def gen_mat_vel_acc(horizon, dt):
     M_va = scipy.linalg.toeplitz(np.ones(horizon) * dt, np.zeros(horizon))
     M_va = np.stack(
         [np.hstack([M_va, M_va * 0]), np.hstack([M_va * 0, M_va])]
-    ).reshape(2 * horizon,2 * horizon)
+    ).reshape(2 * horizon, 2 * horizon)
     return M_va
 
 
@@ -39,7 +39,7 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
             },
             "basis_generator_kwargs": {
                 'basis_generator_type': 'zero_rbf',
-            'num_basis': 4,
+                'num_basis': 4,
                 'num_basis_zero_start': 1
             },
             'black_box_kwargs': {

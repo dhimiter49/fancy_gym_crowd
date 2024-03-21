@@ -17,11 +17,11 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
-        discrete_action : bool = False,
+        discrete_action: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 80
         super().__init__(
-            n_crowd, width, height, interceptor_percentage,  allow_collision=False
+            n_crowd, width, height, interceptor_percentage, allow_collision=False
         )
 
         self.discrete_action = discrete_action
@@ -76,7 +76,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 axis=-1
             )
             Rc = np.sum(
-                (1 - np.exp(self.Cc / dist_crowd)) *\
+                (1 - np.exp(self.Cc / dist_crowd)) *
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
@@ -110,7 +110,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         ]), 0, self.MAX_STOPPING_DIST)
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
-            rel_crowd_poss if self.n_crowd > 1  else [rel_crowd_poss],
+            rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
             [self._agent_vel],
             dist_walls
         ]).astype(np.float32).flatten()
@@ -193,7 +193,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
             # Walls
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
-            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
+            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER, hatch='.')
             ax.axhspan(self.H_BORDER, self.H_BORDER + 100, hatch='.')
             ax.axhspan(-self.H_BORDER - 100, -self.H_BORDER, hatch='.')
             ax.set_aspect(1.0)

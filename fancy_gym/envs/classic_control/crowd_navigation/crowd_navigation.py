@@ -16,7 +16,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         n_crowd: int,
         width: int = 20,
         height: int = 20,
-        discrete_action : bool = False
+        discrete_action: bool = False
     ):
         self.MAX_EPISODE_STEPS = 100
         super().__init__(n_crowd, width, height, allow_collision=False)
@@ -41,7 +41,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         ])
         state_bound_max = np.hstack([
             [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
-            [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL] * (self.n_crowd + 1) ,
+            [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL] * (self.n_crowd + 1),
         ])
 
         self.observation_space = spaces.Box(
@@ -62,7 +62,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 axis=-1
             )
             Rc = np.sum(
-                (1 - np.exp(self.Cc / dist_crowd)) * \
+                (1 - np.exp(self.Cc / dist_crowd)) *
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
@@ -78,7 +78,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         rel_crowd_poss = self._crowd_poss - self._agent_pos
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
-            rel_crowd_poss if self.n_crowd > 1  else [rel_crowd_poss],
+            rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
             [self._agent_vel],
             self._crowd_vels
         ]).astype(np.float32).flatten()
@@ -152,7 +152,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
-            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
+            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER, hatch='.')
             ax.axhspan(self.H_BORDER, self.H_BORDER + 100, hatch='.')
             ax.axhspan(-self.H_BORDER - 100, -self.H_BORDER, hatch='.')
             ax.set_aspect(1.0)

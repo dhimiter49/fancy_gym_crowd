@@ -15,7 +15,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         self,
         width: int = 20,
         height: int = 20,
-        discrete_action : bool = False
+        discrete_action: bool = False
     ):
         self.MAX_EPISODE_STEPS = 60
         super().__init__(0, width, height, allow_collision=False)
@@ -72,7 +72,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
                 self.H_BORDER - abs(self._agent_pos[1]),
             ])
             Rw = np.sum(
-                (1 - np.exp(self.Cc / dist_walls)) *\
+                (1 - np.exp(self.Cc / dist_walls)) *
                 (dist_walls < self.PHYSICAL_SPACE * 2)
             )
 
@@ -128,7 +128,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
-            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
+            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER, hatch='.')
             ax.axhspan(self.H_BORDER, self.H_BORDER + 100, hatch='.')
             ax.axhspan(-self.H_BORDER - 100, -self.H_BORDER, hatch='.')
             ax.set_aspect(1.0)
