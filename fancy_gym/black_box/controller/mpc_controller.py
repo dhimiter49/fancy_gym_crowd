@@ -1,5 +1,3 @@
-from typing import Union, Tuple
-
 from fancy_gym.black_box.controller.base_controller import BaseController
 from qpsolvers import solve_qp
 import numpy as np
@@ -32,6 +30,7 @@ class MPCController(BaseController):
         self.mat_vel_acc = mat_vel_acc
         self.control_limit = control_limit
 
+
     def get_action(self, des_pos, des_vel, c_pos, c_vel):
         actions = np.empty((self.N, 2))
         reference_pos = np.repeat(c_pos, self.N) -\
@@ -39,8 +38,8 @@ class MPCController(BaseController):
         reference_vel = np.repeat(c_vel, self.N) -\
             np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
         opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
-                0.2 * self.mat_vel_acc.T @ self.mat_vel_acc +\
-                0.2 * np.eye(2 * self.N)
+            0.2 * self.mat_vel_acc.T @ self.mat_vel_acc +\
+            0.2 * np.eye(2 * self.N)
         opt_V = (reference_pos + self.vec_pos_vel * np.repeat(c_vel, self.N)).T @\
             self.mat_pos_acc + 0.2 * reference_vel.T @ self.mat_vel_acc
         acc_b_min = np.ones(2 * self.N) * self.control_limit[0]
@@ -48,5 +47,5 @@ class MPCController(BaseController):
 
         acc = solve_qp(opt_M, opt_V, lb=acc_b_min, ub=acc_b_max, solver="clarabel")
         actions[:, 0] = acc[: self.N]
-        actions[:, 1] = acc[self.N :]
+        actions[:, 1] = acc[self.N:]
         return actions

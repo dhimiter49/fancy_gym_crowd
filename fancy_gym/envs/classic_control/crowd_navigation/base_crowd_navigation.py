@@ -108,6 +108,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         # positions = np.cumsum(positions, 0)
         self.current_trajectory = positions
 
+
     def set_separating_planes(self):
         for i in range(self.n_crowd):
             pos = self._agent_pos - self._crowd_poss[i]
@@ -161,7 +162,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         the probability for a member of the crowd to spawn between the agent and the goal.
 
         In order for the positions of each member of the crowd to be viable it should have
-        at least a (PERSONAL_SPACE + PHYSICAL_SPACE) from the agent and at least a
+        a dist of at least (PERSONAL_SPACE + PHYSICAL_SPACE) from the agent and at least
         SOCIAL_SPACE to the goal. In order to encourage spawning of a crowd member between
         the agent and the goal, the property is hard coded. The first member of the crowd
         spawned will be placed exactly between the agent and the goal with some uniform
@@ -186,11 +187,21 @@ class BaseCrowdNavigationEnv(gym.Env):
         the first member sampled while other members are sampled randomly inside the
         bounds. The sampled members of the crowd are shuffled in the end in order for the
         interceptor to be a random index in the list of members.
+
+        The size of the environment and the initial minial goal position (apart from other
+        constants set in the environment) directly affect the probability of spawning a
+        member of the crowd between the agent and the goal (with some noise in its
+        position as described above). The computed probabilities for WIDTH=HEIGHT=16 based
+        on the minimal spwaning distance of the goal from the agent are:
+            min_dist = PHYSICAL_SPACE -> ~65%
+            min_dist = PHYSICAL_SPACE + PERSONAL_SPACE -> ~75%
+            min_dist = PHYSICAL_SPACE + 2 * PERSONALSPACE -> ~89%
+            min_dist = PHYSICAL_SPACE + 3 * PERSONAL_SPACE -> ~100%
         """
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
         goal_pos = np.random.uniform(  # polar
-            [self.PHYSICAL_SPACE, -np.pi],
+            [self.PHYSICAL_SPACE + 2 * self.PERSONAL_SPACE, -np.pi],
             [np.linalg.norm([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE, np.pi]
         )
         goal_pos = np.clip(
