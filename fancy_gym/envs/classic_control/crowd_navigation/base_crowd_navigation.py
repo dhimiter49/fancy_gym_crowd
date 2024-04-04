@@ -50,6 +50,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.Cg = -(1 - np.exp(self.Cc / self.SOCIAL_SPACE)) /\
             np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
         self.Tc = -self.COLLISION_REWARD / 2
+        self.Cc *= 2
 
         self.n_crowd = n_crowd
         self.allow_collision = allow_collision
@@ -201,7 +202,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         agent_pos = np.zeros(2)
         agent_vel = np.zeros(2)
         goal_pos = np.random.uniform(  # polar
-            [self.PHYSICAL_SPACE + 2 * self.PERSONAL_SPACE, -np.pi],
+            [self.PHYSICAL_SPACE + self.PERSONAL_SPACE, -np.pi],
             [np.linalg.norm([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE, np.pi]
         )
         goal_pos = np.clip(
@@ -245,7 +246,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                     crowd_poss[i] = sampled_pos
                     break
 
-        # Shuffle crowd positions
+        # Shuffle crowd positions so interceptor is at random position
         np.random.shuffle(crowd_poss)
         crowd_vels = np.random.uniform(
             -self.CROWD_MAX_VEL, self.CROWD_MAX_VEL, (self.n_crowd, 2)

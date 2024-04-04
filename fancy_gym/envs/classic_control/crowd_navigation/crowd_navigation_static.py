@@ -65,7 +65,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             Rg = self.Tc
         else:
             # Goal distance
-            Rg = -self.Cg * dg
+            Rg = -self.Cg * dg ** 2
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD
@@ -89,13 +89,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
         )
 
-        # Stalling reward
-        Rs = max(dg - self.MAX_STOPPING_DIST, 0) * \
-            (np.linalg.norm(action) - self.MAX_ACC) /\
-            np.linalg.norm([self.HEIGHT, self.HEIGHT]) / self.MAX_ACC
-
-        reward = Rg + Rc + Rs + Rw
-        return reward, dict(goal=Rg, collision=Rc, stalling=Rs, wall=Rw)
+        reward = Rg + Rc + Rw
+        return reward, dict(goal=Rg, collision=Rc, wall=Rw)
 
 
     def _terminate(self, info):
