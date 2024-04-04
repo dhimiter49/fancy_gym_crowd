@@ -16,7 +16,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         n_crowd: int,
         width: int = 20,
         height: int = 20,
-        discrete_action : bool = False
+        discrete_action: bool = False
     ):
         self.MAX_EPISODE_STEPS = 100
         super().__init__(n_crowd, width, height, allow_collision=False)
@@ -41,7 +41,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         ])
         state_bound_max = np.hstack([
             [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
-            [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL] * (self.n_crowd + 1) ,
+            [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL] * (self.n_crowd + 1),
         ])
 
         self.observation_space = spaces.Box(
@@ -62,7 +62,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 axis=-1
             )
             Rc = np.sum(
-                (1 - np.exp(self.Cc / dist_crowd)) * \
+                (1 - np.exp(self.Cc / dist_crowd)) *
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
@@ -78,7 +78,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         rel_crowd_poss = self._crowd_poss - self._agent_pos
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
-            rel_crowd_poss if self.n_crowd > 1  else [rel_crowd_poss],
+            rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
             [self._agent_vel],
             self._crowd_vels
         ]).astype(np.float32).flatten()
@@ -113,6 +113,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     head_length=0.2,
                     ec="r"
                 ))
+            self.sep_planes = []
+            for i in range(self.n_crowd):
+                self.sep_planes.append(ax.arrow(
+                    self.separating_planes[i][0], self.separating_planes[i][1],
+                    self.separating_planes[i][2], self.separating_planes[i][3],
+                    head_width=0.0,
+                    ec="r"
+                ))
 
             self.space_agent = plt.Circle(
                 self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
@@ -144,7 +152,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
-            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
+            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER, hatch='.')
             ax.axhspan(self.H_BORDER, self.H_BORDER + 100, hatch='.')
             ax.axhspan(-self.H_BORDER - 100, -self.H_BORDER, hatch='.')
             ax.set_aspect(1.0)
@@ -172,6 +180,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.trajectory_line.set_data(
             self.current_trajectory[:, 0], self.current_trajectory[:, 1]
         )
+        for i in range(self.n_crowd):
+            self.sep_planes[i].set_data(
+                x=self.separating_planes[i][0], y=self.separating_planes[i][1],
+                dx=self.separating_planes[i][2], dy=self.separating_planes[i][3]
+            )
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()

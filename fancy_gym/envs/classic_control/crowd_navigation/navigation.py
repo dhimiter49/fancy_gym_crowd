@@ -15,7 +15,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         self,
         width: int = 20,
         height: int = 20,
-        discrete_action : bool = False
+        discrete_action: bool = False
     ):
         self.MAX_EPISODE_STEPS = 60
         super().__init__(0, width, height, allow_collision=False)
@@ -37,10 +37,12 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         state_bound_min = np.hstack([
             [-self.WIDTH, -self.HEIGHT],
             [0, 0],
+            [0] * 4,  # four directions
         ])
         state_bound_max = np.hstack([
             [self.WIDTH, self.HEIGHT],
             [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+            [self.MAX_STOPPING_DIST] * 4,  # four directions
         ])
 
         self.observation_space = spaces.Box(
@@ -61,17 +63,35 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             Rg = np.exp(self.Cg / max(dg, self.PHYSICAL_SPACE)) -\
                 np.exp(self.Cg / self.PHYSICAL_SPACE)
 
-        return Rg, dict(goal=Rg)
+        if self._is_collided:
+            Rw = self.COLLISION_REWARD
+        else:
+            # Walls, only one of the walls is closer (irrelevant which)
+            dist_walls = np.array([
+                self.W_BORDER - abs(self._agent_pos[0]),
+                self.H_BORDER - abs(self._agent_pos[1]),
+            ])
+            Rw = np.sum(
+                (1 - np.exp(self.Cc / dist_walls)) *
+                (dist_walls < self.PHYSICAL_SPACE * 2)
+            )
+
+        return Rg + Rw, dict(goal=Rg, wall=Rw)
 
 
     def _terminate(self, info) -> bool:
-        return self._goal_reached
+        return self._goal_reached or self._is_collided
 
 
     def _get_obs(self) -> ObsType:
+        dist_walls = np.clip(np.array([
+            [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
+            [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
+        ]), 0, self.MAX_STOPPING_DIST)
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
-            [self._agent_vel]
+            [self._agent_vel],
+            dist_walls
         ]).astype(np.float32).flatten()
 
 
@@ -108,10 +128,22 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
-            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER,hatch='.')
+            ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER, hatch='.')
             ax.axhspan(self.H_BORDER, self.H_BORDER + 100, hatch='.')
             ax.axhspan(-self.H_BORDER - 100, -self.H_BORDER, hatch='.')
             ax.set_aspect(1.0)
+
+            # Walls penalization
+            border_penalization = self.PHYSICAL_SPACE * 2
+            ax.add_patch(plt.Rectangle(
+                (
+                    -self.W_BORDER + border_penalization,
+                    -self.H_BORDER + border_penalization
+                ),
+                2 * (self.W_BORDER - border_penalization),
+                2 * (self.H_BORDER - border_penalization),
+                fill=False, linestyle=":", edgecolor="r", linewidth=0.7
+            ))
 
             self.fig.show()
 
@@ -139,6 +171,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         """
         self.update_state(action)
         self._goal_reached = self.check_goal_reached()
+        self._is_collided = self._check_collisions()
         reward, info = self._get_reward(action)
 
         self._steps += 1
