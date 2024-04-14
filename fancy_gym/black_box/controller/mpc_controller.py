@@ -31,16 +31,18 @@ class MPCController(BaseController):
         self.control_limit = control_limit
 
 
-    def get_action(self, des_pos, des_vel, c_pos, c_vel):
+    def get_action(self, des_pos, des_vel, curr_pos, curr_vel, crowd=None):
         actions = np.empty((self.N, 2))
-        reference_pos = np.repeat(c_pos, self.N) -\
+        des_pos = des_pos[:self.N]
+        des_vel = des_vel[:self.N]
+        reference_pos = np.repeat(curr_pos, self.N) -\
             np.hstack([des_pos[:self.N, 0], des_pos[:self.N, 1]])
-        reference_vel = np.repeat(c_vel, self.N) -\
+        reference_vel = np.repeat(curr_vel, self.N) -\
             np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
         opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
             0.2 * self.mat_vel_acc.T @ self.mat_vel_acc +\
             0.2 * np.eye(2 * self.N)
-        opt_V = (reference_pos + self.vec_pos_vel * np.repeat(c_vel, self.N)).T @\
+        opt_V = (reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)).T @\
             self.mat_pos_acc + 0.2 * reference_vel.T @ self.mat_vel_acc
         acc_b_min = np.ones(2 * self.N) * self.control_limit[0]
         acc_b_max = np.ones(2 * self.N) * self.control_limit[1]

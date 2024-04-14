@@ -136,6 +136,11 @@ class BaseCrowdNavigationEnv(gym.Env):
         return self._agent_vel.copy()
 
 
+    @property
+    def crowd_pos_vel(self):
+        return (self._crowd_poss.copy(), self._crowd_vels.copy())
+
+
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:

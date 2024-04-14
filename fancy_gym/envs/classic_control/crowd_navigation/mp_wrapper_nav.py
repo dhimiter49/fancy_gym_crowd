@@ -92,7 +92,8 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
-                'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
+                'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0,
+                'duration': (10 + 10) * 0.1
             }
         },
     }
