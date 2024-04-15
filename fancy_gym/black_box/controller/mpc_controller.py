@@ -149,8 +149,19 @@ class MPCController(BaseController):
             opt_M, opt_V,
             G=np.vstack(const_M), h=np.hstack(const_b),
             A=term_const_M, b=term_const_b,
-            solver="clarabel"
+            solver="clarabel",
+            tol_gap_abs=5e-5,
+            tol_gap_rel=5e-5,
+            tol_feas=1e-4,
+            tol_infeas_abs=5e-5,
+            tol_infeas_rel=5e-5,
+            tol_ktratio=1e-4
         )
+
+        if acc is None:
+            acc = np.zeros(2 * self.N)
+            acc[0:self.N - 1] = self.last_braking_traj[1:, 0]
+            acc[self.N:2 * self.N - 1] = self.last_braking_traj[1:, 1]
         actions[:, 0] = acc[: self.N]
         actions[:, 1] = acc[self.N:]
         self.last_braking_traj = actions  # execute on net step if something goes wrong
