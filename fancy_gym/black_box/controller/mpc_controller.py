@@ -23,11 +23,17 @@ class MPCController(BaseController):
     """
     A MPC controller that computes the acceleration for each time step given the reference
     positions and velocities. The solution is given by a QP problem that minimizes the
-    distance to the reference position and state while upholding the boundaries. The
-    optimization is computed for a horizon N and time step dt.
+    distance to the reference position and velcotities while fulfilling the constraints.
+    The optimization is computed for a horizon N and time step dt.
 
+    :param mat_pos_acc : matrix calculating positions in the horizon from acceleartions
+    :param mat_pos_vel : matrix calculating positions from initial velocity
+    :param mat_vel_acc : matrix calculating velocities from accelerations
+    :param max_acc : maximum acceleration is handled as a non-linear circular constraint
+    :param max_vel : maximum velcoity is handled as a non-linear circular constraint
     :param horizon : horizon for which to optimize control
     :param dt : time step
+    :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
     """
 
     def __init__(
@@ -39,6 +45,7 @@ class MPCController(BaseController):
         max_vel: float,
         horizon: int = 20,
         dt: float = 0.1,
+        min_dist_crowd: float = 0.0,
     ):
         self.N = horizon
         self.dt = dt
@@ -47,6 +54,8 @@ class MPCController(BaseController):
         self.mat_vel_acc = mat_vel_acc
         self.polygon_acc_lines = gen_polygon(max_acc)
         self.polygon_vel_lines = gen_polygon(max_vel)
+        self.min_dist_crowd = min_dist_crowd
+
         self.last_braking_traj = None
 
 
@@ -64,6 +73,46 @@ class MPCController(BaseController):
             b_v = np.ones(self.N) * line[1] - M_v @ np.repeat(agent_vel, self.N)
             const_M.append(sgn * M_v @ self.mat_vel_acc)
             const_b.append(sgn * b_v)
+
+
+    def calculate_crowd_positions(self, crowd_poss, crowd_vels):
+        """
+        Calculate the crowd positions for the next horizon given the constant velocity for
+        each member. The formula P_i = p_0 + i * v * dt, where for point i in horizon the
+        position will be p_0 + i * v * dt.
+
+        Args:
+            crowd_poss (numpy.ndarray): an array of size (n_crowd, 2) with the current
+                positions of each member
+            crowd_vels (numpy.ndarray): an array of size (n_crowd, 2) with the current
+                velocities of each member
+        Return:
+            (numpy.ndarray): predicted positions of the crowd throughout the horizon
+        """
+        return np.stack([crowd_poss] * self.N) + np.einsum(
+            'ijk,i->ijk',
+            np.stack([crowd_vels] * self.N, 0) * self.dt,
+            np.arange(0, self.N)
+        )
+
+
+    def const_crowd(self, const_M, const_b, crowd, agent_pos, agent_vel):
+        crowd_poss, crowd_vels = crowd
+        crowd_poss -= agent_pos  # relative crowd position
+        if len(crowd_poss.shape) == 2:  # no positions of during horizon provided
+            horizon_crowd_poss = self.calculate_crowd_positions(crowd_poss, crowd_vels)
+        else:
+            horizon_crowd_poss = crowd_poss
+        for member in range(len(horizon_crowd_poss[1])):
+            poss = horizon_crowd_poss[:, member, :]
+            vec = -poss / np.stack([np.linalg.norm(poss, axis=-1)] * 2, axis=-1)
+            M_ca = np.hstack([np.eye(self.N) * vec[:, 0], np.eye(self.N) * vec[:, 1]])
+            v_cb = M_ca @ (
+                -poss.flatten("F") + self.vec_pos_vel * np.repeat(agent_vel, self.N)
+            ) - np.array([self.min_dist_crowd] * self.N)
+            M_cac = -M_ca @ self.mat_pos_acc
+            const_M.append(M_cac)
+            const_b.append(v_cb)
 
 
     def get_action(self, des_pos, des_vel, curr_pos, curr_vel, crowd=None):
@@ -84,6 +133,10 @@ class MPCController(BaseController):
         # constraint matrices and bounds
         const_M = []
         const_b = []
+
+        # constrain distance relative to the crowd
+        if self.min_dist_crowd > 0:
+            self.const_crowd(const_M, const_b, crowd, curr_pos, curr_vel)
 
         # constrain acceleration and velocity limits by using an inner polygon of a circle
         self.const_acc_vel(const_M, const_b, curr_vel)

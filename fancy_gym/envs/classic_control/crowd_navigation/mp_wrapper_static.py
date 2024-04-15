@@ -80,6 +80,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'max_vel': 3.0,
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'dt': 0.1,
+                'min_dist_crowd': 1.4,  # personal space of the members of the crowd
             },
             'basis_generator_kwargs': {
                 'num_basis': 4,
