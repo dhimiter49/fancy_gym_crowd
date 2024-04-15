@@ -80,12 +80,13 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
             },
             'controller_kwargs': {
                 'controller_type': 'mpc',
-                'mat_pos_acc': gen_mat_pos_acc(10, 0.1),
-                'mat_pos_vel': gen_vec_pos_vel(10, 0.1),
-                'mat_vel_acc': gen_mat_vel_acc(10, 0.1),
-                'horizon': 10,
+                'mat_pos_acc': gen_mat_pos_acc(21, 0.1),
+                'mat_pos_vel': gen_vec_pos_vel(21, 0.1),
+                'mat_vel_acc': gen_mat_vel_acc(21, 0.1),
+                'max_acc': 1.5,
+                'max_vel': 3.0,
+                'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'dt': 0.1,
-                'control_limit': [-1.5, 1.5],
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
@@ -93,7 +94,7 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
             'black_box_kwargs': {
                 # one second for dt of 0.1
                 'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0,
-                'duration': (10 + 10) * 0.1
+                'duration': (21 + 10) * 0.1
             }
         },
     }
