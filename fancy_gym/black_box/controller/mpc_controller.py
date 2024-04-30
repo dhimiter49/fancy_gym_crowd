@@ -21,10 +21,10 @@ def gen_polygon(radius, sides=8):
 
 class MPCController(BaseController):
     """
-    A MPC controller that computes the acceleration for each time step given the reference
-    positions and velocities. The solution is given by a QP problem that minimizes the
-    distance to the reference position and velcotities while fulfilling the constraints.
-    The optimization is computed for a horizon N and time step dt.
+    A MPC controller for 2D navigation that computes the acceleration for each time step
+    given the reference positions and velocities. The solution is given by a QP problem
+    that minimizes the distance to the reference position and velcotities while fulfilling
+    the constraints. The optimization is computed for a horizon N and time step dt.
 
     :param mat_pos_acc : matrix calculating positions in the horizon from acceleartions
     :param mat_pos_vel : matrix calculating positions from initial velocity
