@@ -24,6 +24,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         height: int = 20,
         interceptor_percentage: float = 0.5,
         allow_collision: bool = False,
+        velocity_control: bool = False,
     ):
         super().__init__()
 
@@ -259,24 +260,43 @@ class BaseCrowdNavigationEnv(gym.Env):
         return agent_pos, agent_vel, goal_pos, crowd_poss, crowd_vels
 
 
-    def update_state(self, acc):
+    def update_state(self, action):
         """
         Update robot position and velocity for time self._dt based on its dynamics.
 
         Args:
-            acc (numpy.ndarray): 2D array representing the accelaration for current step
+            action (numpy.ndarray): 2D array representing the accelaration for current step
         """
         if self.discrete_action:
-            acc = np.array([
-                self.CARTESIAN_ACC[acc[0]], self.CARTESIAN_ACC[acc[1]]
-            ])
+            if self.velocity_control:
+                vel = np.array([
+                    self.CARTESIAN_VEL[action[0]], self.CARTESIAN_VEL[action[1]]
+                ])
+            else:
+                acc = np.array([
+                    self.CARTESIAN_ACC[action[0]], self.CARTESIAN_ACC[action[1]]
+                ])
 
-        acc_norm = np.linalg.norm(acc)
-        if acc_norm > self.MAX_ACC:
-            acc *= self.MAX_ACC / acc_norm
+        if self.velocity_control:
+            vel = action
+            vel_norm = np.linalg.norm(vel)
+            if vel_norm > self.AGENT_MAX_VEL:
+                vel *= self.AGENT_MAX_VEL / vel_norm
 
-        self._agent_pos += self._agent_vel * self._dt + acc * 0.5 * self._dt ** 2
-        self._agent_vel += acc * self._dt
+            self._agent_pos += (self._agent_vel + vel) * self._dt / 2
+            self._agent_vel = vel
+        else:
+            acc = action
+            acc_norm = np.linalg.norm(acc)
+            if acc_norm > self.MAX_ACC:
+                acc *= self.MAX_ACC / acc_norm
+
+            self._agent_pos += self._agent_vel * self._dt + acc * 0.5 * self._dt ** 2
+            self._agent_vel += acc * self._dt
+
+            agent_speed = np.linalg.norm(self._agent_vel)
+            if agent_speed > self.AGENT_MAX_VEL:
+                self._agent_vel *= self.AGENT_MAX_VEL / agent_speed
 
         # check bounds of the environment and the bounds of the maximum velocity
         self._agent_pos = np.clip(
@@ -284,9 +304,6 @@ class BaseCrowdNavigationEnv(gym.Env):
             [-self.W_BORDER, -self.H_BORDER],
             [self.W_BORDER, self.H_BORDER]
         )
-        agent_speed = np.linalg.norm(self._agent_vel)
-        if agent_speed > self.AGENT_MAX_VEL:
-            self._agent_vel *= self.AGENT_MAX_VEL / agent_speed
 
 
     def _get_reward(self, action: np.ndarray) -> (float, dict):

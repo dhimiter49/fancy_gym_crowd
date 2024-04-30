@@ -48,7 +48,6 @@ register(
     }
 )
 
-
 register(
     id='fancy/CrowdNavigation-v0',
     entry_point=CrowdNavigationEnv,
@@ -75,6 +74,31 @@ register(
     }
 )
 
+register(
+    id='fancy/CrowdNavigationStaticVel-v0',
+    entry_point=CrowdNavigationStaticEnv,
+    mp_wrapper=MPWrapper_CrowdStatic,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/NavigationVel-v0',
+    entry_point=NavigationEnv,
+    mp_wrapper=MPWrapper_Navigation,
+    max_episode_steps=60,
+    kwargs={
+        "width": 10,
+        "height": 10,
+        "velocity_control": True,
+    }
+)
 
 register(
     id='fancy/Navigation-v0',
