@@ -1,33 +1,13 @@
 from typing import Tuple, Union
 
 import numpy as np
-import scipy
 
 from fancy_gym.black_box.raw_interface_wrapper import RawInterfaceWrapper
-
-
-def gen_mat_pos_acc(horizon, dt):
-    M_xa = scipy.linalg.toeplitz(
-        np.array([(2 * i - 1) / 2 * dt ** 2 for i in range(1, horizon + 1)]),
-        np.zeros(horizon)
-    )
-    M_xa = np.stack(
-        [np.hstack([M_xa, M_xa * 0]), np.hstack([M_xa * 0, M_xa])]
-    ).reshape(2 * horizon, 2 * horizon)
-    return M_xa
-
-
-def gen_vec_pos_vel(horizon, dt):
-    M_xv = np.hstack([np.arange(1, horizon + 1)] * 2) * dt
-    return M_xv
-
-
-def gen_mat_vel_acc(horizon, dt):
-    M_va = scipy.linalg.toeplitz(np.ones(horizon) * dt, np.zeros(horizon))
-    M_va = np.stack(
-        [np.hstack([M_va, M_va * 0]), np.hstack([M_va * 0, M_va])]
-    ).reshape(2 * horizon, 2 * horizon)
-    return M_va
+from fancy_gym.envs.classic_control.crowd_navigation.dynamics import (
+    gen_mat_pos_acc,
+    gen_vec_pos_vel,
+    gen_mat_vel_acc
+)
 
 
 class MPWrapper_Navigation(RawInterfaceWrapper):
@@ -102,7 +82,7 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
     @property
     def context_mask(self):
         return np.hstack([
-            [True] * 4,  # goal position and agent velocity
+            [True] * 8,  # goal position,  agent velocity and walls
         ])
 
     @property
