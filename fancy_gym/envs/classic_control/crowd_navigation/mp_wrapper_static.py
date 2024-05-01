@@ -40,10 +40,9 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
         #         'd_gains': 0.075,
         #     },
         #     'basis_generator_kwargs': {
-        #         'num_basis': 3,
+        #         'num_basis': 4,
         #     },
         #     'black_box_kwargs': {
-        #         'max_planning_times': 6,
         #         'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
         #     }
         # },
