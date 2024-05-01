@@ -62,6 +62,20 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+    }
+)
+
+register(
     id='fancy/CrowdNavigationStatic-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,

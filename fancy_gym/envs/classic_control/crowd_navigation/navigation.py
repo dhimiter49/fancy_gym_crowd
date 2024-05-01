@@ -19,36 +19,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         velocity_control: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 60
-        super().__init__(0, width, height, allow_collision=False)
-
-        self.discrete_action = discrete_action
-        self.velocity_control = velocity_control
-        if self.velocity_control:
-            if self.discrete_action:
-                self.CARTESIAN_VEL = np.arange(
-                    -self.AGENT_MAX_VEL, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL * 2 / 20
-                )
-                self.action_space = spaces.MultiDiscrete(
-                    [len(self.CARTESIAN_VEL), len(self.CARTESIAN_VEL)]
-                )
-            else:
-                action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
-                self.action_space = spaces.Box(
-                    low=-action_bound, high=action_bound, shape=action_bound.shape
-                )
-        else:
-            if self.discrete_action:
-                self.CARTESIAN_ACC = np.arange(
-                    -self.MAX_ACC, self.MAX_ACC, self.MAX_ACC * 2 / 20
-                )
-                self.action_space = spaces.MultiDiscrete(
-                    [len(self.CARTESIAN_ACC), len(self.CARTESIAN_ACC)]
-                )
-            else:
-                action_bound = np.array([self.MAX_ACC, self.MAX_ACC])
-                self.action_space = spaces.Box(
-                    low=-action_bound, high=action_bound, shape=action_bound.shape
-                )
+        super().__init__(0, width, height, discrete_action, velocity_control)
 
         state_bound_min = np.hstack([
             [-self.WIDTH, -self.HEIGHT],

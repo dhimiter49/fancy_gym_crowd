@@ -24,6 +24,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         height: int = 20,
         interceptor_percentage: float = 0.5,
         allow_collision: bool = False,
+        discrete_action: bool = False,
         velocity_control: bool = False,
     ):
         super().__init__()
@@ -65,6 +66,36 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._crowd_poss,
             self._crowd_vels
         ) = self._start_env_vars()
+
+
+        self.discrete_action = discrete_action
+        self.velocity_control = velocity_control
+        if self.velocity_control:
+            if self.discrete_action:
+                self.CARTESIAN_VEL = np.arange(
+                    -self.AGENT_MAX_VEL, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL * 2 / 20
+                )
+                self.action_space = spaces.MultiDiscrete(
+                    [len(self.CARTESIAN_VEL), len(self.CARTESIAN_VEL)]
+                )
+            else:
+                action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
+                self.action_space = spaces.Box(
+                    low=-action_bound, high=action_bound, shape=action_bound.shape
+                )
+        else:
+            if self.discrete_action:
+                self.CARTESIAN_ACC = np.arange(
+                    -self.MAX_ACC, self.MAX_ACC, self.MAX_ACC * 2 / 20
+                )
+                self.action_space = spaces.MultiDiscrete(
+                    [len(self.CARTESIAN_ACC), len(self.CARTESIAN_ACC)]
+                )
+            else:
+                action_bound = np.array([self.MAX_ACC, self.MAX_ACC])
+                self.action_space = spaces.Box(
+                    low=-action_bound, high=action_bound, shape=action_bound.shape
+                )
 
         state_bound_min = np.hstack([
             [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
