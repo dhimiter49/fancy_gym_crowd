@@ -50,13 +50,12 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
         #         'num_basis': 3,
         #     },
         #     'black_box_kwargs': {
-        #         'max_planning_times': 6,
         #         'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
         #     }
         # },
         'ProDMP': {
             'phase_generator_kwargs': {
-                'tau': 10.,
+                'tau': 6.,  # self._dt * max_episode_steps
             },
             'controller_kwargs': {
                 'controller_type': 'mpc',

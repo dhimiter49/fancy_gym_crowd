@@ -19,7 +19,9 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         velocity_control: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 60
-        super().__init__(0, width, height, discrete_action, velocity_control)
+        super().__init__(
+            0, width, height, discrete_action=discrete_action, velocity_control=velocity_control
+        )
 
         state_bound_min = np.hstack([
             [-self.WIDTH, -self.HEIGHT],

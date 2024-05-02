@@ -48,7 +48,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
         # },
         'ProDMP': {
             'phase_generator_kwargs': {
-                'tau': 10.,
+                'tau': 10.,  # self._dt * max_episode_steps
             },
             'controller_kwargs': {
                 'controller_type': 'mpc',
