@@ -41,6 +41,11 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
         #         'p_gains': 0.6,
         #         'd_gains': 0.075,
         #     },
+        #     'trajectory_generator_kwargs': {
+        #         'weights_scale': 10,
+        #         'goal_scale': 5,
+        #         'auto_scale_basis': True,
+        #     },
         #     'basis_generator_kwargs': {
         #         'num_basis': 4,
         #     },
@@ -63,8 +68,13 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'dt': 0.1,
                 'min_dist_crowd': 1.4,  # personal space of the members of the crowd
             },
+            'trajectory_generator_kwargs': {
+                'weights_scale': 4,
+                'goal_scale': 2,
+                'auto_scale_basis': True,
+            },
             'basis_generator_kwargs': {
-                'num_basis': 4,
+                'num_basis': 3,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
@@ -107,7 +117,7 @@ class MPWrapper_CrowdStatic_Vel(MPWrapper_CrowdStatic):
                 'min_dist_crowd': 1.4,  # personal space of the members of the crowd
             },
             'basis_generator_kwargs': {
-                'num_basis': 4,
+                'num_basis': 3,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1

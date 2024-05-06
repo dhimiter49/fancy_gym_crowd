@@ -45,8 +45,13 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
         #         'tau': 10.,
         #     },
         #     'controller_kwargs': {
-        #         'p_gains': 0.6,
-        #         'd_gains': 0.075,
+        #         'p_gains': 10,
+        #         'd_gains': 5,
+        #     },
+        #     'trajectory_generator_kwargs': {
+        #         'weights_scale': 10,
+        #         'goal_scale': 5,
+        #         'auto_scale_basis': True,
         #     },
         #     'basis_generator_kwargs': {
         #         'num_basis': 3,
@@ -71,6 +76,11 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
+            },
+            'trajectory_generator_kwargs': {
+                'weights_scale': 4,
+                'goal_scale': 2,
+                'auto_scale_basis': True,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
