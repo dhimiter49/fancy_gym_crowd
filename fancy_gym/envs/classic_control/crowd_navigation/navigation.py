@@ -110,10 +110,16 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
 
+            # Trajectory
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],
                 self.current_trajectory[:, 1],
                 "k",
+            )
+            self.trajectory_line_vel, = ax.plot(
+                self.current_trajectory_vel[:, 0],
+                self.current_trajectory_vel[:, 1],
+                "b",
             )
 
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
@@ -148,6 +154,9 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         self.space_agent.center = self._agent_pos
         self.trajectory_line.set_data(
             self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+        )
+        self.trajectory_line_vel.set_data(
+            self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
         )
 
         self.fig.canvas.draw()

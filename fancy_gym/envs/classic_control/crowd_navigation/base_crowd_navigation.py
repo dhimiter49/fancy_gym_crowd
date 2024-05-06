@@ -123,23 +123,25 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
         self.current_trajectory = np.zeros((40, 2))
+        self.current_trajectory_vel = np.zeros((40, 2))
         self.separating_planes = np.zeros((self.n_crowd, 4))
 
 
     def set_trajectory(self, positions, velocities=None):
         positions = positions[:10]
-        # velocities = velocities[:10]
+        velocities = velocities[:10]
 
         positions -= positions[0]
         positions += self._agent_pos + self._agent_vel * self._dt
+        self.current_trajectory = positions.copy()
 
-        # velocities[0] += self._agent_vel * self._dt
-        # positions *= 0
-        # distances = velocities * self._dt
-        # positions[0] = self._agent_pos
-        # positions += distances
-        # positions = np.cumsum(positions, 0)
-        self.current_trajectory = positions
+        velocities[0] += self._agent_vel * self._dt
+        positions = positions * 0
+        distances = velocities * self._dt
+        positions[0] = self._agent_pos
+        positions += distances
+        positions = np.cumsum(positions, 0)
+        self.current_trajectory_vel = positions.copy()
 
 
     def set_separating_planes(self):

@@ -178,6 +178,11 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 self.current_trajectory[:, 1],
                 "k",
             )
+            self.trajectory_line_vel, = ax.plot(
+                self.current_trajectory_vel[:, 0],
+                self.current_trajectory_vel[:, 1],
+                "b",
+            )
 
             # Walls
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
@@ -221,6 +226,9 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         self.space_agent.center = self._agent_pos
         self.trajectory_line.set_data(
             self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+        )
+        self.trajectory_line_vel.set_data(
+            self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
         )
         for i in range(self.n_crowd):
             self.sep_planes[i].set_data(
