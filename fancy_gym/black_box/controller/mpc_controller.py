@@ -21,16 +21,19 @@ def gen_polygon(radius, sides=8):
 
 class MPCController(BaseController):
     """
-    A MPC controller for 2D navigation that computes the acceleration for each time step
-    given the reference positions and velocities. The solution is given by a QP problem
-    that minimizes the distance to the reference position and velcotities while fulfilling
-    the constraints. The optimization is computed for a horizon N and time step dt.
+    A MPC controller for 2D navigation that computes the acceleration or velocity for each
+    time step given the reference positions and velocities. The solution is given by a QP
+    problem that minimizes the distance to the reference position and velcotities while
+    fulfilling the constraints. The optimization is computed for a horizon N and time step
+    dt.
 
+    :param max_acc : maximum acceleration is handled as a non-linear circular constraint
+    :param max_vel : maximum velcoity is handled as a non-linear circular constraint
     :param mat_pos_acc : matrix calculating positions in the horizon from acceleartions
     :param mat_pos_vel : matrix calculating positions from initial velocity
     :param mat_vel_acc : matrix calculating velocities from accelerations
-    :param max_acc : maximum acceleration is handled as a non-linear circular constraint
-    :param max_vel : maximum velcoity is handled as a non-linear circular constraint
+    :param mat_vc_pos_vel : matrix calculating positions from velocity control
+    :param mat_vc_acc_vel : matrix calculating acceleration from velocities
     :param horizon : horizon for which to optimize control
     :param dt : time step
     :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
@@ -38,20 +41,31 @@ class MPCController(BaseController):
 
     def __init__(
         self,
-        mat_pos_acc: np.ndarray,
-        mat_pos_vel: np.ndarray,
-        mat_vel_acc: np.ndarray,
         max_acc: float,
         max_vel: float,
+        mat_pos_acc: np.ndarray = None,
+        mat_pos_vel: np.ndarray = None,
+        mat_vel_acc: np.ndarray = None,
+        mat_vc_pos_vel: np.ndarray = None,
+        mat_vc_acc_vel: np.ndarray = None,
         horizon: int = 20,
         dt: float = 0.1,
         min_dist_crowd: float = 0.0,
+        velocity_control: float = False,
     ):
         self.N = horizon
         self.dt = dt
+        self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc
         self.vec_pos_vel = mat_pos_vel
         self.mat_vel_acc = mat_vel_acc
+        self.mat_vc_pos_vel = mat_vc_pos_vel
+        self.mat_vc_acc_vel = mat_vc_acc_vel
+        if self.velocity_control:
+            self.mat_pos_control = self.mat_vc_pos_vel
+            self.vec_pos_vel = 0.5 * self.dt
+        else:
+            self.mat_pos_control = self.mat_pos_acc
         self.polygon_acc_lines = gen_polygon(max_acc)
         self.polygon_vel_lines = gen_polygon(max_vel)
         self.min_dist_crowd = min_dist_crowd
@@ -64,15 +78,26 @@ class MPCController(BaseController):
             sgn = 1 if i < len(self.polygon_acc_lines) / 2 else -1
             M_a = np.hstack([np.eye(self.N) * -line[0], np.eye(self.N)])
             b_a = np.ones(self.N) * line[1]
+            if self.velocity_control:
+                agent_vel_ = np.zeros(2 * self.N)
+                agent_vel_[0], agent_vel_[self.N] = agent_vel
+                b_a += M_a @ agent_vel_ / self.dt
+                M_a = M_a @ self.mat_vc_acc_vel
             const_M.append(sgn * M_a)
             const_b.append(sgn * b_a)
 
         for i, line in enumerate(self.polygon_vel_lines):
             sgn = 1 if i < len(self.polygon_vel_lines) / 2 else -1
-            M_v = np.hstack([np.eye(self.N) * -line[0], np.eye(self.N)])
-            b_v = np.ones(self.N) * line[1] - M_v @ np.repeat(agent_vel, self.N)
-            const_M.append(sgn * M_v @ self.mat_vel_acc)
-            const_b.append(sgn * b_v)
+            if self.velocity_control:
+                M_v = np.hstack([np.eye(self.N - 1) * -line[0], np.eye(self.N - 1)])
+                b_v = np.ones(self.N - 1) * line[1]
+                const_M.append(sgn * M_v)
+                const_b.append(sgn * b_v)
+            else:
+                M_v = np.hstack([np.eye(self.N) * -line[0], np.eye(self.N)])
+                b_v = np.ones(self.N) * line[1] - M_v @ np.repeat(agent_vel, self.N)
+                const_M.append(sgn * M_v @ self.mat_vel_acc)
+                const_b.append(sgn * b_v)
 
 
     def calculate_crowd_positions(self, crowd_poss, crowd_vels):
@@ -110,7 +135,7 @@ class MPCController(BaseController):
             v_cb = M_ca @ (
                 -poss.flatten("F") + self.vec_pos_vel * np.repeat(agent_vel, self.N)
             ) - np.array([self.min_dist_crowd] * self.N)
-            M_cac = -M_ca @ self.mat_pos_acc
+            M_cac = -M_ca @ self.mat_pos_control
             const_M.append(M_cac)
             const_b.append(v_cb)
 
@@ -124,11 +149,20 @@ class MPCController(BaseController):
         reference_vel = np.repeat(curr_vel, self.N) -\
             np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
 
-        opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
-            0.2 * self.mat_vel_acc.T @ self.mat_vel_acc +\
-            0.2 * np.eye(2 * self.N)
-        opt_V = (reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)).T @\
-            self.mat_pos_acc + 0.2 * reference_vel.T @ self.mat_vel_acc
+        if self.velocity_control:
+            opt_M = self.mat_vc_pos_vel.T @ self.mat_vc_pos_vel +\
+                0.25 * np.eye(2 * (self.N - 1))
+            reference_vel = np.append(
+                reference_vel[:self.N - 1], reference_vel[self.N:2 * self.N - 1]
+            )
+            opt_V = (reference_pos + 0.5 * self.dt * np.repeat(curr_vel, self.N)).T @\
+                self.mat_vc_pos_vel - 0.25 * reference_vel.T
+        else:
+            opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
+                0.2 * self.mat_vel_acc.T @ self.mat_vel_acc +\
+                0.2 * np.eye(2 * self.N)
+            opt_V = (reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)).T @\
+                self.mat_pos_acc + 0.2 * reference_vel.T @ self.mat_vel_acc
 
         # constraint matrices and bounds
         const_M = []
@@ -141,11 +175,15 @@ class MPCController(BaseController):
         # constrain acceleration and velocity limits by using an inner polygon of a circle
         self.const_acc_vel(const_M, const_b, curr_vel)
 
-        # constrain safety by ensuring a braking trajectory through a terminal constraint
-        term_const_M = self.mat_vel_acc[[self.N - 1, 2 * self.N - 1], :]  # last velocity
-        term_const_b = -curr_vel
+        term_const_M = None
+        term_const_b = None
+        if not self.velocity_control:
+            # constrain safety by ensuring a braking trajectory through a terminal const
+            # self.N - 1 and 2 * self.N - 1 repreent the last velocity of the horizon
+            term_const_M = self.mat_vel_acc[[self.N - 1, 2 * self.N - 1], :]
+            term_const_b = -curr_vel
 
-        acc = solve_qp(
+        control = solve_qp(
             opt_M, opt_V,
             G=np.vstack(const_M), h=np.hstack(const_b),
             A=term_const_M, b=term_const_b,
@@ -158,11 +196,16 @@ class MPCController(BaseController):
             tol_ktratio=1e-4
         )
 
-        if acc is None:
-            acc = np.zeros(2 * self.N)
-            acc[0:self.N - 1] = self.last_braking_traj[1:, 0]
-            acc[self.N:2 * self.N - 1] = self.last_braking_traj[1:, 1]
-        actions[:, 0] = acc[: self.N]
-        actions[:, 1] = acc[self.N:]
-        self.last_braking_traj = actions  # execute on net step if something goes wrong
+        if control is None:
+            control = np.zeros(2 * self.N)
+            control[0:self.N - 1] = self.last_braking_traj[1:, 0]
+            control[self.N:2 * self.N - 1] = self.last_braking_traj[1:, 1]
+        if self.velocity_control:
+            actions = np.array([
+                np.append(control[:self.N - 1], 0),
+                np.append(control[self.N - 1:], 0)]
+            ).T
+        else:
+            actions = np.array([control[:self.N], control[self.N:]]).T
+        self.last_braking_traj = actions  # save last trajecotry in case next step fails
         return actions
