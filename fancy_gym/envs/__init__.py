@@ -104,7 +104,7 @@ register(
         "width": 16,
         "height": 16,
         "interceptor_percentage": 2,
-        "lidar": True,
+        "lidar_rays": 40,  # 0 means no lidar, cartesian obs
     }
 )
 
