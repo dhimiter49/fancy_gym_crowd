@@ -12,7 +12,13 @@ from .classic_control.hole_reacher import MPWrapper as MPWrapper_HoleReacher
 from .classic_control.crowd_navigation.crowd_navigation import CrowdNavigationEnv
 from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
-from .classic_control.crowd_navigation import MPWrapper_Crowd, MPWrapper_Navigation, MPWrapper_CrowdStatic
+from .classic_control.crowd_navigation import (
+    MPWrapper_Crowd,
+    MPWrapper_Navigation,
+    MPWrapper_CrowdStatic,
+    MPWrapper_Navigation_Vel,
+    MPWrapper_CrowdStatic_Vel
+)
 from .classic_control.viapoint_reacher.viapoint_reacher import ViaPointReacherEnv
 from .classic_control.viapoint_reacher import MPWrapper as MPWrapper_ViaPointReacher
 from .mujoco.reacher.reacher import ReacherEnv, MAX_EPISODE_STEPS_REACHER
@@ -91,25 +97,13 @@ register(
 register(
     id='fancy/CrowdNavigationStaticVel-v0',
     entry_point=CrowdNavigationStaticEnv,
-    mp_wrapper=MPWrapper_CrowdStatic,
+    mp_wrapper=MPWrapper_CrowdStatic_Vel,
     max_episode_steps=100,
     kwargs={
         "n_crowd": 4,
         "width": 16,
         "height": 16,
         "interceptor_percentage": 2,
-        "velocity_control": True,
-    }
-)
-
-register(
-    id='fancy/NavigationVel-v0',
-    entry_point=NavigationEnv,
-    mp_wrapper=MPWrapper_Navigation,
-    max_episode_steps=60,
-    kwargs={
-        "width": 10,
-        "height": 10,
         "velocity_control": True,
     }
 )
@@ -122,6 +116,18 @@ register(
     kwargs={
         "width": 10,
         "height": 10,
+    }
+)
+
+register(
+    id='fancy/NavigationVel-v0',
+    entry_point=NavigationEnv,
+    mp_wrapper=MPWrapper_Navigation_Vel,
+    max_episode_steps=60,
+    kwargs={
+        "width": 10,
+        "height": 10,
+        "velocity_control": True,
     }
 )
 

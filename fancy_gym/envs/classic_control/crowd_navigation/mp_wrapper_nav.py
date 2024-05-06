@@ -6,7 +6,9 @@ from fancy_gym.black_box.raw_interface_wrapper import RawInterfaceWrapper
 from fancy_gym.envs.classic_control.crowd_navigation.dynamics import (
     gen_mat_pos_acc,
     gen_vec_pos_vel,
-    gen_mat_vel_acc
+    gen_mat_vel_acc,
+    gen_mat_vc_pos_vel,
+    gen_mat_vc_acc_vel
 )
 
 
@@ -91,3 +93,31 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
     @property
     def current_vel(self) -> Union[float, int, np.ndarray, Tuple]:
         return self.env.current_vel
+
+
+class MPWrapper_Navigation_Vel(MPWrapper_Navigation):
+    mp_config = {
+        'ProDMP': {
+            'phase_generator_kwargs': {
+                'tau': 6.,  # self._dt * max_episode_steps
+            },
+            'controller_kwargs': {
+                'controller_type': 'mpc',
+                'mat_vc_pos_vel': gen_mat_vc_pos_vel(21, 0.1),
+                'mat_vc_acc_vel': gen_mat_vc_acc_vel(21, 0.1),
+                'max_acc': 1.5,
+                'max_vel': 3.0,
+                'horizon': 21,  # 2 sec to stop (1 extra step is current step)
+                'dt': 0.1,
+                'velocity_control': True,
+            },
+            'basis_generator_kwargs': {
+                'num_basis': 3,
+            },
+            'black_box_kwargs': {
+                # one second for dt of 0.1
+                'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0,
+                # 'duration': (21 + 10) * 0.1  # should be at least replan + MPC horizon
+            }
+        },
+    }
