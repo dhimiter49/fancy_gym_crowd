@@ -43,7 +43,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         if self.lidar:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT],
-                [0, 0],
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
                 [0] * self.N_RAYS,
             ])
             state_bound_max = np.hstack([
@@ -54,7 +54,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
-                [0, 0],
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
                 [0] * 4,  # four directions
             ])
             state_bound_max = np.hstack([

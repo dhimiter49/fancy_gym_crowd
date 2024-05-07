@@ -25,7 +25,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
         state_bound_min = np.hstack([
             [-self.WIDTH, -self.HEIGHT],
-            [0, 0],
+            [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
             [0] * 4,  # four directions
         ])
         state_bound_max = np.hstack([
