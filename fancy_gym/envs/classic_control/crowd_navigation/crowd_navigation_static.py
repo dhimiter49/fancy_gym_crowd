@@ -113,13 +113,15 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
     def _get_obs(self) -> ObsType:
         if self.lidar:
-
             wall_distances = np.min([
-                (self.W_BORDER - np.where(self.RAY_COS > 0,
-                 self._agent_pos[0], -self._agent_pos[0])) / np.abs(self.RAY_COS),
-                (self.H_BORDER - np.where(self.RAY_SIN > 0,
-                 self._agent_pos[1], -self._agent_pos[1])) / np.abs(self.RAY_SIN)
+                (self.W_BORDER - np.where(
+                    self.RAY_COS > 0, self._agent_pos[0], -self._agent_pos[0]
+                )) / np.abs(self.RAY_COS),
+                (self.H_BORDER - np.where(
+                    self.RAY_SIN > 0, self._agent_pos[1], -self._agent_pos[1]
+                )) / np.abs(self.RAY_SIN)
             ], axis=0)
+
             x_crowd_rel, y_crowd_rel = self._crowd_poss[:, 0] - self._agent_pos[0], \
                 self._crowd_poss[:, 1] - self._agent_pos[1]
             orthog_dist = np.abs(
