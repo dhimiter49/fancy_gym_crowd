@@ -118,6 +118,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._steps = 0
         self._current_reward = 0
         self._goal_reached = False
+        self._is_collided = False
         self.check_goal_reached = lambda: (
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
@@ -188,6 +189,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         ) = self._start_env_vars()
         self._steps = 0
         self._goal_reached = False
+        self._is_collided = False
+        self._current_reward = 0
         return self._get_obs().copy(), {}
 
 
