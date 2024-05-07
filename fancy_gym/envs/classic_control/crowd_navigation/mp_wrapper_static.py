@@ -38,8 +38,8 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
         #         'tau': 10.,
         #     },
         #     'controller_kwargs': {
-        #         'p_gains': 0.6,
-        #         'd_gains': 0.075,
+        #         'p_gains': 10,
+        #         'd_gains': 5,
         #     },
         #     'trajectory_generator_kwargs': {
         #         'weights_scale': 10,
