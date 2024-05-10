@@ -17,22 +17,37 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         height: int = 20,
         discrete_action: bool = False,
         velocity_control: bool = False,
+        polar: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 60
         super().__init__(
             0, width, height, discrete_action=discrete_action, velocity_control=velocity_control
         )
 
-        state_bound_min = np.hstack([
-            [-self.WIDTH, -self.HEIGHT],
-            [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-            [0] * 4,  # four directions
-        ])
-        state_bound_max = np.hstack([
-            [self.WIDTH, self.HEIGHT],
-            [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-            [self.MAX_STOPPING_DIST] * 4,  # four directions
-        ])
+        self.polar = polar
+        if polar:
+            max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
+            state_bound_min = np.hstack([
+                [0, -np.pi],
+                [0, -np.pi],
+                [0] * 4,  # four directions
+            ])
+            state_bound_max = np.hstack([
+                [max_dist, np.pi],
+                [self.AGENT_MAX_VEL, np.pi],
+                [self.MAX_STOPPING_DIST] * 4,  # four directions
+            ])
+        else:
+            state_bound_min = np.hstack([
+                [-self.WIDTH, -self.HEIGHT],
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [0] * 4,  # four directions
+            ])
+            state_bound_max = np.hstack([
+                [self.WIDTH, self.HEIGHT],
+                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [self.MAX_STOPPING_DIST] * 4,  # four directions
+            ])
 
         self.observation_space = spaces.Box(
             low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape

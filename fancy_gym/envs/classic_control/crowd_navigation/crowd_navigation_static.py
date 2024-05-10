@@ -20,7 +20,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         lidar_rays: int = 0,
+        polar: bool = False,
     ):
+        assert not (polar and lidar_rays != 0), \
+            "Set either polar coordinates or lidar rays!"
         self.MAX_EPISODE_STEPS = 80
         super().__init__(
             n_crowd,
@@ -32,7 +35,9 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             velocity_control=velocity_control,
         )
 
+        self.polar = polar
         self.lidar = lidar_rays != 0
+        max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
             self.N_RAYS = lidar_rays
             self.RAY_ANGLES = np.linspace(
@@ -49,7 +54,18 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             state_bound_max = np.hstack([
                 [self.WIDTH, self.HEIGHT],
                 [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                np.full(self.N_RAYS, np.linalg.norm(np.array([self.WIDTH, self.HEIGHT])))
+                np.full(self.N_RAYS, max_dist)
+            ])
+        elif polar:
+            state_bound_min = np.hstack([
+                [0, -np.pi] * (self.n_crowd + 1),
+                [0, -np.pi],
+                [0] * 4,  # four directions
+            ])
+            state_bound_max = np.hstack([
+                [max_dist, np.pi] * (self.n_crowd + 1),
+                [self.AGENT_MAX_VEL, np.pi],
+                [self.MAX_STOPPING_DIST] * 4,  # four directions
             ])
         else:
             state_bound_min = np.hstack([
@@ -153,6 +169,13 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
                 [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
             ]), 0, self.MAX_STOPPING_DIST)
+            if self.polar:
+                return np.concatenate([
+                    self.c2p(self._goal_pos - self._agent_pos),
+                    self.c2p(rel_crowd_poss),
+                    self.c2p(self._agent_vel),
+                    dist_walls
+                ]).astype(np.float32).flatten()
             return np.concatenate([
                 [self._goal_pos - self._agent_pos],
                 rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
