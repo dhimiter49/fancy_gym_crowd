@@ -68,11 +68,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
 
-    def _start_env_vars(self):
-        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
-        return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
-
-
     def _get_reward(self, action: np.ndarray):
         dg = np.linalg.norm(self._agent_pos - self._goal_pos)
         if self._goal_reached:

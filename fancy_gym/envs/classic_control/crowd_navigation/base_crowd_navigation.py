@@ -290,10 +290,8 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         # Shuffle crowd positions so interceptor is at random position
         np.random.shuffle(crowd_poss)
-        crowd_vels = np.random.uniform(
-            -self.CROWD_MAX_VEL, self.CROWD_MAX_VEL, (self.n_crowd, 2)
-        )
-        return agent_pos, agent_vel, goal_pos, crowd_poss, crowd_vels
+
+        return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
 
 
     def update_state(self, action):

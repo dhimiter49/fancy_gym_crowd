@@ -144,13 +144,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 np.array([ray_distances]),
                 self._last_frames[:self._n_frames - 1]
             ])
-            print(np.concatenate([
-                    self._agent_vel,
-                    self._goal_pos - self._agent_pos,
-                    self._last_frames.flatten()
-                ]).astype(np.float32).flatten()
-            )
-            input()
             return np.concatenate([
                 self._agent_vel,
                 self._goal_pos - self._agent_pos,
