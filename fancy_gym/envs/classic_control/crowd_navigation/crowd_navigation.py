@@ -297,35 +297,31 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             )
             ax.add_patch(self.space_agent)
 
-            # Social space
+            # Social space, Personal space, Physical space, Crowd goal positions
             self.ScS_crowd = []
-            for m in self._crowd_poss:
+            self.PrS_crowd = []
+            self.PhS_crowd = []
+            self.crowd_goal_points = []
+            for m, g in zip(self._crowd_poss, self._crowd_goal_pos):
                 self.ScS_crowd.append(
                     plt.Circle(
                         m, self.SOCIAL_SPACE, color="r", fill=False, linestyle="--"
                     )
                 )
                 ax.add_patch(self.ScS_crowd[-1])
-
-            # Personal space
-            self.PrS_crowd = []
-            for m in self._crowd_poss:
                 self.PrS_crowd.append(
                     plt.Circle(
                         m, self.PERSONAL_SPACE, color="r", fill=False
                     )
                 )
                 ax.add_patch(self.PrS_crowd[-1])
-
-            # Physical space
-            self.PhS_crowd = []
-            for m in self._crowd_poss:
                 self.PhS_crowd.append(
                     plt.Circle(
                         m, self.PHYSICAL_SPACE, color="r", alpha=0.5
                     )
                 )
                 ax.add_patch(self.PhS_crowd[-1])
+                self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
 
             # Goal
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
@@ -382,6 +378,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.ScS_crowd[i].center = member
             self.PrS_crowd[i].center = member
             self.PhS_crowd[i].center = member
+            self.crowd_goal_points[i].set_data(
+                self._crowd_goal_pos[i][0], self._crowd_goal_pos[i][1]
+            )
         for i in range(self.n_crowd):
             self.vel_crowd[i].set_data(
                 x=self._crowd_poss[i][0], y=self._crowd_poss[i][1],
