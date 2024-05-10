@@ -9,7 +9,9 @@ from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
 
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     """
-    No real crowd, just obstacles.
+    Crowd with linear movement. For each member of the crowd a goal position is sampled.
+    Each member of the crowd moves to the goal using basic motion physics based on the
+    maximal velocity and maximal acceleration.
     """
     def __init__(
         self,
@@ -162,6 +164,79 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self._crowd_vels,
                 dist_walls
             ]).astype(np.float32).flatten()
+
+
+    def _start_env_vars(self):
+        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
+        next_crowd_vels = np.zeros(crowd_poss.shape)
+
+        (
+            self._crowd_goal_pos, self._planned_crowd_vels, next_crowd_vels
+        ) = self._gen_crowd_goal_and_plan(crowd_poss)
+
+        return agent_pos, agent_vel, goal_pos, crowd_poss, next_crowd_vels
+
+
+    def _gen_crowd_goal_and_plan(self, crowd_poss):
+        """
+        The velocities of each member are planned by minimizing the motion equations for
+        time. Given a maximum acceleration and velocity for the agent the plan consists
+        of two options. In case that the goal is further then double the minimal distance
+        for accelerating to the maximum velocity then the motion equation is made up of
+        three components: acceleration, moving an maximum velcoity and deceleration. In
+        the other case when the goal is closer the crowd member does not need to achieve
+        the maximum velcoity and the running time is computes from the quation
+        x = at^2.
+
+        Args:
+            crowd_poss (numpy.ndarray): list of crowd members
+
+        Returns:
+            (numpy.ndarray, numpy.ndarray, numpy.ndarray): the goal positions, the plans
+                for the velcoity of each member and the next velocity to be applied
+        """
+        if len(crowd_poss.shape) == 1:
+            crowd_poss = np.array([crowd_poss])
+        crowd_goal_pos = np.random.uniform(
+            [-self.W_BORDER, -self.H_BORDER],
+            [self.W_BORDER, self.H_BORDER],
+            (len(crowd_poss), 2)
+        )
+        crowd_vels = []
+        next_crowd_vels = np.zeros(crowd_poss.shape)
+        max_step_acc = self.MAX_ACC * self._dt
+        for i, goal in enumerate(crowd_goal_pos):
+            dist = np.linalg.norm(goal - crowd_poss[i])
+            if dist > self.MAX_STOPPING_DIST * 2:
+                t_max_vel = (dist - self.MAX_STOPPING_DIST * 2) / self.AGENT_MAX_VEL
+                acc_vels = np.arange(
+                    max_step_acc, self.AGENT_MAX_VEL + 1e-8, max_step_acc
+                )
+                dec_vels = np.arange(
+                    self.AGENT_MAX_VEL - max_step_acc, 0 - 1e-8, -max_step_acc
+                )
+                vels = np.concatenate([
+                    acc_vels,
+                    np.full(int(t_max_vel / self._dt), self.AGENT_MAX_VEL),
+                    dec_vels
+                ])
+            else:
+                t_acc = np.sqrt(dist / self.MAX_ACC)
+                acc_vels = np.arange(
+                    max_step_acc, t_acc * self.MAX_ACC, max_step_acc
+                )
+                dec_vels = np.arange(
+                    t_acc * self.MAX_ACC - max_step_acc, 0 - 1e-8, -max_step_acc
+                )
+                vels = np.concatenate([acc_vels, dec_vels])
+
+            # Fix direction
+            direction = (goal - crowd_poss[i]) / dist
+            vels = np.outer(vels, direction).reshape(-1, 2)
+            crowd_vels.append(vels)
+            next_crowd_vels[i] = vels[0]
+
+        return crowd_goal_pos, crowd_vels, next_crowd_vels
 
 
     def render(self):
@@ -341,15 +416,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         self.update_state(action)
         self._crowd_poss += self._crowd_vels * self._dt
-        self._crowd_vels *= 1 - (
-            np.abs(self._crowd_poss) >
-            np.stack([np.array([self.W_BORDER, self.H_BORDER])] * self.n_crowd)
-        ).astype(float)
-        self._crowd_poss = np.clip(
-            self._crowd_poss,
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER]
-        )
+        for i in range(self.n_crowd):
+            self._planned_crowd_vels[i] = np.delete(self._planned_crowd_vels[i], 0, 0)
+            if len(self._planned_crowd_vels[i]) == 0:
+                self._crowd_goal_pos[i], self._planned_crowd_vels[i], _ = \
+                    self._gen_crowd_goal_and_plan(self._crowd_poss[i])
+                self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
+            self._crowd_vels[i] = self._planned_crowd_vels[i][0]
 
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
