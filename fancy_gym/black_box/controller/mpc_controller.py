@@ -200,12 +200,12 @@ class MPCController(BaseController):
             control = np.zeros(2 * self.N)
             control[0:self.N - 1] = self.last_braking_traj[1:, 0]
             control[self.N:2 * self.N - 1] = self.last_braking_traj[1:, 1]
-        if self.velocity_control:
+        elif self.velocity_control:
             actions = np.array([
                 np.append(control[:self.N - 1], 0),
                 np.append(control[self.N - 1:], 0)]
             ).T
-        else:
+        if not self.velocity_control:
             actions = np.array([control[:self.N], control[self.N:]]).T
         self.last_braking_traj = actions  # save last trajecotry in case next step fails
         return actions
