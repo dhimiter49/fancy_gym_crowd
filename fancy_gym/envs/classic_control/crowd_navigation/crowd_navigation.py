@@ -22,8 +22,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         lidar_rays: int = 0,
+        const_vel: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 100
+        self.const_vel = const_vel
         super().__init__(
             n_crowd,
             width,
@@ -170,9 +172,27 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
         next_crowd_vels = np.zeros(crowd_poss.shape)
 
-        (
-            self._crowd_goal_pos, self._planned_crowd_vels, next_crowd_vels
-        ) = self._gen_crowd_goal_and_plan(crowd_poss)
+        if self.const_vel:
+            for i, c in enumerate(crowd_poss):
+                if c[0] > 0:
+                    idx = np.random.choice([0, 1])
+                    if idx == 0:
+                        pol_vel = np.random.uniform(
+                            [0, np.pi * 3 / 4], [self.AGENT_MAX_VEL, np.pi]
+                        )
+                    else:
+                        pol_vel = np.random.uniform(
+                            [0, -np.pi], [self.AGENT_MAX_VEL, -np.pi * 3 / 4]
+                        )
+                else:
+                    pol_vel = np.random.uniform(
+                        [0, -np.pi * 1 / 4], [self.AGENT_MAX_VEL, np.pi * 1 / 4]
+                    )
+                next_crowd_vels[i] = self.p2c(pol_vel)
+        else:
+            (
+                self._crowd_goal_pos, self._planned_crowd_vels, next_crowd_vels
+            ) = self._gen_crowd_goal_and_plan(crowd_poss)
 
         return agent_pos, agent_vel, goal_pos, crowd_poss, next_crowd_vels
 
@@ -302,7 +322,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.PrS_crowd = []
             self.PhS_crowd = []
             self.crowd_goal_points = []
-            for m, g in zip(self._crowd_poss, self._crowd_goal_pos):
+            for m in self._crowd_poss:
                 self.ScS_crowd.append(
                     plt.Circle(
                         m, self.SOCIAL_SPACE, color="r", fill=False, linestyle="--"
@@ -321,7 +341,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     )
                 )
                 ax.add_patch(self.PhS_crowd[-1])
-                self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
+            if not self.const_vel:
+                for g in self._crowd_goal_pos:
+                    self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
 
             # Goal
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
@@ -378,9 +400,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.ScS_crowd[i].center = member
             self.PrS_crowd[i].center = member
             self.PhS_crowd[i].center = member
-            self.crowd_goal_points[i].set_data(
-                self._crowd_goal_pos[i][0], self._crowd_goal_pos[i][1]
-            )
+            if not self.const_vel:
+                self.crowd_goal_points[i].set_data(
+                    self._crowd_goal_pos[i][0], self._crowd_goal_pos[i][1]
+                )
         for i in range(self.n_crowd):
             self.vel_crowd[i].set_data(
                 x=self._crowd_poss[i][0], y=self._crowd_poss[i][1],
@@ -415,13 +438,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         self.update_state(action)
         self._crowd_poss += self._crowd_vels * self._dt
-        for i in range(self.n_crowd):
-            self._planned_crowd_vels[i] = np.delete(self._planned_crowd_vels[i], 0, 0)
-            if len(self._planned_crowd_vels[i]) == 0:
-                self._crowd_goal_pos[i], self._planned_crowd_vels[i], _ = \
-                    self._gen_crowd_goal_and_plan(self._crowd_poss[i])
-                self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
-            self._crowd_vels[i] = self._planned_crowd_vels[i][0]
+        if not self.const_vel:
+            for i in range(self.n_crowd):
+                self._planned_crowd_vels[i] = np.delete(self._planned_crowd_vels[i], 0, 0)
+                if len(self._planned_crowd_vels[i]) == 0:
+                    self._crowd_goal_pos[i], self._planned_crowd_vels[i], _ = \
+                        self._gen_crowd_goal_and_plan(self._crowd_poss[i])
+                    self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
+                self._crowd_vels[i] = self._planned_crowd_vels[i][0]
 
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()

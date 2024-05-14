@@ -68,6 +68,20 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationConst-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 20,
+        "height": 6,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+    }
+)
+
+register(
     id='fancy/CrowdNavigationLiDAR-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd,
