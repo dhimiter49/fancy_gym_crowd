@@ -54,6 +54,9 @@ class MPCController(BaseController):
         velocity_control: float = False,
     ):
         self.N = horizon
+        self.MAX_STOPPING_TIME = max_vel / max_acc
+        self.MAX_STOPPING_DIST = max_vel * self.MAX_STOPPING_TIME -\
+            0.5 * max_acc * self.MAX_STOPPING_TIME ** 2
         self.dt = dt
         self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc
@@ -130,6 +133,8 @@ class MPCController(BaseController):
             horizon_crowd_poss = crowd_poss
         for member in range(len(horizon_crowd_poss[1])):
             poss = horizon_crowd_poss[:, member, :]
+            if np.all(np.linalg.norm(poss, axis=-1) > self.MAX_STOPPING_DIST):
+                continue
             vec = -poss / np.stack([np.linalg.norm(poss, axis=-1)] * 2, axis=-1)
             M_ca = np.hstack([np.eye(self.N) * vec[:, 0], np.eye(self.N) * vec[:, 1]])
             v_cb = M_ca @ (
