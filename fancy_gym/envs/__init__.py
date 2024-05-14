@@ -16,6 +16,7 @@ from .classic_control.crowd_navigation import (
     MPWrapper_Crowd,
     MPWrapper_Navigation,
     MPWrapper_CrowdStatic,
+    MPWrapper_Crowd_Vel,
     MPWrapper_Navigation_Vel,
     MPWrapper_CrowdStatic_Vel
 )
@@ -98,7 +99,7 @@ register(
 register(
     id='fancy/CrowdNavigationVel-v0',
     entry_point=CrowdNavigationEnv,
-    mp_wrapper=MPWrapper_Crowd,
+    mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=100,
     kwargs={
         "n_crowd": 4,

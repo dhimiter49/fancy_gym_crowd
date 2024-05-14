@@ -80,15 +80,18 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
         },
     }
 
+
     @property
     def context_mask(self):
         return np.hstack([
             [True] * 8,  # goal position,  agent velocity and walls
         ])
 
+
     @property
     def current_pos(self) -> Union[float, int, np.ndarray, Tuple]:
         return self.env.current_pos
+
 
     @property
     def current_vel(self) -> Union[float, int, np.ndarray, Tuple]:
