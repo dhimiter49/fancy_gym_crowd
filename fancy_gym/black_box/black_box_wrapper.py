@@ -237,4 +237,6 @@ class BlackBoxWrapper(gym.ObservationWrapper):
         self.traj_gen.reset()
         self.condition_pos = None
         self.condition_vel = None
+        if not isinstance(self.tracking_controller, MPCController):
+            self.tracking_controller.flush()
         return super(BlackBoxWrapper, self).reset(seed=seed, options=options)

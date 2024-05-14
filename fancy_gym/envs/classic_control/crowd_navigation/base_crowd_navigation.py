@@ -45,6 +45,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\
             0.5 * self.MAX_ACC * self.MAX_STOPPING_TIME ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
+        if type(self) == "CrowdNavigationEnv":
+            self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 2
+        else:
+            self.MIN_CROWD_DIST = self.PERSONAL_SPACE + self.PHYSICAL_SPACE
 
         self.COLLISION_REWARD = -10
         self.Cc = 2 * self.PHYSICAL_SPACE * \
@@ -298,8 +302,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
                         crowd_poss[:i] - sampled_pos, axis=-1
                     ) < self.PERSONAL_SPACE * 2) == 0
-                if (np.linalg.norm(sampled_pos - agent_pos) >
-                        self.PERSONAL_SPACE + self.PHYSICAL_SPACE and
+                if (np.linalg.norm(sampled_pos - agent_pos) > self.MIN_CROWD_DIST and
                         np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE and
                         no_crowd_collision):
                     crowd_poss[i] = sampled_pos

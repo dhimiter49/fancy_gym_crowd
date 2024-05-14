@@ -70,7 +70,14 @@ class MPCController(BaseController):
         self.polygon_vel_lines = gen_polygon(max_vel)
         self.min_dist_crowd = min_dist_crowd
 
-        self.last_braking_traj = None
+        self.last_braking_traj = np.zeros((self.N, 2))
+
+
+    def flush(self):
+        """
+        Flush state which consists only of the lastr braking trajectory.
+        """
+        self.last_braking_traj *= 0
 
 
     def const_acc_vel(self, const_M, const_b, agent_vel):

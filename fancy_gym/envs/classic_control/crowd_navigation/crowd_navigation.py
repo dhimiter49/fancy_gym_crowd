@@ -178,15 +178,15 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     idx = np.random.choice([0, 1])
                     if idx == 0:
                         pol_vel = np.random.uniform(
-                            [0.5, np.pi * 3 / 4], [self.AGENT_MAX_VEL, np.pi]
+                            [0.5, np.pi * 5 / 6], [self.AGENT_MAX_VEL, np.pi]
                         )
                     else:
                         pol_vel = np.random.uniform(
-                            [0.5, -np.pi], [self.AGENT_MAX_VEL, -np.pi * 3 / 4]
+                            [0.5, -np.pi], [self.AGENT_MAX_VEL, -np.pi * 5 / 6]
                         )
                 else:
                     pol_vel = np.random.uniform(
-                        [0.5, -np.pi * 1 / 4], [self.AGENT_MAX_VEL, np.pi * 1 / 4]
+                        [0.5, -np.pi * 1 / 6], [self.AGENT_MAX_VEL, np.pi * 1 / 6]
                     )
                 next_crowd_vels[i] = self.p2c(pol_vel)
         else:
