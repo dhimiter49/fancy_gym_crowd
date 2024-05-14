@@ -145,6 +145,23 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.current_trajectory_vel = positions.copy()
 
 
+    def c2p(self, cart):
+        if len(cart.shape) > 1:
+            r = np.linalg.norm(cart, axis=-1)
+            theta = np.arctan2(cart[:, 1], cart[:, 0])
+            return np.array([r, theta]).T
+        else:
+            r = np.linalg.norm(cart)
+            theta = np.arctan2(cart[1], cart[0])
+            return [np.array([r, theta])]
+
+
+    def p2c(self, pol):
+        x = pol[0] * np.cos(pol[1])
+        y = pol[0] * np.sin(pol[1])
+        return np.array([x, y])
+
+
     def set_separating_planes(self):
         for i in range(self.n_crowd):
             pos = self._agent_pos - self._crowd_poss[i]
