@@ -118,6 +118,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._steps = 0
         self._current_reward = 0
         self._goal_reached = False
+        self._is_collided = False
         self.check_goal_reached = lambda: (
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
@@ -142,6 +143,23 @@ class BaseCrowdNavigationEnv(gym.Env):
         positions += distances
         positions = np.cumsum(positions, 0)
         self.current_trajectory_vel = positions.copy()
+
+
+    def c2p(self, cart):
+        if len(cart.shape) > 1:
+            r = np.linalg.norm(cart, axis=-1)
+            theta = np.arctan2(cart[:, 1], cart[:, 0])
+            return np.array([r, theta]).T
+        else:
+            r = np.linalg.norm(cart)
+            theta = np.arctan2(cart[1], cart[0])
+            return [np.array([r, theta])]
+
+
+    def p2c(self, pol):
+        x = pol[0] * np.cos(pol[1])
+        y = pol[0] * np.sin(pol[1])
+        return np.array([x, y])
 
 
     def set_separating_planes(self):
@@ -188,6 +206,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         ) = self._start_env_vars()
         self._steps = 0
         self._goal_reached = False
+        self._is_collided = False
+        self._current_reward = 0
         return self._get_obs().copy(), {}
 
 
