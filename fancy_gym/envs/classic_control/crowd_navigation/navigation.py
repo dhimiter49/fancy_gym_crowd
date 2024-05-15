@@ -46,7 +46,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             state_bound_max = np.hstack([
                 [self.WIDTH, self.HEIGHT],
                 [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.MAX_STOPPING_DIST] * 4,  # four directions
+                np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
 
         self.observation_space = spaces.Box(
@@ -83,10 +83,10 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_obs(self) -> ObsType:
-        dist_walls = np.clip(np.array([
+        dist_walls = np.array([
             [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
             [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
-        ]), 0, self.MAX_STOPPING_DIST)
+        ])
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
             [self._agent_vel],

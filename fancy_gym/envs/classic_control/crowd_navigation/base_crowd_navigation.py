@@ -197,6 +197,14 @@ class BaseCrowdNavigationEnv(gym.Env):
         return (self._crowd_poss.copy(), self._crowd_vels.copy())
 
 
+    @property
+    def wall_dist(self):
+        return np.array([
+            [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
+            [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
+        ]).flatten()
+
+
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:

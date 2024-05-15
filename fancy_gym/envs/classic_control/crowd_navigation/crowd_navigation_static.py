@@ -76,7 +76,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             state_bound_max = np.hstack([
                 [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
                 [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.MAX_STOPPING_DIST] * 4,  # four directions
+                np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
 
         self.observation_space = spaces.Box(
@@ -160,10 +160,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
-            dist_walls = np.clip(np.array([
+            dist_walls = np.array([
                 [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
                 [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
-            ]), 0, self.MAX_STOPPING_DIST)
+            ])
             if self.polar:
                 return np.concatenate([
                     self.c2p(self._goal_pos - self._agent_pos),
