@@ -47,7 +47,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
         #         'auto_scale_basis': True,
         #     },
         #     'basis_generator_kwargs': {
-        #         'num_basis': 4,
+        #         'num_basis': 3,
         #     },
         #     'black_box_kwargs': {
         #         'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
@@ -118,6 +118,11 @@ class MPWrapper_CrowdStatic_Vel(MPWrapper_CrowdStatic):
                 'dt': 0.1,
                 'velocity_control': True,
                 'min_dist_crowd': 1.4,  # personal space of the members of the crowd
+            },
+            'trajectory_generator_kwargs': {
+                'weights_scale': 4,
+                'goal_scale': 2,
+                'auto_scale_basis': True,
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,

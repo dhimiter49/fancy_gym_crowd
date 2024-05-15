@@ -38,8 +38,13 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
         #         'tau': 10.,
         #     },
         #     'controller_kwargs': {
-        #         'p_gains': 0.6,
-        #         'd_gains': 0.075,
+        #         'p_gains': 10,
+        #         'd_gains': 5,
+        #     },
+        #     'trajectory_generator_kwargs': {
+        #         'weights_scale': 10,
+        #         'goal_scale': 5,
+        #         'auto_scale_basis': True,
         #     },
         #     'basis_generator_kwargs': {
         #         'num_basis': 4,
@@ -62,6 +67,11 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'dt': 0.1,
                 'min_dist_crowd': 1.4,  # personal space of the members of the crowd
+            },
+            'trajectory_generator_kwargs': {
+                'weights_scale': 4,
+                'goal_scale': 2,
+                'auto_scale_basis': True,
             },
             'basis_generator_kwargs': {
                 'num_basis': 4,
@@ -108,6 +118,11 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
                 'dt': 0.1,
                 'velocity_control': True,
                 'min_dist_crowd': 1.4,  # personal space of the members of the crowd
+            },
+            'trajectory_generator_kwargs': {
+                'weights_scale': 4,
+                'goal_scale': 2,
+                'auto_scale_basis': True,
             },
             'basis_generator_kwargs': {
                 'num_basis': 4,
