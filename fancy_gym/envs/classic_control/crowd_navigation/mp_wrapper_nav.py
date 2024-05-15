@@ -73,6 +73,7 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
                 'max_vel': 3.0,
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'dt': 0.1,
+                'min_dist_wall': 1.4,  # physical space of agent + 0.1
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
@@ -123,6 +124,7 @@ class MPWrapper_Navigation_Vel(MPWrapper_Navigation):
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'dt': 0.1,
                 'velocity_control': True,
+                'min_dist_wall': 1.4,  # physical space of agent + 0.1
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,

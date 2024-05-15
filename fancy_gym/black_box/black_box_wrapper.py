@@ -185,6 +185,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
                     velocity[t:],
                     self.env.get_wrapper_attr('current_pos'),
                     self.env.get_wrapper_attr('current_vel'),
+                    self.env.get_wrapper_attr('wall_dist'),
                     self.env.get_wrapper_attr('crowd_pos_vel'),
                 )
                 c_action = step_action[0]

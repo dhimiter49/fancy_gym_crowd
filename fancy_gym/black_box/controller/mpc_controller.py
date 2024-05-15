@@ -37,6 +37,7 @@ class MPCController(BaseController):
     :param horizon : horizon for which to optimize control
     :param dt : time step
     :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
+    :param min_dist_wall: minimum distance to the wall
     """
 
     def __init__(
@@ -51,6 +52,7 @@ class MPCController(BaseController):
         horizon: int = 20,
         dt: float = 0.1,
         min_dist_crowd: float = 0.0,
+        min_dist_wall: float = 0.4,
         velocity_control: float = False,
     ):
         self.N = horizon
@@ -72,6 +74,7 @@ class MPCController(BaseController):
         self.polygon_acc_lines = gen_polygon(max_acc)
         self.polygon_vel_lines = gen_polygon(max_vel)
         self.min_dist_crowd = min_dist_crowd
+        self.min_dist_wall = min_dist_wall
 
         if not self.velocity_control:
             M_v_ = np.vstack([
@@ -199,7 +202,49 @@ class MPCController(BaseController):
             const_b.append(v_cb)
 
 
-    def get_action(self, des_pos, des_vel, curr_pos, curr_vel, crowd=None):
+    def const_wall(self, const_M, const_b, wall_dist, agent_vel):
+        if not self.velocity_control:
+            if wall_dist[0] < self.MAX_STOPPING_DIST * 1.5 or\
+                wall_dist[2] < self.MAX_STOPPING_DIST * 1.5:
+                poss = np.repeat(
+                    np.array([[wall_dist[0] - self.min_dist_wall,
+                               wall_dist[2] - self.min_dist_wall]]), self.N
+                )
+                v_cb = poss - self.vec_pos_vel * np.repeat(agent_vel, self.N)
+                const_M.append(self.mat_pos_acc)
+                const_b.append(v_cb)
+            if wall_dist[1] < self.MAX_STOPPING_DIST * 1.5 or\
+                wall_dist[3] < self.MAX_STOPPING_DIST * 1.5:
+                poss_ = np.repeat(
+                    np.array([[wall_dist[1] - self.min_dist_wall,
+                               wall_dist[3] - self.min_dist_wall]]), self.N
+                )
+                v_cb = poss_ + self.vec_pos_vel * np.repeat(agent_vel, self.N)
+                const_M.append(-self.mat_pos_acc)
+                const_b.append(v_cb)
+        else:
+            if wall_dist[0] < self.MAX_STOPPING_DIST * 1.5 or\
+                wall_dist[2] < self.MAX_STOPPING_DIST * 1.5:
+                poss = np.repeat(
+                    np.array([[wall_dist[0] - self.min_dist_wall,
+                               wall_dist[2] - self.min_dist_wall]]), self.N
+                )
+                v_cb = poss - 0.5 * np.repeat(agent_vel, self.N)
+                const_M.append(self.mat_vc_pos_vel)
+                const_b.append(v_cb)
+
+            if wall_dist[1] < self.MAX_STOPPING_DIST * 1.5 or\
+                wall_dist[3] < self.MAX_STOPPING_DIST * 1.5:
+                poss_ = np.repeat(
+                    np.array([[wall_dist[1] - self.min_dist_wall,
+                               wall_dist[3] - self.min_dist_wall]]), self.N
+                )
+                v_cb = poss_ + 0.5 * np.repeat(agent_vel, self.N)
+                const_M.append(-self.mat_vc_pos_vel)
+                const_b.append(v_cb)
+
+
+    def get_action(self, des_pos, des_vel, curr_pos, curr_vel, wall_dist, crowd=None):
         actions = np.empty((self.N, 2))
         des_pos = des_pos[:self.N]
         des_vel = des_vel[:self.N]
@@ -230,6 +275,9 @@ class MPCController(BaseController):
         # constrain distance relative to the crowd
         if self.min_dist_crowd > 0:
             self.const_crowd(const_M, const_b, crowd, curr_pos, curr_vel)
+
+        # constraint distance to the wall
+        self.const_wall(const_M, const_b, wall_dist, curr_vel)
 
         # constrain acceleration and velocity limits by using an inner polygon of a circle
         self.const_acc_vel(const_M, const_b, curr_vel)
