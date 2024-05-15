@@ -16,7 +16,7 @@ def gen_polygon(radius, sides=8):
         m = (polygon[i][1] - polygon[i + 1][1]) / (polygon[i][0] - polygon[i + 1][0])
         b = polygon[i][1] - m * polygon[i][0]
         polygon_lines.append([m, b])
-    return polygon_lines
+    return np.array(polygon_lines)
 
 
 class MPCController(BaseController):
@@ -73,34 +73,81 @@ class MPCController(BaseController):
         self.polygon_vel_lines = gen_polygon(max_vel)
         self.min_dist_crowd = min_dist_crowd
 
+        if not self.velocity_control:
+            M_v_ = np.vstack([
+                np.eye(self.N) * -line[0] for line in self.polygon_vel_lines
+            ])
+            M_v_ = np.hstack([
+                M_v_, np.vstack([np.eye(self.N)] * len(self.polygon_vel_lines))
+            ])
+            sgn_vel = np.ones(len(self.polygon_vel_lines))
+            sgn_vel[len(self.polygon_vel_lines) // 2:] = -1
+            sgn_vel = np.repeat(sgn_vel, self.N)
+            b_v_ = np.repeat(self.polygon_vel_lines[:, 1], self.N)
+
+            self.vel_mat_constraint = ((M_v_ @ self.mat_vel_acc).T * sgn_vel).T
+            self.vel_vec_constraint = lambda agent_vel: sgn_vel *\
+                (b_v_ - M_v_ @ np.repeat(agent_vel, self.N))
+
+            M_a_ = np.vstack([
+                np.eye(self.N) * -line[0] for line in self.polygon_acc_lines
+            ])
+            M_a_ = np.hstack([
+                M_a_, np.vstack([np.eye(self.N)] * len(self.polygon_acc_lines))
+            ])
+            sgn_acc = np.ones(len(self.polygon_acc_lines))
+            sgn_acc[len(self.polygon_acc_lines) // 2:] = -1
+            sgn_acc = np.repeat(sgn_acc, self.N)
+            b_a_ = np.repeat(self.polygon_acc_lines[:, 1], self.N)
+
+            self.acc_mat_constraint = (M_a_.T * sgn_acc).T
+            self.acc_vec_constraint = sgn_acc * b_a_
+        else:
+            MV_v_ = np.vstack([
+                np.eye(self.N - 1) * -line[0] for line in self.polygon_vel_lines
+            ])
+            MV_v_ = np.hstack([
+                MV_v_, np.vstack([np.eye(self.N - 1)] * len(self.polygon_vel_lines))
+            ])
+            sgn_vel = np.ones(len(self.polygon_vel_lines))
+            sgn_vel[len(self.polygon_vel_lines) // 2:] = -1
+            sgn_vel = np.repeat(sgn_vel, self.N - 1)
+            b_a_ = np.repeat(self.polygon_vel_lines[:, 1], self.N - 1)
+
+            self.vel_mat_constraint = (MV_v_.T * sgn_vel).T
+            self.vel_vec_constraint = sgn_vel * b_a_
+
+
+            MV_a_ = np.vstack([
+                np.eye(self.N) * -line[0] for line in self.polygon_acc_lines])
+            MV_a_ = np.hstack([
+                MV_a_, np.vstack([np.eye(self.N)] * len(self.polygon_acc_lines))
+            ])
+            sgn_acc = np.ones(len(self.polygon_acc_lines))
+            sgn_acc[len(self.polygon_acc_lines) // 2:] = -1
+            sgn_acc = np.repeat(sgn_acc, self.N)
+            bv_a_ = np.repeat(self.polygon_acc_lines[:, 1], self.N)
+
+            self.acc_mat_constraint = ((MV_a_ @ self.mat_vc_acc_vel).T * sgn_acc).T
+            self.acc_vec_constraint = lambda agent_vel: sgn_acc *\
+                (bv_a_ + MV_a_ @ agent_vel / self.dt)
+
         self.last_braking_traj = None
 
 
     def const_acc_vel(self, const_M, const_b, agent_vel):
-        for i, line in enumerate(self.polygon_acc_lines):
-            sgn = 1 if i < len(self.polygon_acc_lines) / 2 else -1
-            M_a = np.hstack([np.eye(self.N) * -line[0], np.eye(self.N)])
-            b_a = np.ones(self.N) * line[1]
-            if self.velocity_control:
-                agent_vel_ = np.zeros(2 * self.N)
-                agent_vel_[0], agent_vel_[self.N] = agent_vel
-                b_a += M_a @ agent_vel_ / self.dt
-                M_a = M_a @ self.mat_vc_acc_vel
-            const_M.append(sgn * M_a)
-            const_b.append(sgn * b_a)
-
-        for i, line in enumerate(self.polygon_vel_lines):
-            sgn = 1 if i < len(self.polygon_vel_lines) / 2 else -1
-            if self.velocity_control:
-                M_v = np.hstack([np.eye(self.N - 1) * -line[0], np.eye(self.N - 1)])
-                b_v = np.ones(self.N - 1) * line[1]
-                const_M.append(sgn * M_v)
-                const_b.append(sgn * b_v)
-            else:
-                M_v = np.hstack([np.eye(self.N) * -line[0], np.eye(self.N)])
-                b_v = np.ones(self.N) * line[1] - M_v @ np.repeat(agent_vel, self.N)
-                const_M.append(sgn * M_v @ self.mat_vel_acc)
-                const_b.append(sgn * b_v)
+        if not self.velocity_control:
+            const_M.append(self.vel_mat_constraint)
+            const_b.append(self.vel_vec_constraint(agent_vel))
+            const_M.append(self.acc_mat_constraint)
+            const_b.append(self.acc_vec_constraint)
+        else:
+            const_M.append(self.vel_mat_constraint)
+            const_b.append(self.vel_vec_constraint)
+            const_M.append(self.acc_mat_constraint)
+            agent_vel_ = np.zeros(2 * (self.N))
+            agent_vel_[0], agent_vel_[self.N] = agent_vel
+            const_b.append(self.acc_vec_constraint(agent_vel_))
 
 
     def calculate_crowd_positions(self, crowd_poss, crowd_vels):
