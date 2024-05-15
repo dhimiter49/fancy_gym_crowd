@@ -84,11 +84,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
 
-    def _start_env_vars(self):
-        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
-        return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
-
-
     def _get_reward(self, action: np.ndarray):
         dg = np.linalg.norm(self._agent_pos - self._goal_pos)
         if self._goal_reached:
@@ -318,7 +313,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
         self.space_agent.center = self._agent_pos
         if self.lidar:
-            for i, (angle, distance) in enumerate(zip(self.RAY_ANGLES, self.ray_distances)):
+            for i, (angle, distance) in \
+                enumerate(zip(self.RAY_ANGLES, self.ray_distances)):
                 self.lidar_rays[i].set_data(
                     x=self._agent_pos[0], y=self._agent_pos[1],
                     dx=distance * np.cos(angle), dy=distance * np.sin(angle)

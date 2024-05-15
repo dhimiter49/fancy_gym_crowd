@@ -132,7 +132,14 @@ class MPCController(BaseController):
             self.acc_vec_constraint = lambda agent_vel: sgn_acc *\
                 (bv_a_ + MV_a_ @ agent_vel / self.dt)
 
-        self.last_braking_traj = None
+        self.last_braking_traj = np.zeros((self.N, 2))
+
+
+    def flush(self):
+        """
+        Flush state which consists only of the lastr braking trajectory.
+        """
+        self.last_braking_traj *= 0
 
 
     def const_acc_vel(self, const_M, const_b, agent_vel):
@@ -252,12 +259,12 @@ class MPCController(BaseController):
             control = np.zeros(2 * self.N)
             control[0:self.N - 1] = self.last_braking_traj[1:, 0]
             control[self.N:2 * self.N - 1] = self.last_braking_traj[1:, 1]
-        if self.velocity_control:
+        elif self.velocity_control:
             actions = np.array([
                 np.append(control[:self.N - 1], 0),
                 np.append(control[self.N - 1:], 0)]
             ).T
-        else:
+        if not self.velocity_control:
             actions = np.array([control[:self.N], control[self.N:]]).T
         self.last_braking_traj = actions  # save last trajecotry in case next step fails
         return actions
