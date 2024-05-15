@@ -123,6 +123,21 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationStaticLiDARVel-v0',
+    entry_point=CrowdNavigationStaticEnv,
+    mp_wrapper=MPWrapper_CrowdStatic_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+        "lidar_rays": 40,  # 0 means no lidar, cartesian obs
+    }
+)
+
+register(
     id='fancy/CrowdNavigationStaticVel-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic_Vel,
