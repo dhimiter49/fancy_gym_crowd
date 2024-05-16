@@ -48,7 +48,7 @@ def gen_mat_vel_acc(horizon, dt):
     Return:
         numpy.ndarray: 2D array with dimension 2 * horizon x 2 * horizon
     """
-    M_va = scipy.linalg.toeplitz(np.ones(horizon) * dt, np.zeros(horizon))
+    M_va = scipy.linalg.toeplitz(np.ones(horizon), np.zeros(horizon)) * dt
     M_va = np.stack(
         [np.hstack([M_va, M_va * 0]), np.hstack([M_va * 0, M_va])]
     ).reshape(2 * horizon, 2 * horizon)

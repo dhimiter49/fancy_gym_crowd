@@ -256,18 +256,18 @@ class MPCController(BaseController):
 
         if self.velocity_control:
             opt_M = self.mat_vc_pos_vel.T @ self.mat_vc_pos_vel +\
-                0.25 * np.eye(2 * (self.N - 1))
+                1.0 * np.eye(2 * (self.N - 1))
             reference_vel = np.append(
                 reference_vel[:self.N - 1], reference_vel[self.N:2 * self.N - 1]
             )
             opt_V = (reference_pos + 0.5 * self.dt * np.repeat(curr_vel, self.N)).T @\
-                self.mat_vc_pos_vel - 0.25 * reference_vel.T
+                self.mat_vc_pos_vel + 1.0 * reference_vel.T
         else:
             opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
-                0.2 * self.mat_vel_acc.T @ self.mat_vel_acc +\
+                2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
                 0.2 * np.eye(2 * self.N)
             opt_V = (reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)).T @\
-                self.mat_pos_acc + 0.2 * reference_vel.T @ self.mat_vel_acc
+                self.mat_pos_acc + 2.0 * reference_vel.T @ self.mat_vel_acc
 
         # constraint matrices and bounds
         const_M = []
