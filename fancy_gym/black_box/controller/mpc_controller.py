@@ -57,8 +57,9 @@ class MPCController(BaseController):
     ):
         self.N = horizon
         self.MAX_STOPPING_TIME = max_vel / max_acc
-        self.MAX_STOPPING_DIST = max_vel * self.MAX_STOPPING_TIME -\
-            0.5 * max_acc * self.MAX_STOPPING_TIME ** 2
+        self.MAX_STOPPING_DIST = 2 * (
+            max_vel * self.MAX_STOPPING_TIME - 0.5 * max_acc * self.MAX_STOPPING_TIME ** 2
+        )
         self.dt = dt
         self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc
