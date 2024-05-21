@@ -204,8 +204,8 @@ class MPCController(BaseController):
 
 
     def const_wall(self, const_M, const_b, wall_dist, agent_vel):
-        if wall_dist[0] < self.MAX_STOPPING_DIST * 1.5 or\
-            wall_dist[2] < self.MAX_STOPPING_DIST * 1.5:
+        if wall_dist[0] < self.MAX_STOPPING_DIST * 0.6 or\
+            wall_dist[2] < self.MAX_STOPPING_DIST * 0.6:
             poss = np.repeat(
                 np.array([[wall_dist[0] - self.min_dist_wall,
                            wall_dist[2] - self.min_dist_wall]]), self.N
@@ -217,8 +217,8 @@ class MPCController(BaseController):
                 v_cb = poss - 0.5 * self.dt * np.repeat(agent_vel, self.N)
                 const_M.append(self.mat_vc_pos_vel)
             const_b.append(v_cb)
-        if wall_dist[1] < self.MAX_STOPPING_DIST * 1.5 or\
-            wall_dist[3] < self.MAX_STOPPING_DIST * 1.5:
+        if wall_dist[1] < self.MAX_STOPPING_DIST * 0.6 or\
+            wall_dist[3] < self.MAX_STOPPING_DIST * 0.6:
             poss_ = np.repeat(
                 np.array([[wall_dist[1] - self.min_dist_wall,
                            wall_dist[3] - self.min_dist_wall]]), self.N
