@@ -55,7 +55,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
         self.Cg = -(1 - np.exp(self.Cc / self.SOCIAL_SPACE)) /\
             np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
-        self.Tc = -self.COLLISION_REWARD / 2
+        self.Tc = -self.COLLISION_REWARD
         self.Cc *= 2
 
         self.n_crowd = n_crowd

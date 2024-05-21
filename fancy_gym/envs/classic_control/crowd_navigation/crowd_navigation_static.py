@@ -198,7 +198,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                         self._agent_pos[0], self._agent_pos[1],
                         distance * np.cos(angle), distance * np.sin(angle),
                         head_width=0.0,
-                        ec=(0.5, 0.5, 0.5, 0.5),
+                        ec=(0.5, 0.5, 0.5, 0.3),
                         linestyle="--"
                     ))
 
