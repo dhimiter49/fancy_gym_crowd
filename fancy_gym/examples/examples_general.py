@@ -40,7 +40,7 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, 
     """
 
     env = gym.make(env_id)
-    rewards = []
+    rewards = 0
     obs = env.reset(seed=seed)
     print("Observation shape: ", env.observation_space.shape)
     print("Action shape: ", env.action_space.shape)
@@ -54,16 +54,15 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, 
             action = env.action_space.sample()
 
         obs, reward, terminated, truncated, info = env.step(action)
-        rewards.append(reward)
+        rewards += reward
         if render:
             env.render()
 
         if terminated or truncated:
-            print(sum(rewards))
+            print(rewards)
             if plot:
                 plot_rewards(rewards)
-                input()
-            rewards = []
+            rewards = 0
             obs = env.reset()
 
 def example_async(env_id="fancy/HoleReacher-v0", n_cpu=4, seed=int('533D', 16), n_samples=800):

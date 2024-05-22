@@ -116,7 +116,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         )
 
         # containers for plotting
-        self.metadata = {'render.modes': ["human"]}
+        self.metadata = {'render_modes': ["human"], 'render_fps': 24}
         self.fig = None
 
         self._steps = 0
