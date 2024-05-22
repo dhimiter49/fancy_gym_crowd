@@ -72,10 +72,19 @@ class MPCController(BaseController):
             self.vec_pos_vel = 0.5 * self.dt
         else:
             self.mat_pos_control = self.mat_pos_acc
-        self.polygon_acc_lines = gen_polygon(max_acc)
-        self.polygon_vel_lines = gen_polygon(max_vel)
+        self.lin_sides = 8
+        self.polygon_acc_lines = gen_polygon(max_acc, self.lin_sides)
+        self.polygon_vel_lines = gen_polygon(max_vel, self.lin_sides)
         self.min_dist_crowd = min_dist_crowd
         self.min_dist_wall = min_dist_wall
+
+        if self.velocity_control:
+            self.opt_M = self.mat_vc_pos_vel.T @ self.mat_vc_pos_vel +\
+                1.0 * np.eye(2 * (self.N - 1))
+        else:
+            self.opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
+                2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
+                0.2 * np.eye(2 * self.N)
 
         if not self.velocity_control:
             M_v_ = np.vstack([
@@ -90,8 +99,8 @@ class MPCController(BaseController):
             b_v_ = np.repeat(self.polygon_vel_lines[:, 1], self.N)
 
             self.vel_mat_constraint = ((M_v_ @ self.mat_vel_acc).T * sgn_vel).T
-            self.vel_vec_constraint = lambda agent_vel: sgn_vel *\
-                (b_v_ - M_v_ @ np.repeat(agent_vel, self.N))
+            self.vel_vec_constraint = lambda agent_vel, idxs: sgn_vel[idxs] *\
+                (b_v_[idxs] - M_v_[idxs] @ np.repeat(agent_vel, self.N))
 
             M_a_ = np.vstack([
                 np.eye(self.N) * -line[0] for line in self.polygon_acc_lines
@@ -146,15 +155,29 @@ class MPCController(BaseController):
         self.last_braking_traj *= 0
 
 
+    def relevant_vel_idxs(self, agent_vel):
+        horizon = self.N - 1 if self.velocity_control else self.N
+        angle = np.arctan2(agent_vel[1], agent_vel[0])
+        angle = 2 * np.pi + angle if angle < 0 else angle
+        angle_idx = angle // (2 * np.pi / self.lin_sides)
+        idxs = [
+            angle_idx, (angle_idx + 1) % self.lin_sides, (angle_idx - 1) % self.lin_sides
+        ]
+        idxs = np.hstack(list(idxs) * horizon) +\
+            np.repeat(np.arange(0, horizon * self.lin_sides, self.lin_sides), 3)
+        return np.array(idxs, dtype=int)
+
+
     def const_acc_vel(self, const_M, const_b, agent_vel):
+        idxs = self.relevant_vel_idxs(agent_vel)
         if not self.velocity_control:
-            const_M.append(self.vel_mat_constraint)
-            const_b.append(self.vel_vec_constraint(agent_vel))
+            const_M.append(self.vel_mat_constraint[idxs])
+            const_b.append(self.vel_vec_constraint(agent_vel, idxs))
             const_M.append(self.acc_mat_constraint)
             const_b.append(self.acc_vec_constraint)
         else:
-            const_M.append(self.vel_mat_constraint)
-            const_b.append(self.vel_vec_constraint)
+            const_M.append(self.vel_mat_constraint[idxs])
+            const_b.append(self.vel_vec_constraint[idxs])
             const_M.append(self.acc_mat_constraint)
             agent_vel_ = np.zeros(2 * (self.N))
             agent_vel_[0], agent_vel_[self.N] = agent_vel
@@ -191,9 +214,12 @@ class MPCController(BaseController):
             horizon_crowd_poss = crowd_poss
         for member in range(len(horizon_crowd_poss[1])):
             poss = horizon_crowd_poss[:, member, :]
-            if np.all(np.linalg.norm(poss, axis=-1) > self.MAX_STOPPING_DIST):
+            dist = np.linalg.norm(poss, axis=-1)
+            vec = -(poss.T / np.linalg.norm(poss, axis=-1)).T
+            angle = np.arccos(np.clip(np.dot(-vec, agent_vel), -1, 1)) > np.pi / 4
+            if np.all(dist > self.MAX_STOPPING_DIST) or\
+               (np.all(dist > self.MAX_STOPPING_DIST / 2) and np.all(angle)):
                 continue
-            vec = -poss / np.stack([np.linalg.norm(poss, axis=-1)] * 2, axis=-1)
             M_ca = np.hstack([np.eye(self.N) * vec[:, 0], np.eye(self.N) * vec[:, 1]])
             v_cb = M_ca @ (
                 -poss.flatten("F") + self.vec_pos_vel * np.repeat(agent_vel, self.N)
@@ -279,7 +305,7 @@ class MPCController(BaseController):
             term_const_b = -curr_vel
 
         control = solve_qp(
-            opt_M, opt_V,
+            self.opt_M, opt_V,
             G=np.vstack(const_M), h=np.hstack(const_b),
             A=term_const_M, b=term_const_b,
             solver="clarabel",
