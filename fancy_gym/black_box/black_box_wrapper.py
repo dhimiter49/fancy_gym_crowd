@@ -108,8 +108,8 @@ class BlackBoxWrapper(gym.ObservationWrapper):
         init_time = np.array(
             0 if not self.do_replanning else self.current_traj_steps * self.dt)
 
-        condition_pos = self.condition_pos if self.condition_pos is not None else self.env.get_wrapper_attr('current_pos')
-        condition_vel = self.condition_vel if self.condition_vel is not None else self.env.get_wrapper_attr('current_vel')
+        condition_pos = self.condition_pos if self.condition_pos is not None else self.env.unwrapped.current_pos
+        condition_vel = self.condition_vel if self.condition_vel is not None else self.env.unwrapped.current_vel
 
         self.traj_gen.set_initial_conditions(
             init_time, condition_pos, condition_vel)
@@ -176,16 +176,16 @@ class BlackBoxWrapper(gym.ObservationWrapper):
         for t, (pos, vel) in enumerate(zip(position, velocity)):
             if not isinstance(self.tracking_controller, MPCController):
                 step_action = self.tracking_controller.get_action(
-                    pos, vel, self.env.get_wrapper_attr('current_pos'), self.env.get_wrapper_attr('current_vel'))
+                    pos, vel, self.env.unwrapped.current_pos, self.env.unwrapped.current_vel)
                 c_action = np.clip(
                     step_action, self.env.action_space.low, self.env.action_space.high)
             else:
                 step_action = self.tracking_controller.get_action(
                     position[t:],
                     velocity[t:],
-                    self.env.get_wrapper_attr('current_pos'),
-                    self.env.get_wrapper_attr('current_vel'),
-                    self.env.get_wrapper_attr('crowd_pos_vel'),
+                    self.env.unwrapped.current_pos,
+                    self.env.unwrapped.current_vel,
+                    self.env.unwrapped.crowd_pos_vel,
                 )
                 c_action = step_action[0]
             obs, c_reward, terminated, truncated, info = self.env.step(
@@ -205,7 +205,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
                 self.env.render()
 
 
-            if terminated or truncated or (self.replanning_schedule(self.env.get_wrapper_attr('current_pos'), self.env.get_wrapper_attr('current_vel'), obs, c_action, t + 1 + self.current_traj_steps) and self.plan_steps < self.max_planning_times):
+            if terminated or truncated or (self.replanning_schedule(self.env.unwrapped.current_pos, self.env.unwrapped.current_vel, obs, c_action, t + 1 + self.current_traj_steps) and self.plan_steps < self.max_planning_times):
 
                 if self.condition_on_desired:
                     self.condition_pos = pos

@@ -44,7 +44,7 @@ class TimeAwareObservation(gym.ObservationWrapper, gym.utils.RecordConstructorAr
 
             self.observation_space = Dict(spaces)
 
-        self.is_vector_env = getattr(env, "is_vector_env", False)
+        self.is_vector_env = getattr(env.unwrapped, "is_vector_env", False)
 
     def observation(self, observation):
         """Adds to the observation with the current time step.
