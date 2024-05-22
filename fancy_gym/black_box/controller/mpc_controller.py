@@ -1,5 +1,6 @@
 from fancy_gym.black_box.controller.base_controller import BaseController
 from qpsolvers import solve_qp
+from scipy import sparse
 import numpy as np
 
 
@@ -85,6 +86,7 @@ class MPCController(BaseController):
             self.opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
                 2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
                 0.2 * np.eye(2 * self.N)
+        self.opt_M = sparse.csr_matrix(self.opt_M)
 
         if not self.velocity_control:
             M_v_ = np.vstack([
@@ -268,17 +270,12 @@ class MPCController(BaseController):
             np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
 
         if self.velocity_control:
-            opt_M = self.mat_vc_pos_vel.T @ self.mat_vc_pos_vel +\
-                1.0 * np.eye(2 * (self.N - 1))
             reference_vel = np.append(
                 reference_vel[:self.N - 1], reference_vel[self.N:2 * self.N - 1]
             )
             opt_V = (reference_pos + 0.5 * self.dt * np.repeat(curr_vel, self.N)).T @\
                 self.mat_vc_pos_vel + 1.0 * reference_vel.T
         else:
-            opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
-                2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
-                0.2 * np.eye(2 * self.N)
             opt_V = (reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)).T @\
                 self.mat_pos_acc + 2.0 * reference_vel.T @ self.mat_vel_acc
 
@@ -306,7 +303,7 @@ class MPCController(BaseController):
 
         control = solve_qp(
             self.opt_M, opt_V,
-            G=np.vstack(const_M), h=np.hstack(const_b),
+            G=sparse.csr_matrix(np.vstack(const_M)), h=np.hstack(const_b),
             A=term_const_M, b=term_const_b,
             solver="clarabel",
             tol_gap_abs=5e-5,
