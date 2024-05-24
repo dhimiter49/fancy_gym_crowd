@@ -231,33 +231,35 @@ class MPCController(BaseController):
             const_b.append(v_cb)
 
 
-    def const_wall(self, const_M, const_b, wall_dist, agent_vel):
-        if wall_dist[0] < self.MAX_STOPPING_DIST * 0.6 or\
-            wall_dist[2] < self.MAX_STOPPING_DIST * 0.6:
-            poss = np.repeat(
-                np.array([[wall_dist[0] - self.min_dist_wall,
-                           wall_dist[2] - self.min_dist_wall]]), self.N
-            )
+    def wall_eq(self, wall_dist):
+        """
+        Reutrns the equation for all four walls knowing that the index are:
+             2    To represent this in the format ax+by+c, a nd b are one of [0, 1, -1],
+           1   0  e.g. for index 0 in the graph to the left b=0 and a=-1 while for index
+             3    1 a=1, while c is the distance to the wall.
+        """
+        eqs = np.stack(
+            [
+                np.array([-1, 1, 0, 0]),
+                np.array([0, 0, -1, 1]),
+                wall_dist - self.min_dist_wall
+            ],
+            axis=1
+        )
+        return eqs[wall_dist < self.MAX_STOPPING_DIST * 0.6]
+
+
+    def const_lin_pos(self, const_M, const_b, line_eq, agent_vel):
+        """The linear position constraint is given by the equation ax+yb+c"""
+        for line in line_eq:
+            M_ca = np.hstack([np.eye(self.N) * line[0], np.eye(self.N) * line[1]])
             if not self.velocity_control:
-                v_cb = poss - self.vec_pos_vel * np.repeat(agent_vel, self.N)
-                const_M.append(self.mat_pos_acc)
+                v_c = -M_ca @ (self.vec_pos_vel * np.repeat(agent_vel, self.N)) - line[2]
+                const_M.append(-M_ca @ self.mat_pos_acc)
             else:
-                v_cb = poss - 0.5 * self.dt * np.repeat(agent_vel, self.N)
-                const_M.append(self.mat_vc_pos_vel)
-            const_b.append(v_cb)
-        if wall_dist[1] < self.MAX_STOPPING_DIST * 0.6 or\
-            wall_dist[3] < self.MAX_STOPPING_DIST * 0.6:
-            poss_ = np.repeat(
-                np.array([[wall_dist[1] - self.min_dist_wall,
-                           wall_dist[3] - self.min_dist_wall]]), self.N
-            )
-            if not self.velocity_control:
-                v_cb = poss_ + self.vec_pos_vel * np.repeat(agent_vel, self.N)
-                const_M.append(-self.mat_pos_acc)
-            else:
-                v_cb = poss_ + 0.5 * self.dt * np.repeat(agent_vel, self.N)
-                const_M.append(-self.mat_vc_pos_vel)
-            const_b.append(v_cb)
+                v_c = -M_ca @ (0.5 * self.dt * np.repeat(agent_vel, self.N)) - line[2]
+                const_M.append(-M_ca @ self.mat_vc_pos_vel)
+            const_b.append(-v_c)
 
 
     def get_action(self, des_pos, des_vel, curr_pos, curr_vel, wall_dist, crowd=None):
@@ -288,7 +290,9 @@ class MPCController(BaseController):
             self.const_crowd(const_M, const_b, crowd, curr_pos, curr_vel)
 
         # constraint distance to the wall
-        self.const_wall(const_M, const_b, wall_dist, curr_vel)
+        wall_eqs = self.wall_eq(wall_dist)
+        if len(wall_eqs) != 0:
+            self.const_lin_pos(const_M, const_b, wall_eqs, curr_vel)
 
         # constrain acceleration and velocity limits by using an inner polygon of a circle
         self.const_acc_vel(const_M, const_b, curr_vel)
