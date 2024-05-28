@@ -70,9 +70,8 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'min_dist_wall': 0.5,  # physical space of agent + 0.1
             },
             'trajectory_generator_kwargs': {
-                'weights_scale': 4,
+                'weights_scale': 1,
                 'goal_scale': 2,
-                'auto_scale_basis': True,
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
@@ -122,9 +121,8 @@ class MPWrapper_CrowdStatic_Vel(MPWrapper_CrowdStatic):
                 'min_dist_wall': 0.5,  # physical space of agent + 0.1
             },
             'trajectory_generator_kwargs': {
-                'weights_scale': 4,
+                'weights_scale': 1,
                 'goal_scale': 2,
-                'auto_scale_basis': True,
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,

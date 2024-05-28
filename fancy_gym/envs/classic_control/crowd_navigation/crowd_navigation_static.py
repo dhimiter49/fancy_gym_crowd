@@ -90,7 +90,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             Rg = self.Tc
         else:
             # Goal distance
-            Rg = -self.Cg * dg ** 2
+            Rg = -self.Cg * np.clip(dg, 1, np.inf) ** 2
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD
