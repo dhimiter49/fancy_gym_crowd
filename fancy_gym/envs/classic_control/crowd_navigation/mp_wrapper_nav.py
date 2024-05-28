@@ -79,9 +79,8 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
                 'num_basis': 3,
             },
             'trajectory_generator_kwargs': {
-                'weights_scale': 4,
-                'goal_scale': 2,
-                'auto_scale_basis': True,
+                'weights_scale': 1,
+                'goal_scale': 6,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
@@ -130,9 +129,8 @@ class MPWrapper_Navigation_Vel(MPWrapper_Navigation):
                 'num_basis': 3,
             },
             'trajectory_generator_kwargs': {
-                'weights_scale': 4,
-                'goal_scale': 2,
-                'auto_scale_basis': True,
+                'weights_scale': 1,
+                'goal_scale': 6,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
