@@ -149,8 +149,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self._last_frames[:self._n_frames - 1]
             ])
             return np.concatenate([
-                self._agent_vel,
                 self._goal_pos - self._agent_pos,
+                self._agent_vel,
                 self._last_frames.flatten()
             ]).astype(np.float32).flatten()
         else:
