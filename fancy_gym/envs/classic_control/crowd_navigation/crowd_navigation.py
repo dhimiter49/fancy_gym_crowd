@@ -151,7 +151,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             return np.concatenate([
                 self._agent_vel,
                 self._goal_pos - self._agent_pos,
-                ray_distances
+                self._last_frames.flatten()
             ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos

@@ -89,7 +89,7 @@ register(
     mp_wrapper=MPWrapper_Crowd,
     max_episode_steps=100,
     kwargs={
-        "n_crowd": 4,
+        "n_crowd": 8,
         "width": 18,
         "height": 18,
         "interceptor_percentage": 2,
