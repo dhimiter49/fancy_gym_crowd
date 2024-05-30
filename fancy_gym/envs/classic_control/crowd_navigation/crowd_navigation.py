@@ -249,6 +249,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     t_acc * self.MAX_ACC - max_step_acc, 0 - 1e-8, -max_step_acc
                 )
                 vels = np.concatenate([acc_vels, dec_vels])
+            if vels == []:
+                vels = np.array([0])
 
             # Fix direction
             direction = (goal - crowd_poss[i]) / dist
