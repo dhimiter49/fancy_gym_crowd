@@ -47,13 +47,13 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
         if self.lidar:
             state_bound_min = np.hstack([
-                [-self.WIDTH, -self.HEIGHT],
-                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [0, -np.pi],
+                [0, -np.pi],
                 [0] * self.N_RAYS,
             ])
             state_bound_max = np.hstack([
-                [self.WIDTH, self.HEIGHT],
-                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [max_dist, np.pi],
+                [self.AGENT_MAX_VEL, np.pi],
                 np.full(self.N_RAYS, max_dist)
             ])
         elif polar:
@@ -154,8 +154,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             self.ray_distances = ray_distances
 
             return np.concatenate([
-                self._goal_pos - self._agent_pos,
-                self._agent_vel,
+                self.c2p(self._goal_pos - self._agent_pos)[0],
+                self.c2p(self._agent_vel)[0],
                 ray_distances
             ]).astype(np.float32).flatten()
         else:

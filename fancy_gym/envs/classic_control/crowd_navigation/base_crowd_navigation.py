@@ -83,9 +83,11 @@ class BaseCrowdNavigationEnv(gym.Env):
                     [len(self.CARTESIAN_VEL), len(self.CARTESIAN_VEL)]
                 )
             else:
-                action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
+                # action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
                 self.action_space = spaces.Box(
-                    low=-action_bound, high=action_bound, shape=action_bound.shape
+                    low=np.array([0, -np.pi]),
+                    high=np.array([self.AGENT_MAX_VEL, np.pi]),
+                    dtype=np.float32
                 )
         else:
             if self.discrete_action:
@@ -340,7 +342,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 ])
 
         if self.velocity_control:
-            vel = action
+            vel = self.p2c(action)
             vel_norm = np.linalg.norm(vel)
             if vel_norm > self.AGENT_MAX_VEL:
                 vel *= self.AGENT_MAX_VEL / vel_norm
