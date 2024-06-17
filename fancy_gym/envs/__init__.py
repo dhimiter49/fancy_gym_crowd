@@ -11,6 +11,7 @@ from .classic_control.hole_reacher.hole_reacher import HoleReacherEnv
 from .classic_control.hole_reacher import MPWrapper as MPWrapper_HoleReacher
 from .classic_control.crowd_navigation.crowd_navigation import CrowdNavigationEnv
 from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
+from .classic_control.crowd_navigation.l_shape_env import LShapeCrowdNavigationEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
 from .classic_control.crowd_navigation import (
     MPWrapper_Crowd,
@@ -242,6 +243,17 @@ register(
         "width": 10,
         "height": 10,
         "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/LShapeCrowdNavigation-v0',
+    entry_point=LShapeCrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Navigation_Vel,
+    max_episode_steps=60,
+    kwargs={
+        "width": 10,
+        "height": 10,
     }
 )
 
