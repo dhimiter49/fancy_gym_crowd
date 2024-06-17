@@ -54,23 +54,23 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 state_bound_min = np.hstack([
                     [0, -np.pi],
                     [0, -np.pi],
-                    [0] * self.N_RAYS,
+                    [0] * self.N_RAYS * self._n_frames,
                 ])
                 state_bound_max = np.hstack([
                     [max_dist, np.pi],
                     [self.AGENT_MAX_VEL, np.pi],
-                    np.full(self.N_RAYS, max_dist)
+                    [max_dist] * self.N_RAYS * self._n_frames,
                 ])
             else:
                 state_bound_min = np.hstack([
                     [-self.WIDTH, -self.HEIGHT],
                     [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-                    [0] * self.N_RAYS,
+                    [0] * self.N_RAYS * self._n_frames,
                 ])
                 state_bound_max = np.hstack([
                     [self.WIDTH, self.HEIGHT],
                     [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                    np.full(self.N_RAYS, max_dist)
+                    [max_dist] * self.N_RAYS * self._n_frames,
                 ])
         else:
             state_bound_min = np.hstack([
