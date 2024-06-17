@@ -22,8 +22,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         lidar_rays: int = 0,
         polar: bool = False,
     ):
-        assert not (polar and lidar_rays != 0), \
-            "Set either polar coordinates or lidar rays!"
         self.MAX_EPISODE_STEPS = 80
         self.polar = polar
         super().__init__(
