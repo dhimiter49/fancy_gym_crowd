@@ -20,12 +20,16 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         polar: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 60
+        self.polar = polar
         super().__init__(
-            0, width, height, discrete_action=discrete_action, velocity_control=velocity_control
+            0,
+            width,
+            height,
+            discrete_action=discrete_action,
+            velocity_control=velocity_control
         )
 
-        self.polar = polar
-        if polar:
+        if self.polar:
             max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
             state_bound_min = np.hstack([
                 [0, -np.pi],

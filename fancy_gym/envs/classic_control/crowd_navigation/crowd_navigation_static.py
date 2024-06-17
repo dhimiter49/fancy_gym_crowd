@@ -25,6 +25,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         assert not (polar and lidar_rays != 0), \
             "Set either polar coordinates or lidar rays!"
         self.MAX_EPISODE_STEPS = 80
+        self.polar = polar
         super().__init__(
             n_crowd,
             width,
@@ -35,7 +36,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             velocity_control=velocity_control,
         )
 
-        self.polar = polar
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
@@ -46,16 +46,28 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
         if self.lidar:
-            state_bound_min = np.hstack([
-                [0, -np.pi],
-                [0, -np.pi],
-                [0] * self.N_RAYS,
-            ])
-            state_bound_max = np.hstack([
-                [max_dist, np.pi],
-                [self.AGENT_MAX_VEL, np.pi],
-                np.full(self.N_RAYS, max_dist)
-            ])
+            if self.polar:
+                state_bound_min = np.hstack([
+                    [0, -np.pi],
+                    [0, -np.pi],
+                    [0] * self.N_RAYS,
+                ])
+                state_bound_max = np.hstack([
+                    [max_dist, np.pi],
+                    [self.AGENT_MAX_VEL, np.pi],
+                    np.full(self.N_RAYS, max_dist)
+                ])
+            else:
+                state_bound_min = np.hstack([
+                    [-self.WIDTH, -self.HEIGHT],
+                    [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                    [0] * self.N_RAYS,
+                ])
+                state_bound_max = np.hstack([
+                    [self.WIDTH, self.HEIGHT],
+                    [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                    np.full(self.N_RAYS, max_dist)
+                ])
         elif polar:
             state_bound_min = np.hstack([
                 [0, -np.pi] * (self.n_crowd + 1),

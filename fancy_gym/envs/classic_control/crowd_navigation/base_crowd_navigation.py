@@ -82,12 +82,16 @@ class BaseCrowdNavigationEnv(gym.Env):
                 self.action_space = spaces.MultiDiscrete(
                     [len(self.CARTESIAN_VEL), len(self.CARTESIAN_VEL)]
                 )
-            else:
-                # action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
+            elif self.polar:
                 self.action_space = spaces.Box(
                     low=np.array([0, -np.pi]),
                     high=np.array([self.AGENT_MAX_VEL, np.pi]),
                     dtype=np.float32
+                )
+            else:
+                action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
+                self.action_space = spaces.Box(
+                    low=-action_bound, high=action_bound, shape=action_bound.shape
                 )
         else:
             if self.discrete_action:
