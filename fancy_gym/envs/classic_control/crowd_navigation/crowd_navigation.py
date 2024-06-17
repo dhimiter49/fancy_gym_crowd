@@ -23,9 +23,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         velocity_control: bool = False,
         lidar_rays: int = 0,
         const_vel: bool = False,
+        polar: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
+        self.polar = polar
         super().__init__(
             n_crowd,
             width,
@@ -48,16 +50,28 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
         if self.lidar:
-            state_bound_min = np.hstack([
-                [-self.WIDTH, -self.HEIGHT],
-                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-                [0] * self.N_RAYS * self._n_frames,
-            ])
-            state_bound_max = np.hstack([
-                [self.WIDTH, self.HEIGHT],
-                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                np.full(self.N_RAYS * self._n_frames, max_dist)
-            ])
+            if self.polar:
+                state_bound_min = np.hstack([
+                    [0, -np.pi],
+                    [0, -np.pi],
+                    [0] * self.N_RAYS,
+                ])
+                state_bound_max = np.hstack([
+                    [max_dist, np.pi],
+                    [self.AGENT_MAX_VEL, np.pi],
+                    np.full(self.N_RAYS, max_dist)
+                ])
+            else:
+                state_bound_min = np.hstack([
+                    [-self.WIDTH, -self.HEIGHT],
+                    [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                    [0] * self.N_RAYS,
+                ])
+                state_bound_max = np.hstack([
+                    [self.WIDTH, self.HEIGHT],
+                    [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                    np.full(self.N_RAYS, max_dist)
+                ])
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
