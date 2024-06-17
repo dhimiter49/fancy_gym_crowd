@@ -1,5 +1,7 @@
+from typing import Tuple, Optional, Any, Dict
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.interpolate as interp
 from gymnasium import spaces
 from gymnasium.core import ObsType
 
@@ -24,6 +26,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         lidar_rays: int = 0,
         const_vel: bool = False,
         polar: bool = False,
+        time_frame: int = 0,
+        n_frames: int = 4,
     ):
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
@@ -42,8 +46,15 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
             self.N_RAYS = lidar_rays
-            self._n_frames = 4
+            self._n_frames = n_frames
+            self.use_time_frame = time_frame != 0
+            self.time_frame = time_frame
+            self.frame_steps = int((time_frame * 10) / (self.dt * 10)) \
+                if self.use_time_frame else None
             self._last_frames = np.zeros((self._n_frames, self.N_RAYS))
+            self._last_second_frames = np.zeros(
+                (self.frame_steps, self.N_RAYS)
+            ) if self.use_time_frame else None
             self.RAY_ANGLES = np.linspace(
                 0, 2 * np.pi, self.N_RAYS, endpoint=False
             ) + 1e-6
@@ -87,6 +98,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.observation_space = spaces.Box(
             low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
         )
+
+
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
+    ) -> Tuple[ObsType, Dict[str, Any]]:
+        self._last_frames *= 0
+        return super().reset(seed=seed, options=options)
 
 
     def _get_reward(self, action: np.ndarray):
@@ -158,10 +176,32 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ray_distances = np.minimum(min_intersect_distances, wall_distances)
             self.ray_distances = ray_distances
 
-            self._last_frames = np.concatenate([
-                np.array([ray_distances]),
-                self._last_frames[:self._n_frames - 1]
-            ])
+            if not self.use_time_frame:
+                if not np.any(self._last_frames):
+                    self._last_frames[list(range(len(self._last_frames)))] = \
+                        np.array(ray_distances)
+                else:
+                    self._last_frames[:-1] = self._last_frames[1:]
+                    self._last_frames[-1] = ray_distances
+            else:
+                if not np.any(self._last_frames):
+                    self._last_second_frames[
+                        list(range(len(self._last_second_frames)))
+                    ] = np.array([ray_distances])
+                else:
+                    self._last_second_frames[:-1] = self._last_second_frames[1:]
+                    self._last_second_frames[-1] = ray_distances
+                for i, ray in enumerate(range(self.N_RAYS)):
+                    r_interp = interp.interp1d(
+                        np.arange(self.frame_steps), self._last_second_frames[:, i]
+                    )
+                    self._last_frames[:, i] = r_interp(
+                        np.linspace(0, self.frame_steps - 1, self._n_frames)
+                    )
+                print(self._last_second_frames)
+                print(self._last_frames)
+                input()
+
             return np.concatenate([
                 self._goal_pos - self._agent_pos,
                 self._agent_vel,
