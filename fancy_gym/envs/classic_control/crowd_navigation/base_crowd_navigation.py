@@ -269,26 +269,23 @@ class BaseCrowdNavigationEnv(gym.Env):
         The size of the environment and the initial minial goal position (apart from other
         constants set in the environment) directly affect the probability of spawning a
         member of the crowd between the agent and the goal (with some noise in its
-        position as described above). The computed probabilities for WIDTH=HEIGHT=16 based
-        on the minimal spwaning distance of the goal from the agent are:
-            min_dist = PHYSICAL_SPACE -> ~65%
-            min_dist = PHYSICAL_SPACE + PERSONAL_SPACE -> ~75%
-            min_dist = PHYSICAL_SPACE + 2 * PERSONALSPACE -> ~89%
-            min_dist = PHYSICAL_SPACE + 3 * PERSONAL_SPACE -> ~100%
+        position as described above).
         """
-        agent_pos = np.zeros(2)
+        agent_pos = np.random.uniform(
+            [-self.W_BORDER + self.PHYSICAL_SPACE,
+             -self.H_BORDER + self.PHYSICAL_SPACE],
+            [self.W_BORDER - self.PHYSICAL_SPACE,
+             self.H_BORDER - self.PHYSICAL_SPACE]
+        )
         agent_vel = np.zeros(2)
-        goal_pos = np.random.uniform(  # polar
-            [self.PHYSICAL_SPACE + 2 * self.PERSONAL_SPACE, -np.pi],
-            [np.linalg.norm([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE, np.pi]
-        )
-        goal_pos = np.clip(
-            [goal_pos[0] * np.cos(goal_pos[1]), goal_pos[0] * np.sin(goal_pos[1])],
-            [-self.W_BORDER + 2 * self.PHYSICAL_SPACE,
-             -self.H_BORDER + 2 * self.PHYSICAL_SPACE],
-            [self.W_BORDER - 2 * self.PHYSICAL_SPACE,
-             self.H_BORDER - 2 * self.PHYSICAL_SPACE]
-        )
+        goal_pos = agent_pos
+        while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE:
+            goal_pos = np.random.uniform(
+                [-self.W_BORDER + self.PHYSICAL_SPACE,
+                 -self.H_BORDER + self.PHYSICAL_SPACE],
+                [self.W_BORDER - self.PHYSICAL_SPACE,
+                 self.H_BORDER - self.PHYSICAL_SPACE]
+            )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
         try_between = True
@@ -337,11 +334,11 @@ class BaseCrowdNavigationEnv(gym.Env):
         """
         if self.discrete_action:
             if self.velocity_control:
-                vel = np.array([
+                action = np.array([
                     self.CARTESIAN_VEL[action[0]], self.CARTESIAN_VEL[action[1]]
                 ])
             else:
-                acc = np.array([
+                action = np.array([
                     self.CARTESIAN_ACC[action[0]], self.CARTESIAN_ACC[action[1]]
                 ])
 
