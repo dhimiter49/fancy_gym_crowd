@@ -103,7 +103,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
-        self._last_frames *= 0
+        if self.lidar:
+            self._last_frames *= 0
         return super().reset(seed=seed, options=options)
 
 

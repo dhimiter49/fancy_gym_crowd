@@ -46,7 +46,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             0.5 * self.MAX_ACC * self.MAX_STOPPING_TIME ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
         if type(self).__name__ == "CrowdNavigationEnv":
-            self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST
+            self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 1.1
         else:
             self.MIN_CROWD_DIST = self.PERSONAL_SPACE + self.PHYSICAL_SPACE
 
@@ -333,7 +333,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         Update robot position and velocity for time self._dt based on its dynamics.
 
         Args:
-            action (numpy.ndarray): 2D array representing the accelaration for current step
+            action (numpy.ndarray): 2D array representing the acc for current step
         """
         if self.discrete_action:
             if self.velocity_control:
@@ -347,6 +347,10 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         if self.velocity_control:
             vel = self.p2c(action) if self.polar else action
+            acc = vel - self._agent_vel
+            acc_norm = np.linalg.norm(acc)
+            if acc_norm > self.MAX_ACC * self._dt:
+                vel = self._agent_vel + acc * self.MAX_ACC * self._dt / acc_norm
             vel_norm = np.linalg.norm(vel)
             if vel_norm > self.AGENT_MAX_VEL:
                 vel *= self.AGENT_MAX_VEL / vel_norm
