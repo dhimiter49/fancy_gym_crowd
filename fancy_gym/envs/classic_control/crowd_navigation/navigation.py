@@ -5,6 +5,7 @@ from gymnasium.core import ObsType
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
+from fancy_gym.envs.classic_control.crowd_navigation.utils import replan_close
 
 
 class NavigationEnv(BaseCrowdNavigationEnv):
