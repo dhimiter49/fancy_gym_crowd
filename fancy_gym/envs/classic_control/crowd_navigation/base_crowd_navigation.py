@@ -347,10 +347,10 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         if self.velocity_control:
             vel = self.p2c(action) if self.polar else action
-            acc = vel - self._agent_vel
+            acc = (vel - self._agent_vel) / self._dt
             acc_norm = np.linalg.norm(acc)
-            if acc_norm > self.MAX_ACC * self._dt:
-                vel = self._agent_vel + acc * self.MAX_ACC * self._dt / acc_norm
+            if acc_norm > self.MAX_ACC:
+                vel = self._agent_vel + acc / acc_norm * self.MAX_ACC * self._dt
             vel_norm = np.linalg.norm(vel)
             if vel_norm > self.AGENT_MAX_VEL:
                 vel *= self.AGENT_MAX_VEL / vel_norm
