@@ -133,6 +133,9 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
 
     def _get_obs(self) -> ObsType:
+        rel_goal_pos = self._goal_pos - self._agent_pos
+        rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
+        agent_vel = self.c2p(self._agent_vel) if self.polar else self._agent_vel
         if self.lidar:
             wall_distances = np.min([
                 (self.W_BORDER - np.where(
@@ -164,8 +167,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             self.ray_distances = ray_distances
 
             return np.concatenate([
-                self.c2p(self._goal_pos - self._agent_pos)[0],
-                self.c2p(self._agent_vel)[0],
+                rel_goal_pos,
+                agent_vel,
                 ray_distances
             ]).astype(np.float32).flatten()
         else:
@@ -174,17 +177,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
                 [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
             ])
-            if self.polar:
-                return np.concatenate([
-                    self.c2p(self._goal_pos - self._agent_pos),
-                    self.c2p(rel_crowd_poss),
-                    self.c2p(self._agent_vel),
-                    dist_walls
-                ]).astype(np.float32).flatten()
             return np.concatenate([
-                [self._goal_pos - self._agent_pos],
+                [rel_goal_pos],
                 rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
-                [self._agent_vel],
+                [agent_vel],
                 dist_walls
             ]).astype(np.float32).flatten()
 

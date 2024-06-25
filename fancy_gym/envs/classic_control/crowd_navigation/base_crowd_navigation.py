@@ -163,7 +163,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         else:
             r = np.linalg.norm(cart)
             theta = np.arctan2(cart[1], cart[0])
-            return [np.array([r, theta])]
+            return np.array([r, theta])
 
 
     def p2c(self, pol):
