@@ -78,10 +78,6 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
             'basis_generator_kwargs': {
                 'num_basis': 3,
             },
-            'trajectory_generator_kwargs': {
-                'weights_scale': 1,
-                'goal_scale': 6,
-            },
             'black_box_kwargs': {
                 # one second for dt of 0.1
                 'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0,
@@ -127,10 +123,6 @@ class MPWrapper_Navigation_Vel(MPWrapper_Navigation):
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
-            },
-            'trajectory_generator_kwargs': {
-                'weights_scale': 1,
-                'goal_scale': 6,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
