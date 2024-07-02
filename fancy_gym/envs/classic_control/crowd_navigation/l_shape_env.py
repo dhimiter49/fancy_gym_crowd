@@ -46,10 +46,21 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_obs(self) -> ObsType:
-        dist_walls = np.array([
-            [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
-            [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
-        ])
+        if self._agent_pos[0] < 0:
+            dy, dy_ =\
+                self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]
+            if self._agent_pos[1] < 0:
+                dx, dx_ =\
+                    self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]
+            else:
+                dx, dx_ =\
+                    -self._agent_pos[0], self.W_BORDER + self._agent_pos[0]
+        else:
+            dx, dx_ =\
+                self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]
+            dy, dy_ =\
+                -self._agent_pos[1], self.H_BORDER + self._agent_pos[1]
+        dist_walls = np.array([[dx, dx_], [dy, dy_]])
         return np.concatenate([
             [self._goal_pos - self._agent_pos],
             [self._agent_vel],
@@ -238,7 +249,6 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
            self._agent_pos[1] > - self.PHYSICAL_SPACE) or\
            (self._agent_pos[1] > -self.PHYSICAL_SPACE and
            self._agent_pos[0] > - self.PHYSICAL_SPACE):
-            input()
             return True
         return False
 
@@ -260,8 +270,14 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
         else:
             # Walls, only one of the walls is closer (irrelevant which)
             dist_walls = np.array([
-                self.W_BORDER - abs(self._agent_pos[0]),
-                self.H_BORDER - abs(self._agent_pos[1]),
+                self.W_BORDER - abs(self._agent_pos[0]) if self._agent_pos[1] < 0
+                else min(
+                    abs(self._agent_pos[0]), self.W_BORDER - abs(self._agent_pos[0])
+                ),
+                self.H_BORDER - abs(self._agent_pos[1]) if self._agent_pos[0] < 0
+                else min(
+                    abs(self._agent_pos[1]), self.H_BORDER - abs(self._agent_pos[1])
+                )
             ])
             Rw = np.sum(
                 (1 - np.exp(self.Cc / dist_walls)) *
