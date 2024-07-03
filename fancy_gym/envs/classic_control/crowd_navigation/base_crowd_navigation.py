@@ -305,7 +305,8 @@ class BaseCrowdNavigationEnv(gym.Env):
                     # [-PHYSICAL_SPACE / 2, INTERCEPTOR_PERCENTAGE * PHYSICAL_SPACE / 2]
                     rand = (np.random.rand(2) - 0.5) * self.PERSONAL_SPACE
                     rand[-1] *= self.INTERCEPTOR_PERCENTAGE
-                    sampled_pos = (direction) / 2 + self.rot_mat(rot_deg) @ rand
+                    sampled_pos = (agent_pos + direction / 2) +\
+                        self.rot_mat(rot_deg) @ rand
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
