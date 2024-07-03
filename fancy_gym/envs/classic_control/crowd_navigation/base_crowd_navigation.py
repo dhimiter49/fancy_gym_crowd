@@ -277,7 +277,12 @@ class BaseCrowdNavigationEnv(gym.Env):
             min_dist = PHYSICAL_SPACE + 2 * PERSONALSPACE -> ~89%
             min_dist = PHYSICAL_SPACE + 3 * PERSONAL_SPACE -> ~100%
         """
-        agent_pos = np.zeros(2)
+        agent_pos = np.random.uniform(
+            [-self.W_BORDER + self.PHYSICAL_SPACE,
+             -self.H_BORDER + self.PHYSICAL_SPACE],
+            [self.W_BORDER - self.PHYSICAL_SPACE,
+             self.H_BORDER - self.PHYSICAL_SPACE]
+        )
         agent_vel = np.zeros(2)
         # goal_pos = np.random.uniform(  # polar
         #     [self.PHYSICAL_SPACE + 2 * self.PERSONAL_SPACE, -np.pi],
