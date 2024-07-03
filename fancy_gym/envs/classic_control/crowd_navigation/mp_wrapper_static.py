@@ -10,6 +10,7 @@ from fancy_gym.envs.classic_control.crowd_navigation.dynamics import (
     gen_mat_vc_pos_vel,
     gen_mat_vc_acc_vel
 )
+from fancy_gym.envs.classic_control.crowd_navigation.utils import replan_close
 
 
 class MPWrapper_CrowdStatic(RawInterfaceWrapper):

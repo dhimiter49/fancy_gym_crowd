@@ -5,6 +5,7 @@ from gymnasium.core import ObsType
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
+from fancy_gym.envs.classic_control.crowd_navigation.utils import replan_close
 
 
 class NavigationEnv(BaseCrowdNavigationEnv):
@@ -87,13 +88,16 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_obs(self) -> ObsType:
+        rel_goal_pos = self._goal_pos - self._agent_pos
+        rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
+        agent_vel = self.c2p(self._agent_vel) if self.polar else self._agent_vel
         dist_walls = np.array([
             [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
             [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
         ])
         return np.concatenate([
-            [self._goal_pos - self._agent_pos],
-            [self._agent_vel],
+            [rel_goal_pos],
+            [agent_vel],
             dist_walls
         ]).astype(np.float32).flatten()
 

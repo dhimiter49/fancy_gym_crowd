@@ -246,7 +246,7 @@ class MPCController(BaseController):
             ],
             axis=1
         )
-        return eqs[wall_dist < self.MAX_STOPPING_DIST * 0.6]
+        return eqs[wall_dist < self.MAX_STOPPING_DIST * 0.8]
 
 
     def const_lin_pos(self, const_M, const_b, line_eq, agent_vel):
@@ -263,13 +263,14 @@ class MPCController(BaseController):
 
 
     def get_action(self, des_pos, des_vel, curr_pos, curr_vel, wall_dist, crowd=None):
-        actions = np.empty((self.N, 2))
         des_pos = des_pos[:self.N]
         des_vel = des_vel[:self.N]
         reference_pos = np.repeat(curr_pos, self.N) -\
             np.hstack([des_pos[:self.N, 0], des_pos[:self.N, 1]])
         reference_vel = np.repeat(curr_vel, self.N) -\
             np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
+        if self.velocity_control:
+            reference_vel = -np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
 
         if self.velocity_control:
             reference_vel = np.append(
@@ -322,12 +323,14 @@ class MPCController(BaseController):
             control = np.zeros(2 * self.N)
             control[0:self.N - 1] = self.last_braking_traj[1:, 0]
             control[self.N:2 * self.N - 1] = self.last_braking_traj[1:, 1]
-        elif self.velocity_control:
-            actions = np.array([
-                np.append(control[:self.N - 1], 0),
-                np.append(control[self.N - 1:], 0)]
-            ).T
-        if not self.velocity_control:
             actions = np.array([control[:self.N], control[self.N:]]).T
+        else:
+            if not self.velocity_control:
+                actions = np.array([control[:self.N], control[self.N:]]).T
+            else:
+                actions = np.array([
+                    np.append(control[:self.N - 1], 0),
+                    np.append(control[self.N - 1:], 0)]
+                ).T
         self.last_braking_traj = actions  # save last trajecotry in case next step fails
         return actions
