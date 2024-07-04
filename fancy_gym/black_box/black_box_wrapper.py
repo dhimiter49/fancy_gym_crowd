@@ -181,8 +181,8 @@ class BlackBoxWrapper(gym.ObservationWrapper):
                     step_action, self.env.action_space.low, self.env.action_space.high)
             else:
                 step_action = self.tracking_controller.get_action(
-                    position[t:],
-                    velocity[t:],
+                    position[t:].copy(),
+                    velocity[t:].copy(),
                     self.env.unwrapped.current_pos,
                     self.env.unwrapped.current_vel,
                     self.env.unwrapped.wall_dist,
