@@ -269,12 +269,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         The size of the environment and the initial minial goal position (apart from other
         constants set in the environment) directly affect the probability of spawning a
         member of the crowd between the agent and the goal (with some noise in its
-        position as described above). The computed probabilities for WIDTH=HEIGHT=16 based
-        on the minimal spwaning distance of the goal from the agent are:
-            min_dist = PHYSICAL_SPACE -> ~65%
-            min_dist = PHYSICAL_SPACE + PERSONAL_SPACE -> ~75%
-            min_dist = PHYSICAL_SPACE + 2 * PERSONALSPACE -> ~89%
-            min_dist = PHYSICAL_SPACE + 3 * PERSONAL_SPACE -> ~100%
+        position as described above).
         """
         agent_pos = np.random.uniform(
             [-self.W_BORDER + self.PHYSICAL_SPACE,
