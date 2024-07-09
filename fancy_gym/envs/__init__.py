@@ -247,13 +247,26 @@ register(
 )
 
 register(
-    id='fancy/LShapeCrowdNavigation-v0',
+    id='fancy/LShapeNavigation-v0',
     entry_point=LShapeCrowdNavigationEnv,
     mp_wrapper=MPWrapper_Navigation_Vel,
     max_episode_steps=60,
     kwargs={
         "width": 10,
         "height": 10,
+    }
+)
+
+register(
+    id='fancy/LShapeCrowdNavigation-v0',
+    entry_point=LShapeCrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Navigation_Vel,
+    max_episode_steps=60,
+    kwargs={
+        "n_crowd": 4,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
     }
 )
 

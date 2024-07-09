@@ -184,10 +184,10 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         self.update_state(action)
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
-        reward, info = self._get_reward(action)
+        self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
         terminated = self._terminate(info)
         truncated = False
 
-        return self._get_obs().copy(), reward, terminated, truncated, info
+        return self._get_obs().copy(), self._current_reward, terminated, truncated, info

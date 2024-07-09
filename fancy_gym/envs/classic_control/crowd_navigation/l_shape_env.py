@@ -9,6 +9,7 @@ from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
 class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
     def __init__(
         self,
+        n_crowd: int = 0,
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
@@ -18,7 +19,7 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
     ):
         self.MAX_EPISODE_STEPS = 60
         super().__init__(
-            0,
+            n_crowd,
             width,
             height,
             interceptor_percentage,
@@ -75,13 +76,13 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.update_state(action)
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
-        reward, info = self._get_reward(action)
+        self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
         terminated = self._terminate(info)
         truncated = False
 
-        return self._get_obs().copy(), reward, terminated, truncated, info
+        return self._get_obs().copy(), self._current_reward, terminated, truncated, info
 
 
     def _start_env_vars(self):
@@ -115,6 +116,9 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
                     rand[-1] *= self.INTERCEPTOR_PERCENTAGE
                     sampled_pos = (direction) / 2 + self.rot_mat(rot_deg) @ rand
                     try_between = False
+                    if sampled_pos[0] > -self.PHYSICAL_SPACE and\
+                        sampled_pos[1] > -self.PHYSICAL_SPACE:  # spawned in first quad
+                        continue
                 else:
                     sampled_pos = self.sample_in_L()
                 no_crowd_collision = self.allow_collision or i == 0
@@ -145,6 +149,7 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
             ax.set_xlim(-self.W_BORDER - 1, self.W_BORDER + 1)
             ax.set_ylim(-self.H_BORDER - 1, self.H_BORDER + 1)
 
+            # Agent velocity
             self.vel_agent = ax.arrow(
                 self._agent_pos[0], self._agent_pos[1],
                 self._agent_vel[0], self._agent_vel[1],
@@ -153,11 +158,44 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
                 head_length=0.2,
                 ec="g"
             )
+
+            # Agent
             self.space_agent = plt.Circle(
                 self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
             )
             ax.add_patch(self.space_agent)
 
+            # Social space
+            self.ScS_crowd = []
+            for m in self._crowd_poss:
+                self.ScS_crowd.append(
+                    plt.Circle(
+                        m, self.SOCIAL_SPACE, color="r", fill=False, linestyle="--"
+                    )
+                )
+                ax.add_patch(self.ScS_crowd[-1])
+
+            # Personal space
+            self.PrS_crowd = []
+            for m in self._crowd_poss:
+                self.PrS_crowd.append(
+                    plt.Circle(
+                        m, self.PERSONAL_SPACE, color="r", fill=False
+                    )
+                )
+                ax.add_patch(self.PrS_crowd[-1])
+
+            # Physical space
+            self.PhS_crowd = []
+            for m in self._crowd_poss:
+                self.PhS_crowd.append(
+                    plt.Circle(
+                        m, self.PHYSICAL_SPACE, color="r", alpha=0.5
+                    )
+                )
+                ax.add_patch(self.PhS_crowd[-1])
+
+            # Goal
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
 
             # Trajectory
@@ -181,15 +219,6 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
 
             # Walls penalization
             border_penalization = self.PHYSICAL_SPACE * 2
-            # ax.add_patch(plt.Rectangle(
-            #     (
-            #         -self.W_BORDER + border_penalization,
-            #         -self.H_BORDER + border_penalization
-            #     ),
-            #     2 * (self.W_BORDER - border_penalization),
-            #     2 * (self.H_BORDER - border_penalization),
-            #     fill=False, linestyle=":", edgecolor="r", linewidth=0.7
-            # ))
             self.border_penalty, = ax.plot(
                 [-self.W_BORDER + border_penalization,
                  -self.H_BORDER + border_penalization,
@@ -212,10 +241,19 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
 
             self.fig.show()
 
-        self.fig.gca().set_title(f"Iteration: {self._steps}")
+        self.fig.suptitle(f"Iteration: {self._steps}")
+        self.fig.gca().set_title(
+            f"Reward at this step: {self._current_reward:.4f}",
+            fontsize=11,
+            fontweight='bold'
+        )
 
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
+            for i, member in enumerate(self._crowd_poss):
+                self.ScS_crowd[i].center = member
+                self.PrS_crowd[i].center = member
+                self.PhS_crowd[i].center = member
 
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],
@@ -266,22 +304,36 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
             Rg = -self.Cg * dg ** 2
 
         if self._is_collided:
-            Rw = self.COLLISION_REWARD
+            Rc = self.COLLISION_REWARD
         else:
-            # Walls, only one of the walls is closer (irrelevant which)
-            dist_walls = np.array([
-                self.W_BORDER - abs(self._agent_pos[0]) if self._agent_pos[1] < 0
-                else min(
-                    abs(self._agent_pos[0]), self.W_BORDER - abs(self._agent_pos[0])
-                ),
-                self.H_BORDER - abs(self._agent_pos[1]) if self._agent_pos[0] < 0
-                else min(
-                    abs(self._agent_pos[1]), self.H_BORDER - abs(self._agent_pos[1])
+            if self.n_crowd > 0:
+                # Crowd distance
+                dist_crowd = np.linalg.norm(
+                    self._agent_pos - self._crowd_poss,
+                    axis=-1
                 )
-            ])
-            Rw = np.sum(
-                (1 - np.exp(self.Cc / dist_walls)) *
-                (dist_walls < self.PHYSICAL_SPACE * 2)
-            )
+                Rc = np.sum(
+                    (1 - np.exp(self.Cc / dist_crowd)) * (dist_crowd <
+                        [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
+                )
+            else:
+                Rc = 0
 
-        return Rg + Rw, dict(goal=Rg, wall=Rw)
+        # Walls, only one of the walls is closer (irrelevant which)
+        dist_walls = np.array([
+            self.W_BORDER - abs(self._agent_pos[0]) if self._agent_pos[1] < 0
+            else min(
+                abs(self._agent_pos[0]), self.W_BORDER - abs(self._agent_pos[0])
+            ),
+            self.H_BORDER - abs(self._agent_pos[1]) if self._agent_pos[0] < 0
+            else min(
+                abs(self._agent_pos[1]), self.H_BORDER - abs(self._agent_pos[1])
+            )
+        ])
+        Rw = np.sum(
+            (1 - np.exp(self.Cc / dist_walls)) *
+            (dist_walls < self.PHYSICAL_SPACE * 2)
+        )
+
+        reward = Rg + Rc + Rw
+        return reward, dict(goal=Rg, collision=Rc, wall=Rw)
