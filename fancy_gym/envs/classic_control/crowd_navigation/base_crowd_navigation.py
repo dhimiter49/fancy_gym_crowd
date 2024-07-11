@@ -45,8 +45,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\
             0.5 * self.MAX_ACC * self.MAX_STOPPING_TIME ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
-        if type(self) == "CrowdNavigationEnv":
-            self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 2
+        if type(self).__name__ == "CrowdNavigationEnv":
+            self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 1.1
         else:
             self.MIN_CROWD_DIST = self.PERSONAL_SPACE + self.PHYSICAL_SPACE
 
@@ -163,7 +163,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         else:
             r = np.linalg.norm(cart)
             theta = np.arctan2(cart[1], cart[0])
-            return [np.array([r, theta])]
+            return np.array([r, theta])
 
 
     def p2c(self, pol):
@@ -299,7 +299,8 @@ class BaseCrowdNavigationEnv(gym.Env):
                     # [-PHYSICAL_SPACE / 2, INTERCEPTOR_PERCENTAGE * PHYSICAL_SPACE / 2]
                     rand = (np.random.rand(2) - 0.5) * self.PERSONAL_SPACE
                     rand[-1] *= self.INTERCEPTOR_PERCENTAGE
-                    sampled_pos = (direction) / 2 + self.rot_mat(rot_deg) @ rand
+                    sampled_pos = (agent_pos + direction / 2) +\
+                        self.rot_mat(rot_deg) @ rand
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
@@ -330,7 +331,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         Update robot position and velocity for time self._dt based on its dynamics.
 
         Args:
-            action (numpy.ndarray): 2D array representing the accelaration for current step
+            action (numpy.ndarray): 2D array representing the acc for current step
         """
         if self.discrete_action:
             if self.velocity_control:
@@ -344,6 +345,10 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         if self.velocity_control:
             vel = self.p2c(action) if self.polar else action
+            acc = (vel - self._agent_vel) / self._dt
+            acc_norm = np.linalg.norm(acc)
+            if acc_norm > self.MAX_ACC:
+                vel = self._agent_vel + acc / acc_norm * self.MAX_ACC * self._dt
             vel_norm = np.linalg.norm(vel)
             if vel_norm > self.AGENT_MAX_VEL:
                 vel *= self.AGENT_MAX_VEL / vel_norm
