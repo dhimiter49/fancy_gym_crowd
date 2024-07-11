@@ -261,7 +261,7 @@ register(
     id='fancy/LShapeCrowdNavigation-v0',
     entry_point=LShapeCrowdNavigationEnv,
     mp_wrapper=MPWrapper_Navigation_Vel,
-    max_episode_steps=60,
+    max_episode_steps=80,
     kwargs={
         "n_crowd": 4,
         "width": 16,

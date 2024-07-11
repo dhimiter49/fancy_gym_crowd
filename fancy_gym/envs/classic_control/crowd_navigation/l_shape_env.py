@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from gymnasium import spaces
 from gymnasium.core import ObsType
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
@@ -16,16 +17,78 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
         allow_collision: bool = False,
         discrete_action: bool = False,
         velocity_control: bool = False,
+        lidar_rays: int = 0,
+        polar: bool = False,
     ):
-        self.MAX_EPISODE_STEPS = 60
+        self.MAX_EPISODE_STEPS = 80
         super().__init__(
             n_crowd,
             width,
             height,
             interceptor_percentage,
-            allow_collision,
-            discrete_action,
-            velocity_control,
+            allow_collision=False,
+            discrete_action=discrete_action,
+            velocity_control=velocity_control,
+        )
+
+        self.lidar = lidar_rays != 0
+        max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
+        if self.lidar:
+            self.N_RAYS = lidar_rays
+            self.RAY_ANGLES = np.linspace(
+                0, 2 * np.pi, self.N_RAYS, endpoint=False
+            ) + 1e-6
+            self.RAY_COS = np.cos(self.RAY_ANGLES)
+            self.RAY_SIN = np.sin(self.RAY_ANGLES)
+        if self.lidar:
+            if self.polar:
+                state_bound_min = np.hstack([
+                    [0, -np.pi],
+                    [0, -np.pi],
+                    [0] * self.N_RAYS,
+                ])
+                state_bound_max = np.hstack([
+                    [max_dist, np.pi],
+                    [self.AGENT_MAX_VEL, np.pi],
+                    np.full(self.N_RAYS, max_dist)
+                ])
+            else:
+                state_bound_min = np.hstack([
+                    [-self.WIDTH, -self.HEIGHT],
+                    [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                    [0] * self.N_RAYS,
+                ])
+                state_bound_max = np.hstack([
+                    [self.WIDTH, self.HEIGHT],
+                    [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                    np.full(self.N_RAYS, max_dist)
+                ])
+        elif polar:
+            state_bound_min = np.hstack([
+                [0, -np.pi] * (self.n_crowd + 1),
+                [0, -np.pi],
+                [0] * 4,  # four directions
+            ])
+            state_bound_max = np.hstack([
+                [max_dist, np.pi] * (self.n_crowd + 1),
+                [self.AGENT_MAX_VEL, np.pi],
+                [self.MAX_STOPPING_DIST] * 4,  # four directions
+            ])
+        else:
+            state_bound_min = np.hstack([
+                [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [0] * 4,  # four directions
+            ])
+            state_bound_max = np.hstack([
+                [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
+                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
+            ])
+
+        print(state_bound_max.shape)
+        self.observation_space = spaces.Box(
+            low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
         )
 
 
