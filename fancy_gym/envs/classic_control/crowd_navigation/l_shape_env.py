@@ -21,6 +21,7 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
         polar: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 80
+        self.polar = polar
         super().__init__(
             n_crowd,
             width,
@@ -110,6 +111,8 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_obs(self) -> ObsType:
+        rel_goal_pos = self._goal_pos - self._agent_pos
+        rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
         if self._agent_pos[0] < 0:
             dy, dy_ =\
                 self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]
@@ -125,11 +128,21 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
             dy, dy_ =\
                 -self._agent_pos[1], self.H_BORDER + self._agent_pos[1]
         dist_walls = np.array([[dx, dx_], [dy, dy_]])
-        return np.concatenate([
-            [self._goal_pos - self._agent_pos],
-            [self._agent_vel],
-            dist_walls
-        ]).astype(np.float32).flatten()
+        if self.n_crowd > 0:
+            rel_crowd_poss = self._crowd_poss - self._agent_pos
+            return np.concatenate([
+                [rel_goal_pos],
+                rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
+                [self._agent_vel],
+                dist_walls
+            ]).astype(np.float32).flatten()
+        else:
+            return np.concatenate([
+                [rel_goal_pos],
+                [self._agent_vel],
+                dist_walls
+            ]).astype(np.float32).flatten()
+
 
 
     def step(self, action: np.ndarray):
