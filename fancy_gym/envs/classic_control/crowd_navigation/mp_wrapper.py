@@ -89,7 +89,7 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
     @property
     def context_mask(self):
         return np.hstack([
-            [True] * 2 * 2 * (self.env.n_crowd + 1),  # goal-crowd pos, agent-crowd vel
+            [True] * (4 * (self.env.n_crowd + 1) + 4),  # goal-agent-crowd pos vel + walls
         ])
 
 

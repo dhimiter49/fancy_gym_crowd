@@ -271,11 +271,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         member of the crowd between the agent and the goal (with some noise in its
         position as described above).
         """
-        agent_pos = np.random.uniform(
-            [-self.W_BORDER + self.PHYSICAL_SPACE,
-             -self.H_BORDER + self.PHYSICAL_SPACE],
-            [self.W_BORDER - self.PHYSICAL_SPACE,
-             self.H_BORDER - self.PHYSICAL_SPACE]
+        agent_pos = np.zeros(2) if type(self).__name__ == "CrowdNavigationEnv" and\
+            self.const_vel else np.random.uniform(
+                [-self.W_BORDER + self.PHYSICAL_SPACE,
+                 -self.H_BORDER + self.PHYSICAL_SPACE],
+                [self.W_BORDER - self.PHYSICAL_SPACE,
+                 self.H_BORDER - self.PHYSICAL_SPACE]
         )
         agent_vel = np.zeros(2)
         goal_pos = agent_pos
