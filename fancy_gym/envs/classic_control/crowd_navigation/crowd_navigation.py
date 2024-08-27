@@ -14,6 +14,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     Crowd with linear movement. For each member of the crowd a goal position is sampled.
     Each member of the crowd moves to the goal using basic motion physics based on the
     maximal velocity and maximal acceleration.
+
+    Args:
+        lidar_rays: number of lidar rays, if 0 no lidar is used
+        const_vel: sets the dynamics to using constant velocity
+        polar: polar observation and action space
+        time_frame: time from which to sample and stack the last frames of obs
+        lidar_vel: use a velocity representation for each direction of the lidar
+        n_frames: number of frames to stack for lidar, irrelevant if lidar_vel
     """
     def __init__(
         self,
@@ -27,8 +35,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         const_vel: bool = False,
         polar: bool = False,
         time_frame: int = 0,
+        lidar_vel: bool = False,
         n_frames: int = 4,
     ):
+        assert time_frame == 0 and lidar_vel
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
         self.polar = polar
@@ -45,8 +55,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
+            self.lidar_vel = lidar_vel
             self.N_RAYS = lidar_rays
-            self._n_frames = n_frames
+            self._n_frames = n_frames if not self.lidar_vel else 2  # one for each pos-vel
             self.use_time_frame = time_frame != 0
             self.time_frame = time_frame
             self.frame_steps = int((time_frame * 10) / (self.dt * 10)) \
@@ -61,7 +72,30 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
         if self.lidar:
-            if self.polar:
+            if self.lidar_vel:
+                if self.polar:
+                    state_bound_min = np.hstack([
+                        [0, -np.pi],
+                        [0, -np.pi],
+                        [0] * self.N_RAYS * 2,
+                    ])
+                    state_bound_max = np.hstack([
+                        [max_dist, np.pi],
+                        [self.AGENT_MAX_VEL, np.pi],
+                        [max_dist] * self.N_RAYS * 2,
+                    ])
+                else:
+                    state_bound_min = np.hstack([
+                        [-self.WIDTH, -self.HEIGHT],
+                        [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                        [0] * self.N_RAYS * 2,
+                    ])
+                    state_bound_max = np.hstack([
+                        [self.WIDTH, self.HEIGHT],
+                        [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                        [max_dist] * self.N_RAYS * 2,
+                    ])
+            elif self.polar:
                 state_bound_min = np.hstack([
                     [0, -np.pi],
                     [0, -np.pi],
@@ -180,13 +214,37 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ray_distances = np.minimum(min_intersect_distances, wall_distances)
             self.ray_distances = ray_distances
 
-            if not self.use_time_frame:
+            if not self.use_time_frame and not self.lidar_vel:
                 if not np.any(self._last_frames):
                     self._last_frames[list(range(len(self._last_frames)))] = \
                         np.array(ray_distances)
                 else:
                     self._last_frames[:-1] = self._last_frames[1:]
                     self._last_frames[-1] = ray_distances
+            elif self.lidar_vel:
+                ray_velocities = np.zeros(ray_distances.shape)
+                for i, (member_pos, member_vel) in enumerate(zip(
+                    self._crowd_poss, self._crowd_vels
+                )):
+                    intersection = intersections_mask[i]
+                    if np.any(intersection):
+                        dir_idxs = np.where(intersection == 1)[0]
+                        for dir_idx in dir_idxs:
+                            lidar_vec = np.array([
+                                self.RAY_COS[dir_idx], self.RAY_SIN[dir_idx]
+                            ])
+                            if min_intersect_distances[dir_idx] == np.inf or\
+                               np.dot(lidar_vec, member_pos - self._agent_pos) < 0:
+                                continue  # account for correct direction
+                            vel_along_dir = np.dot(lidar_vec, member_vel)
+                            if ray_velocities[dir_idx] > 0 and\
+                               np.linalg.norm(member_pos - self._agent_pos) >\
+                               ray_distances[dir_idx]:  # keep only the closest one
+                                continue
+                            ray_velocities[dir_idx] = vel_along_dir
+
+                self._last_frames[0] = ray_distances
+                self._last_frames[1] = ray_velocities
             else:
                 if not np.any(self._last_frames):
                     self._last_second_frames[
