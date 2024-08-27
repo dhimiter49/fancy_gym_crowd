@@ -11,6 +11,7 @@ from .classic_control.hole_reacher.hole_reacher import HoleReacherEnv
 from .classic_control.hole_reacher import MPWrapper as MPWrapper_HoleReacher
 from .classic_control.crowd_navigation.crowd_navigation import CrowdNavigationEnv
 from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
+from .classic_control.crowd_navigation.soc_nav_gym import SocNavEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
 from .classic_control.crowd_navigation import (
     MPWrapper_Crowd,
@@ -332,6 +333,16 @@ register(
         "width": 10,
         "height": 10,
         "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/SocNavEnv-v0',
+    entry_point=SocNavEnv,
+    max_episode_steps=100,
+    kwargs={
+        "config": "./fancy_gym/envs/classic_control/crowd_navigation/" +
+        "socnav_env_configs/exp1_no_sngnn.yaml"
     }
 )
 

@@ -10,7 +10,7 @@ from fancy_gym.envs.classic_control.crowd_navigation.utils import replan_close
 
 class NavigationEnv(BaseCrowdNavigationEnv):
     """
-    No real crowd, just obstacles.
+    No crowd.
     """
     def __init__(
         self,
