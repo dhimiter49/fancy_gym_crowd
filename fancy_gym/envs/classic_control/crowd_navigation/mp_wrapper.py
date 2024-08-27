@@ -72,10 +72,10 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 6,
+                'goal_scale': 2,
             },
             'basis_generator_kwargs': {
-                'num_basis': 4,
+                'num_basis': 3,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
@@ -123,10 +123,10 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 6,
+                'goal_scale': 2,
             },
             'basis_generator_kwargs': {
-                'num_basis': 4,
+                'num_basis': 3,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
