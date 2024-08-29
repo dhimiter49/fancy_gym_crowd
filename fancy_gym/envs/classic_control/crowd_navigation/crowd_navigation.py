@@ -82,7 +82,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     state_bound_max = np.hstack([
                         [max_dist, np.pi],
                         [self.AGENT_MAX_VEL, np.pi],
-                        [max_dist] * self.N_RAYS * 2,
+                        [max_dist] * self.N_RAYS,
+                        [self.CROWD_MAX_VEL] * self.N_RAYS,
                     ])
                 else:
                     state_bound_min = np.hstack([
@@ -120,12 +121,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
-                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL] * (self.n_crowd + 1),
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [-self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] * self.n_crowd,
                 [0] * 4,  # four directions
             ])
             state_bound_max = np.hstack([
                 [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
-                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL] * (self.n_crowd + 1),
+                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * (self.n_crowd + 1),
                 np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
 
@@ -291,15 +294,15 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     idx = np.random.choice([0, 1])
                     if idx == 0:
                         pol_vel = np.random.uniform(
-                            [0.5, np.pi * 5 / 6], [self.AGENT_MAX_VEL, np.pi]
+                            [0.5, np.pi * 5 / 6], [self.CROWD_MAX_VEL, np.pi]
                         )
                     else:
                         pol_vel = np.random.uniform(
-                            [0.5, -np.pi], [self.AGENT_MAX_VEL, -np.pi * 5 / 6]
+                            [0.5, -np.pi], [self.CROWD_MAX_VEL, -np.pi * 5 / 6]
                         )
                 else:
                     pol_vel = np.random.uniform(
-                        [0.5, -np.pi * 1 / 6], [self.AGENT_MAX_VEL, np.pi * 1 / 6]
+                        [0.5, -np.pi * 1 / 6], [self.CROWD_MAX_VEL, np.pi * 1 / 6]
                     )
                 next_crowd_vels[i] = self.p2c(pol_vel)
         else:
@@ -341,16 +344,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         for i, goal in enumerate(crowd_goal_pos):
             dist = np.linalg.norm(goal - crowd_poss[i])
             if dist > self.MAX_STOPPING_DIST * 2:
-                t_max_vel = (dist - self.MAX_STOPPING_DIST * 2) / self.AGENT_MAX_VEL
+                t_max_vel = (dist - self.MAX_STOPPING_DIST * 2) / self.CROWD_MAX_VEL
                 acc_vels = np.arange(
-                    max_step_acc, self.AGENT_MAX_VEL + 1e-8, max_step_acc
+                    max_step_acc, self.CROWD_MAX_VEL + 1e-8, max_step_acc
                 )
                 dec_vels = np.arange(
-                    self.AGENT_MAX_VEL - max_step_acc, 0 - 1e-8, -max_step_acc
+                    self.CROWD_MAX_VEL - max_step_acc, 0 - 1e-8, -max_step_acc
                 )
                 vels = np.concatenate([
                     acc_vels,
-                    np.full(int(t_max_vel / self._dt), self.AGENT_MAX_VEL),
+                    np.full(int(t_max_vel / self._dt), self.CROWD_MAX_VEL),
                     dec_vels
                 ])
             else:
