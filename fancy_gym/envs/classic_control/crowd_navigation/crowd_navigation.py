@@ -38,7 +38,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         lidar_vel: bool = False,
         n_frames: int = 4,
     ):
-        assert time_frame == 0 and lidar_vel
+        assert time_frame == 0 or not lidar_vel
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
         self.polar = polar
