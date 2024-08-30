@@ -128,7 +128,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             state_bound_max = np.hstack([
                 [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
                 [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * (self.n_crowd + 1),
+                [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
                 np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
 
