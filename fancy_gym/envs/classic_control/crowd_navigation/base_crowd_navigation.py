@@ -6,6 +6,9 @@ from gymnasium import spaces
 from gymnasium.core import ObsType
 
 
+seed = 0
+flip = True
+
 class BaseCrowdNavigationEnv(gym.Env):
     """
     Base class crowd navigation. Units are defined to reflect plausible values in the real
@@ -271,6 +274,13 @@ class BaseCrowdNavigationEnv(gym.Env):
         member of the crowd between the agent and the goal (with some noise in its
         position as described above).
         """
+        global seed, flip
+        if seed > 1:
+            if flip:
+                seed -= 1
+            flip = not flip
+        np.random.seed(seed)
+        seed += 1
         agent_pos = np.zeros(2) if type(self).__name__ == "CrowdNavigationEnv" and\
             self.const_vel else np.random.uniform(
                 [-self.W_BORDER + self.PHYSICAL_SPACE,
