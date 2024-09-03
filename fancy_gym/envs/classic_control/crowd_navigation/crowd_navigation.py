@@ -345,7 +345,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         for i, goal in enumerate(crowd_goal_pos):
             dist = np.linalg.norm(goal - crowd_poss[i])
             if dist > self.MAX_STOPPING_DIST * 2:
-                t_max_vel = (dist - self.MAX_STOPPING_DIST * 2) / self.CROWD_MAX_VEL
+                t_max_vel = (dist - self.MAX_STOPPING_DIST_CROWD * 2) / self.CROWD_MAX_VEL
                 acc_vels = np.arange(
                     max_step_acc, self.CROWD_MAX_VEL + 1e-8, max_step_acc
                 )
