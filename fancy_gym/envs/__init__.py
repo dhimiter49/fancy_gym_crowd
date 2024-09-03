@@ -79,7 +79,7 @@ register(
         "width": 20,
         "height": 8,
         "interceptor_percentage": 2,
-        "const_vel": True,
+        "crowd_movement": "const",
     }
 )
 
@@ -93,7 +93,7 @@ register(
         "width": 20,
         "height": 8,
         "interceptor_percentage": 2,
-        "const_vel": True,
+        "crowd_movement": "const",
         "velocity_control": True,
     }
 )
@@ -108,7 +108,7 @@ register(
         "width": 20,
         "height": 8,
         "interceptor_percentage": 2,
-        "const_vel": True,
+        "crowd_movement": "const",
         "lidar_rays": 40,
     }
 )
@@ -123,7 +123,7 @@ register(
         "width": 20,
         "height": 8,
         "interceptor_percentage": 2,
-        "const_vel": True,
+        "crowd_movement": "const",
         "lidar_rays": 40,
         "time_frame": 1,
     }
@@ -139,7 +139,7 @@ register(
         "width": 20,
         "height": 8,
         "interceptor_percentage": 2,
-        "const_vel": True,
+        "crowd_movement": "const",
         "lidar_rays": 40,
         "velocity_control": True,
         "lidar_vel": True,
@@ -155,7 +155,7 @@ register(
         "width": 20,
         "height": 8,
         "interceptor_percentage": 2,
-        "const_vel": True,
+        "crowd_movement": "const",
         "lidar_rays": 40,
         "polar": True,
         "velocity_control": True,
@@ -173,6 +173,21 @@ register(
         "height": 18,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationLiDARVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+        "lidar_rays": 40,
+        "velocity_control": True,
     }
 )
 

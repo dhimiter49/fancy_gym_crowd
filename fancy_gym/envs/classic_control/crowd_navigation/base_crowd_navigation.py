@@ -272,7 +272,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         position as described above).
         """
         agent_pos = np.zeros(2) if type(self).__name__ == "CrowdNavigationEnv" and\
-            self.const_vel else np.random.uniform(
+            self.crowd_movement == "const" else np.random.uniform(
                 [-self.W_BORDER + self.PHYSICAL_SPACE,
                  -self.H_BORDER + self.PHYSICAL_SPACE],
                 [self.W_BORDER - self.PHYSICAL_SPACE,

@@ -17,7 +17,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
     Args:
         lidar_rays: number of lidar rays, if 0 no lidar is used
-        const_vel: sets the dynamics to using constant velocity
+        crowd_movement: how the crowd moves "const", 'linear', 'sfm'
         polar: polar observation and action space
         time_frame: time from which to sample and stack the last frames of obs
         lidar_vel: use a velocity representation for each direction of the lidar
@@ -32,7 +32,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         lidar_rays: int = 0,
-        const_vel: bool = False,
+        crowd_movement: str = 'linear',
         polar: bool = False,
         time_frame: int = 0,
         lidar_vel: bool = False,
@@ -40,7 +40,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     ):
         assert time_frame == 0 or not lidar_vel
         self.MAX_EPISODE_STEPS = 100
-        self.const_vel = const_vel
+        self.crowd_movement = crowd_movement
         self.polar = polar
         super().__init__(
             n_crowd,
@@ -289,7 +289,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
         next_crowd_vels = np.zeros(crowd_poss.shape)
 
-        if self.const_vel:
+        if self.crowd_movement == "const":
             for i, c in enumerate(crowd_poss):
                 if c[0] > 0:
                     idx = np.random.choice([0, 1])
@@ -460,7 +460,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     )
                 )
                 ax.add_patch(self.PhS_crowd[-1])
-            if not self.const_vel:
+            if not self.crowd_movement == "const":
                 for g in self._crowd_goal_pos:
                     self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
 
@@ -519,7 +519,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.ScS_crowd[i].center = member
             self.PrS_crowd[i].center = member
             self.PhS_crowd[i].center = member
-            if not self.const_vel:
+            if not self.crowd_movement == "const":
                 self.crowd_goal_points[i].set_data(
                     self._crowd_goal_pos[i][0], self._crowd_goal_pos[i][1]
                 )
@@ -557,7 +557,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         self.update_state(action)
         self._crowd_poss += self._crowd_vels * self._dt
-        if not self.const_vel:
+        if not self.crowd_movement == "const":
             for i in range(self.n_crowd):
                 self._planned_crowd_vels[i] = np.delete(self._planned_crowd_vels[i], 0, 0)
                 if len(self._planned_crowd_vels[i]) == 0:
