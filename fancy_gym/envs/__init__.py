@@ -206,6 +206,52 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationSFM-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+        "crowd_movement": "sfm",
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSFMVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+        "crowd_movement": "sfm",
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSFMLiDARVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+        "lidar_rays": 40,
+        "lidar_vel": True,
+        "crowd_movement": "sfm",
+    }
+)
+
+register(
     id='fancy/CrowdNavigationStatic-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,

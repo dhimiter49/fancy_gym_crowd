@@ -4,6 +4,8 @@ import numpy as np
 import scipy.interpolate as interp
 from gymnasium import spaces
 from gymnasium.core import ObsType
+import pysocialforce as psf
+from pathlib import Path
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
@@ -306,12 +308,41 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         [0.5, -np.pi * 1 / 6], [self.CROWD_MAX_VEL, np.pi * 1 / 6]
                     )
                 next_crowd_vels[i] = self.p2c(pol_vel)
-        else:
+        elif self.crowd_movement == "linear":
             (
                 self._crowd_goal_pos, self._planned_crowd_vels, next_crowd_vels
             ) = self._gen_crowd_goal_and_plan(crowd_poss)
+        elif self.crowd_movement == "sfm":
+            self._crowd_goal_pos = self._gen_crowd_goal(crowd_poss)
+            next_crowd_vels = self._crowd_goal_pos - crowd_poss
+            next_crowd_vels = (1 / np.linalg.norm(next_crowd_vels)).reshape(-1, 1) *\
+                np.random.uniform(
+                    [0.5], [self.CROWD_MAX_VEL], self.n_crowd
+            ).reshape(-1, 1) * next_crowd_vels
+            self.sfm = psf.Simulator(
+                np.hstack([
+                    crowd_poss,
+                    next_crowd_vels,
+                    self._crowd_goal_pos,
+                    # np.ones(self.n_crowd).reshape(-1, 1) * self._dt
+                ]),
+                config_file=Path(__file__).resolve().parent.joinpath("sfm/config.toml"),
+            )
+        else:
+            print("Unsupported crowd modeling algorithm.")
 
         return agent_pos, agent_vel, goal_pos, crowd_poss, next_crowd_vels
+
+
+    def _gen_crowd_goal(self, crowd_poss):
+        if len(crowd_poss.shape) == 1:
+            crowd_poss = np.array([crowd_poss])
+        crowd_goal_pos = np.random.uniform(
+            [-self.W_BORDER, -self.H_BORDER],
+            [self.W_BORDER, self.H_BORDER],
+            (len(crowd_poss), 2)
+        )
+        return crowd_goal_pos
 
 
     def _gen_crowd_goal_and_plan(self, crowd_poss):
@@ -334,11 +365,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         if len(crowd_poss.shape) == 1:
             crowd_poss = np.array([crowd_poss])
-        crowd_goal_pos = np.random.uniform(
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER],
-            (len(crowd_poss), 2)
-        )
+        crowd_goal_pos = self._gen_crowd_goal(crowd_poss)
         crowd_vels = []
         next_crowd_vels = np.zeros(crowd_poss.shape)
         max_step_acc = self.MAX_ACC * self._dt
@@ -556,15 +583,40 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
-        self._crowd_poss += self._crowd_vels * self._dt
-        if not self.crowd_movement == "const":
+        if self.crowd_movement == "sfm":
+            self.sfm.step(1)
+            new_env_state = self.sfm.get_states()[0][-1]
+            self._crowd_poss = new_env_state[:, :2]
+            self._crowd_vels = new_env_state[:, 2:4]
             for i in range(self.n_crowd):
-                self._planned_crowd_vels[i] = np.delete(self._planned_crowd_vels[i], 0, 0)
-                if len(self._planned_crowd_vels[i]) == 0:
-                    self._crowd_goal_pos[i], self._planned_crowd_vels[i], _ = \
-                        self._gen_crowd_goal_and_plan(self._crowd_poss[i])
-                    self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
-                self._crowd_vels[i] = self._planned_crowd_vels[i][0]
+                if not np.any(self._crowd_vels[i]) and\
+                   np.linalg.norm(self._crowd_poss[i] - self._crowd_goal_pos[i]) <\
+                   self.PHYSICAL_SPACE:
+                    self._crowd_goal_pos[i] = self._gen_crowd_goal(self._crowd_poss[i])
+                    self._crowd_vels[i] = self._crowd_goal_pos[i] - self._crowd_poss[i]
+                    self._crowd_vels[i] *= 1 / np.linalg.norm(self._crowd_vels[i]) *\
+                        self.MAX_ACC * self._dt
+            self.sfm = psf.Simulator(
+                np.hstack([
+                    self._crowd_poss,
+                    self._crowd_vels,
+                    self._crowd_goal_pos,
+                    # np.ones(self.n_crowd).reshape(-1, 1) * self._dt
+                ]),
+                config_file=Path(__file__).resolve().parent.joinpath("sfm/config.toml"),
+            )
+        else:
+            self._crowd_poss += self._crowd_vels * self._dt
+            if not self.crowd_movement == "const":
+                for i in range(self.n_crowd):
+                    self._planned_crowd_vels[i] = np.delete(
+                        self._planned_crowd_vels[i], 0, 0
+                    )
+                    if len(self._planned_crowd_vels[i]) == 0:
+                        self._crowd_goal_pos[i], self._planned_crowd_vels[i], _ = \
+                            self._gen_crowd_goal_and_plan(self._crowd_poss[i])
+                        self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
+                    self._crowd_vels[i] = self._planned_crowd_vels[i][0]
 
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
