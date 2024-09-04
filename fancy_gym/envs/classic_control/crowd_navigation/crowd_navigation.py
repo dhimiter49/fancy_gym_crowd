@@ -320,11 +320,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     [0.5], [self.CROWD_MAX_VEL], self.n_crowd
             ).reshape(-1, 1) * next_crowd_vels
             self.sfm = psf.Simulator(
-                np.hstack([
-                    crowd_poss,
-                    next_crowd_vels,
-                    self._crowd_goal_pos,
-                    # np.ones(self.n_crowd).reshape(-1, 1) * self._dt
+                np.vstack([
+                    np.hstack([
+                        crowd_poss,
+                        next_crowd_vels,
+                        self._crowd_goal_pos,
+                        # np.ones(self.n_crowd).reshape(-1, 1) * self._dt
+                    ]),
+                    np.concatenate([agent_pos, agent_vel, goal_pos])
                 ]),
                 config_file=Path(__file__).resolve().parent.joinpath("sfm/config.toml"),
             )
@@ -586,24 +589,27 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         if self.crowd_movement == "sfm":
             self.sfm.step(1)
             new_env_state = self.sfm.get_states()[0][-1]
-            self._crowd_poss = new_env_state[:, :2]
-            self._crowd_vels = new_env_state[:, 2:4]
+            self._crowd_poss = new_env_state[:-1, :2]
+            self._crowd_vels = new_env_state[:-1, 2:4]
+            print(self._crowd_vels)
             for i in range(self.n_crowd):
                 if not np.any(self._crowd_vels[i]) and\
                    np.linalg.norm(self._crowd_poss[i] - self._crowd_goal_pos[i]) <\
-                   self.PHYSICAL_SPACE:
+                   self.PHYSICAL_SPACE * 1.5:
                     self._crowd_goal_pos[i] = self._gen_crowd_goal(self._crowd_poss[i])
                     self._crowd_vels[i] = self._crowd_goal_pos[i] - self._crowd_poss[i]
                     self._crowd_vels[i] *= 1 / np.linalg.norm(self._crowd_vels[i]) *\
                         self.MAX_ACC * self._dt
             self.sfm = psf.Simulator(
-                np.hstack([
-                    self._crowd_poss,
-                    self._crowd_vels,
-                    self._crowd_goal_pos,
-                    # np.ones(self.n_crowd).reshape(-1, 1) * self._dt
+                np.vstack([
+                    np.hstack([
+                        self._crowd_poss,
+                        self._crowd_vels,
+                        self._crowd_goal_pos,
+                        # np.ones(self.n_crowd).reshape(-1, 1) * self._dt
+                    ]),
+                    np.concatenate([self._agent_pos, self._agent_vel, self._goal_pos])
                 ]),
-                config_file=Path(__file__).resolve().parent.joinpath("sfm/config.toml"),
             )
         else:
             self._crowd_poss += self._crowd_vels * self._dt
