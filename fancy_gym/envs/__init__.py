@@ -142,6 +142,7 @@ register(
         "const_vel": True,
         "lidar_rays": 40,
         "velocity_control": True,
+        "lidar_vel": True,
     }
 )
 
