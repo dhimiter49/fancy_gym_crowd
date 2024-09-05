@@ -10,6 +10,8 @@ from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
 
 
 NUM_COL = 0
+COL_VEL_SUM = 0
+COL_AGENT_VEL_SUM = 0
 
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     """
@@ -571,9 +573,20 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         if self._is_collided:
+            col_vec = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <\
+                [self.PHYSICAL_SPACE * 2] * self.n_crowd
+            col_idx = np.where(col_vec > 0)[0]
             global NUM_COL
+            global COL_VEL_SUM
+            global COL_AGENT_VEL_SUM
+            COL_VEL_SUM += np.sum(np.linalg.norm(
+                self._agent_vel - self._crowd_vels[col_idx], axis=-1
+            ))
+            COL_AGENT_VEL_SUM += np.linalg.norm(self._agent_vel)
             NUM_COL += 1
             print(NUM_COL)
+            print("Average collision velocity:", COL_VEL_SUM / NUM_COL)
+            print("Average agent speed:", COL_AGENT_VEL_SUM / NUM_COL)
         self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
