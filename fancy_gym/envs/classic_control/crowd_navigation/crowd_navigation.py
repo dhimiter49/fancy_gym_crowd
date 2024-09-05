@@ -9,6 +9,8 @@ from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
 
 
+NUM_COL = 0
+
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     """
     Crowd with linear movement. For each member of the crowd a goal position is sampled.
@@ -568,6 +570,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
+        if self._is_collided:
+            global NUM_COL
+            NUM_COL += 1
+            print(NUM_COL)
         self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
