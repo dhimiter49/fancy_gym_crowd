@@ -4,14 +4,16 @@ title = "Social Force Config File"
 enable_group = true
 agent_radius = 0.4
 # the maximum speed doesn't exceed 1.3x initial speed
-max_speed_multiplier = 1.0
+max_speed_multiplier = 1.5
+tau = 0.1
+step_width = 0.3
 
 [desired_force]
 factor = 1.0
 # The relaxation distance of the goal
-goal_threshold = 0.002
+goal_threshold = 0.4
 # How long the relaxation process would take
-relaxation_time = 5
+relaxation_time = 0.5
 
 
 [social_force]
