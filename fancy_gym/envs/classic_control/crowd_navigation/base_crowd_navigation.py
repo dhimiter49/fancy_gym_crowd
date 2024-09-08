@@ -281,22 +281,36 @@ class BaseCrowdNavigationEnv(gym.Env):
             flip = not flip
         np.random.seed(seed)
         seed += 1
-        agent_pos = np.zeros(2) if type(self).__name__ == "CrowdNavigationEnv" and\
-            self.const_vel else np.random.uniform(
-                [-self.W_BORDER + self.PHYSICAL_SPACE,
-                 -self.H_BORDER + self.PHYSICAL_SPACE],
-                [self.W_BORDER - self.PHYSICAL_SPACE,
-                 self.H_BORDER - self.PHYSICAL_SPACE]
-        )
-        agent_vel = np.zeros(2)
-        goal_pos = agent_pos
-        while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE:
-            goal_pos = np.random.uniform(
+        if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel:
+            if self.one_way:
+                agent_pos = np.array([-self.W_BORDER + self.PHYSICAL_SPACE * 2, 0])
+            else:
+                agent_pos = np.zeros(2)
+        else:
+            agent_pos = np.random.uniform(
                 [-self.W_BORDER + self.PHYSICAL_SPACE,
                  -self.H_BORDER + self.PHYSICAL_SPACE],
                 [self.W_BORDER - self.PHYSICAL_SPACE,
                  self.H_BORDER - self.PHYSICAL_SPACE]
             )
+        agent_vel = np.zeros(2)
+        if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel and\
+            self.one_way:
+            goal_pos = np.random.uniform(
+                [self.W_BORDER / 2,
+                 -self.H_BORDER + self.PHYSICAL_SPACE],
+                [self.W_BORDER - self.PHYSICAL_SPACE,
+                 self.H_BORDER - self.PHYSICAL_SPACE]
+            )
+        else:
+            goal_pos = agent_pos
+            while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE:
+                goal_pos = np.random.uniform(
+                    [-self.W_BORDER + self.PHYSICAL_SPACE,
+                     -self.H_BORDER + self.PHYSICAL_SPACE],
+                    [self.W_BORDER - self.PHYSICAL_SPACE,
+                     self.H_BORDER - self.PHYSICAL_SPACE]
+                )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
         try_between = True

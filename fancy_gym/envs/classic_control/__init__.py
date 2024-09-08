@@ -4,3 +4,4 @@ from .viapoint_reacher.viapoint_reacher import ViaPointReacherEnv
 from .crowd_navigation.crowd_navigation import CrowdNavigationEnv
 from .crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
 from .crowd_navigation.navigation import NavigationEnv
+from .crowd_navigation.l_shape_env import LShapeCrowdNavigationEnv

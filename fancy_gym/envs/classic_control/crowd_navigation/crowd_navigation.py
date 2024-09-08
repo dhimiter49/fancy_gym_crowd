@@ -37,6 +37,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         velocity_control: bool = False,
         lidar_rays: int = 0,
         const_vel: bool = False,
+        one_way: bool = False,
         polar: bool = False,
         time_frame: int = 0,
         lidar_vel: bool = False,
@@ -45,6 +46,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         assert time_frame == 0 or not lidar_vel
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
+        self.one_way = one_way
         self.polar = polar
         super().__init__(
             n_crowd,
@@ -173,8 +175,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
-            self.W_BORDER - abs(self._agent_pos[0]),
-            self.H_BORDER - abs(self._agent_pos[1]),
+            max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
+            max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
         ])
         Rw = np.sum(
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
@@ -295,7 +297,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         if self.const_vel:
             for i, c in enumerate(crowd_poss):
-                if c[0] > 0:
+                if c[0] > 0 or self.one_way:
                     idx = np.random.choice([0, 1])
                     if idx == 0:
                         pol_vel = np.random.uniform(
