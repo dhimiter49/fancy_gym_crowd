@@ -38,12 +38,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         time_frame: int = 0,
         lidar_vel: bool = False,
         n_frames: int = 4,
+        soc_nav_rew: bool = False,
     ):
         assert time_frame == 0 or not lidar_vel
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
         self.one_way = one_way
         self.polar = polar
+        self.soc_nav_rew = soc_nav_rew
         super().__init__(
             n_crowd,
             width,
@@ -149,37 +151,61 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_reward(self, action: np.ndarray):
-        dg = np.linalg.norm(self._agent_pos - self._goal_pos)
-        if self._goal_reached:
-            Rg = self.Tc
+        if self.soc_nav_rew:
+            if self._is_collided:
+                return self.COLLISION_REWARD
+            elif self._goal_reached:
+                return self.Tc
+            elif self._steps + 1 >= self.MAX_EPISODE_STEPS:
+                return self.MAX_STEPS_REACHED
+            else:
+                # differently from SocNavGym the penalties are added across all crowd
+                # members
+                dist_crowd = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1)
+                Rc = np.sum(
+                    (dist_crowd - self.DISCOMFORT_DISTANCE) * self.Cc * self._dt *
+                    (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] *
+                        self.n_crowd)
+                )
+                dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+                Rg = 0
+                if self._prev_distance is not None:
+                    Rg = -(dg - self._prev_distance) * self.Cg
+                self._prev_distance = dg
+
+                reward = Rg + Rc + self.ALIVE_PENALTY
+                return reward, dict(goal=Rg, collision=Rc, alive=self.ALIVE_PENALTY)
         else:
-            # Goal distance
-            Rg = -self.Cg * np.clip(dg, 1, np.inf) ** 2
+            dg = np.linalg.norm(self._agent_pos - self._goal_pos)
+            if self._goal_reached:
+                Rg = self.Tc
+            else:
+                # Goal distance
+                Rg = -self.Cg * np.clip(dg, 1, np.inf) ** 2
 
-        if self._is_collided:
-            Rc = self.COLLISION_REWARD
-        else:
-            # Crowd distance
-            dist_crowd = np.linalg.norm(
-                self._agent_pos - self._crowd_poss,
-                axis=-1
+            if self._is_collided:
+                Rc = self.COLLISION_REWARD
+            else:
+                # Crowd distance
+                dist_crowd = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1)
+                Rc = np.sum(
+                    (1 - np.exp(self.Cc / dist_crowd)) * (dist_crowd < [
+                        self.SOCIAL_SPACE + self.PHYSICAL_SPACE
+                    ] * self.n_crowd)
+                )
+
+            # Walls, only one of the walls is closer (irrelevant which)
+            dist_walls = np.array([
+                max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
+                max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
+            ])
+            Rw = np.sum(
+                (1 - np.exp(self.Cc / dist_walls)) *
+                (dist_walls < self.PHYSICAL_SPACE * 2)
             )
-            Rc = np.sum(
-                (1 - np.exp(self.Cc / dist_crowd)) *
-                (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
-            )
 
-        # Walls, only one of the walls is closer (irrelevant which)
-        dist_walls = np.array([
-            max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
-            max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
-        ])
-        Rw = np.sum(
-            (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
-        )
-
-        reward = Rg + Rc + Rw
-        return reward, dict(goal=Rg, collision=Rc, wall=Rw)
+            reward = Rg + Rc + Rw
+            return reward, dict(goal=Rg, collision=Rc, wall=Rw)
 
 
     def _terminate(self, info):

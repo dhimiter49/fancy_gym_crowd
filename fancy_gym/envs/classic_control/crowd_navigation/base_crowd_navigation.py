@@ -50,13 +50,24 @@ class BaseCrowdNavigationEnv(gym.Env):
         else:
             self.MIN_CROWD_DIST = self.PERSONAL_SPACE + self.PHYSICAL_SPACE
 
-        self.COLLISION_REWARD = -10
-        self.Cc = 2 * self.PHYSICAL_SPACE * \
-            np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
-        self.Cg = -(1 - np.exp(self.Cc / self.SOCIAL_SPACE)) /\
-            np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
-        self.Tc = -self.COLLISION_REWARD
-        self.Cc *= 2
+        if hasattr(self, "soc_nav_rew") and self.soc_nav_rew:
+            # see https://github.com/gnns4hri/SocNavGym/blob/main/socnavgym/envs/rewards/
+            # dsrnn_reward.py
+            self.COLLISION_REWARD = -1  # including wall collision (out of map)
+            self.Tc = 1
+            self.MAX_STEPS_REACHED = -1
+            self.ALIVE_PENALTY = -0.00001
+            self.Cg = 5  # distance to goal scaler
+            self.DISCOMFORT_DISTANCE = self.SOCIAL_SPACE + self.PHYSICAL_SPACE
+            self.Cc = 0.5
+        else:
+            self.COLLISION_REWARD = -10
+            self.Cc = 2 * self.PHYSICAL_SPACE * \
+                np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
+            self.Cg = -(1 - np.exp(self.Cc / self.SOCIAL_SPACE)) /\
+                np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
+            self.Tc = -self.COLLISION_REWARD
+            self.Cc *= 2
 
         self.n_crowd = n_crowd
         self.allow_collision = allow_collision
@@ -226,6 +237,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._goal_reached = False
         self._is_collided = False
         self._current_reward = 0
+        self._prev_distance = None
         return self._get_obs().copy(), {}
 
 
