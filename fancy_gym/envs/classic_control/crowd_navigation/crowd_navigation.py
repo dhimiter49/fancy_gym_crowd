@@ -153,19 +153,18 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     def _get_reward(self, action: np.ndarray):
         if self.soc_nav_rew:
             if self._is_collided:
-                return self.COLLISION_REWARD
+                return self.COLLISION_REWARD, dict(collision=self.COLLISION_REWARD)
             elif self._goal_reached:
-                return self.Tc
+                return self.Tc, dict(goal=self.Tc)
             elif self._steps + 1 >= self.MAX_EPISODE_STEPS:
-                return self.MAX_STEPS_REACHED
+                return self.MAX_STEPS_REACHED, dict(timeout=self.MAX_STEPS_REACHED)
             else:
                 # differently from SocNavGym the penalties are added across all crowd
                 # members
                 dist_crowd = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1)
                 Rc = np.sum(
                     (dist_crowd - self.DISCOMFORT_DISTANCE) * self.Cc * self._dt *
-                    (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] *
-                        self.n_crowd)
+                    (dist_crowd < [self.DISCOMFORT_DISTANCE] * self.n_crowd)
                 )
                 dg = np.linalg.norm(self._agent_pos - self._goal_pos)
                 Rg = 0
