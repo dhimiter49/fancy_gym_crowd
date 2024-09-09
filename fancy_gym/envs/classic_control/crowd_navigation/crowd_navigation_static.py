@@ -23,7 +23,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         polar: bool = False,
         soc_nav_rew: bool = False,
     ):
-        self.MAX_EPISODE_STEPS = 80
+        self.MAX_EPISODE_STEPS = 100
         self.polar = polar
         self.soc_nav_rew = soc_nav_rew
         super().__init__(
