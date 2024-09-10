@@ -57,7 +57,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             self.Tc = 1
             self.MAX_STEPS_REACHED = -1
             self.ALIVE_PENALTY = -0.00001
-            self.Cg = 5  # distance to goal scaler
+            self.Cg = 0.5  # distance to goal scaler
             self.DISCOMFORT_DISTANCE = self.SOCIAL_SPACE + self.PHYSICAL_SPACE
             self.Cc = 0.5
         else:
