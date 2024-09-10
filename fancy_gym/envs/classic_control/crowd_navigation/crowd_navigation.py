@@ -596,3 +596,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         truncated = False
 
         return self._get_obs().copy(), self._current_reward, terminated, truncated, info
+
+
+    def stats(self):
+        print(NUM_COL)
+        print("Average collision velocity:", COL_VEL_SUM / NUM_COL)
+        print("Average agent speed:", COL_AGENT_VEL_SUM / NUM_COL)
