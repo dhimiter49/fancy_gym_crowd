@@ -34,6 +34,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         velocity_control: bool = False,
         lidar_rays: int = 0,
         crowd_movement: str = 'linear',
+        static_obstacle: bool = False,
         polar: bool = False,
         time_frame: int = 0,
         lidar_vel: bool = False,
@@ -42,6 +43,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         assert time_frame == 0 or not lidar_vel
         self.MAX_EPISODE_STEPS = 100
         self.crowd_movement = crowd_movement
+        self.static_obstacle = static_obstacle if crowd_movement == 'sfm' else False
+        if self.static_obstacle:
+            self.MAX_RAD_OBSTACLE = 6
         self.polar = polar
         super().__init__(
             n_crowd,
@@ -286,6 +290,34 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ]).astype(np.float32).flatten()
 
 
+    def _create_static_obstacle(self, agent_pos, goal_pos, crowd_poss):
+        obstacle_pos = None
+        while True:
+            sampled_pos = np.random.uniform(
+                [-self.W_BORDER + 1 / 3 * self.W_BORDER,
+                 -self.H_BORDER + 1 / 3 * self.H_BORDER],
+                [self.W_BORDER - 1 / 3 * self.W_BORDER,
+                 self.H_BORDER - 1 / 3 * self.H_BORDER]
+            )
+            no_crowd_collision = np.sum(np.linalg.norm(
+                crowd_poss - sampled_pos, axis=-1
+            ) < self.MAX_RAD_OBSTACLE) == 0
+            if (np.linalg.norm(sampled_pos - agent_pos) > self.MIN_CROWD_DIST and
+                    np.linalg.norm(sampled_pos - goal_pos) > self.MAX_RAD_OBSTACLE and
+                    no_crowd_collision):
+                obstacle_pos = sampled_pos
+                break
+        width = np.random.uniform(0.5, self.MAX_RAD_OBSTACLE)
+        height = np.random.uniform(0.5, self.MAX_RAD_OBSTACLE)
+        self.obstacle_coords = np.array([
+            obstacle_pos[0] - width / 2,
+            obstacle_pos[0] + width / 2,
+            obstacle_pos[1] - height / 2,
+            obstacle_pos[1] + height / 2
+        ])
+        return obstacle_pos
+
+
     def _start_env_vars(self):
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
         next_crowd_vels = np.zeros(crowd_poss.shape)
@@ -312,6 +344,12 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self._crowd_goal_pos, self._planned_crowd_vels, next_crowd_vels
             ) = self._gen_crowd_goal_and_plan(crowd_poss)
         elif self.crowd_movement == "sfm":
+            if self.static_obstacle:
+                self._static_obstacle_pos = self._create_static_obstacle(
+                    agent_pos,
+                    goal_pos,
+                    crowd_poss
+                )
             self._crowd_goal_pos = self._gen_crowd_goal(crowd_poss)
             next_crowd_vels = self._crowd_goal_pos - crowd_poss
             next_crowd_vels = (1 / np.linalg.norm(next_crowd_vels, axis=-1))\
@@ -323,6 +361,12 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     np.hstack([crowd_poss, next_crowd_vels, self._crowd_goal_pos]),
                     np.concatenate([agent_pos, agent_vel, goal_pos])
                 ]),
+                obstacles=[
+                    self.obstacle_coords[[0, 0, 2, 3]],
+                    self.obstacle_coords[[0, 1, 3, 3]],
+                    self.obstacle_coords[[1, 1, 3, 2]],
+                    self.obstacle_coords[[1, 0, 2, 2]],
+                ],
                 config_file="fancy_gym/envs/classic_control/crowd_navigation/" +
                 "sfm/config.toml",
             )
@@ -336,8 +380,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         if len(crowd_poss.shape) == 1:
             crowd_poss = np.array([crowd_poss])
         crowd_goal_pos = np.random.uniform(
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER],
+            [-self.W_BORDER + self.PHYSICAL_SPACE, -self.H_BORDER + self.PHYSICAL_SPACE],
+            [self.W_BORDER - self.PHYSICAL_SPACE, self.H_BORDER - self.PHYSICAL_SPACE],
             (len(crowd_poss), 2)
         )
         return crowd_goal_pos
@@ -504,6 +548,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 "b",
             )
 
+            # Static obstacles
+            if self.static_obstacle:
+                self.static_obstacle_draw = plt.Rectangle(
+                    np.array([self.obstacle_coords[0], self.obstacle_coords[2]]),
+                    self.obstacle_coords[1] - self.obstacle_coords[0],
+                    self.obstacle_coords[3] - self.obstacle_coords[2],
+                    fill=True,
+                )
+                ax.add_patch(self.static_obstacle_draw)
+
             # Walls
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
             ax.axvspan(-self.W_BORDER - 100, -self.W_BORDER, hatch='.')
@@ -534,6 +588,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
+            if self.static_obstacle:
+                self.static_obstacle_draw.set_xy(
+                    np.array([self.obstacle_coords[0], self.obstacle_coords[2]])
+                )
 
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],
