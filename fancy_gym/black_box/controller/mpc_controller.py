@@ -39,6 +39,9 @@ class MPCController(BaseController):
     :param dt : time step
     :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
     :param min_dist_wall: minimum distance to the wall
+    :param velocity_control: use velocity to control agent or not
+    :param uncertainty: uncertainty type, '' no uncertainty, 'dir' velocity direction,
+        'vel' for speed and direction
     """
 
     def __init__(
@@ -55,12 +58,14 @@ class MPCController(BaseController):
         min_dist_crowd: float = 0.0,
         min_dist_wall: float = 0.4,
         velocity_control: float = False,
+        uncertainty: str = '',
     ):
         self.N = horizon
         self.MAX_STOPPING_TIME = max_vel / max_acc
         self.MAX_STOPPING_DIST = 2 * (
             max_vel * self.MAX_STOPPING_TIME - 0.5 * max_acc * self.MAX_STOPPING_TIME ** 2
         )
+        self.MAX_VEL = max_vel
         self.dt = dt
         self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc
@@ -87,6 +92,7 @@ class MPCController(BaseController):
                 2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
                 0.2 * np.eye(2 * self.N)
         self.opt_M = sparse.csr_matrix(self.opt_M)
+        self.uncertainty = uncertainty
 
         if not self.velocity_control:
             M_v_ = np.vstack([
@@ -200,6 +206,25 @@ class MPCController(BaseController):
         Return:
             (numpy.ndarray): predicted positions of the crowd throughout the horizon
         """
+        new_crowd_vels = []
+        if self.uncertainty == "dir":
+            alphas = np.pi - 5 * np.pi / 6 * (
+                np.linalg.norm(crowd_vels, axis=-1) / self.MAX_VEL
+            )
+            n_trajs = np.where(alphas > np.pi / 2, 5, 3)  # 3 traj if less then 90, else 5
+            angles = alphas * (1 / (n_trajs - 1))
+            for i, vel in enumerate(crowd_vels):
+                for j in range(n_trajs[i]):
+                    angle = (j // 2 if j % 2 == 0 else - (j + 1) // 2) * angles[i]
+                    new_crowd_vels.append(np.array([
+                        np.cos(angle) * vel[0] - np.sin(angle) * vel[1],
+                        np.sin(angle) * vel[0] + np.cos(angle) * vel[1],
+                    ]))
+
+            crowd_poss = np.repeat(crowd_poss, n_trajs, axis=0)
+            new_crowd_vels = np.array(new_crowd_vels)
+            crowd_vels = new_crowd_vels
+
         return np.stack([crowd_poss] * self.N) + np.einsum(
             'ijk,i->ijk',
             np.stack([crowd_vels] * self.N, 0) * self.dt,
