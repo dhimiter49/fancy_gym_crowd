@@ -13,6 +13,7 @@ NUM_COL = 0
 COL_VEL_SUM = 0
 COL_AGENT_VEL_SUM = 0
 
+
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     """
     Crowd with linear movement. For each member of the crowd a goal position is sampled.
