@@ -198,6 +198,9 @@ class MPCController(BaseController):
         each member. The formula P_i = p_0 + i * v * dt, where for point i in horizon the
         position will be p_0 + i * v * dt.
 
+        Uncertainty handling by copying positions and generating new plausible velocities
+        depending on the direction and speed uncertainty.
+
         Args:
             crowd_poss (numpy.ndarray): an array of size (n_crowd, 2) with the current
                 positions of each member
@@ -207,7 +210,7 @@ class MPCController(BaseController):
             (numpy.ndarray): predicted positions of the crowd throughout the horizon
         """
         new_crowd_vels = []
-        if self.uncertainty == "dir":
+        if self.uncertainty in ["dir", "vel"]:
             alphas = np.pi - 5 * np.pi / 6 * (
                 np.linalg.norm(crowd_vels, axis=-1) / self.MAX_VEL
             )
@@ -223,6 +226,18 @@ class MPCController(BaseController):
 
             crowd_poss = np.repeat(crowd_poss, n_trajs, axis=0)
             new_crowd_vels = np.array(new_crowd_vels)
+            crowd_vels = new_crowd_vels
+
+        if self.uncertainty == "vel":
+            crowd_poss = np.repeat(crowd_poss, 3, axis=0)
+            new_crowd_vels = np.repeat(crowd_vels, 3, axis=0)
+            for i in range(len(new_crowd_vels)):
+                if i % 3 == 0:
+                    continue
+                if i % 3 == 1:
+                    new_crowd_vels[i] -= np.linalg.norm(new_crowd_vels[i]) * 0.2
+                if i % 3 == 2:
+                    new_crowd_vels[i] += np.linalg.norm(new_crowd_vels[i]) * 0.2
             crowd_vels = new_crowd_vels
 
         return np.stack([crowd_poss] * self.N) + np.einsum(
