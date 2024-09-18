@@ -603,6 +603,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def stats(self):
+        global NUM_COL
+        global COL_VEL_SUM
+        global COL_AGENT_VEL_SUM
+        global COLS
         print(NUM_COL)
         print("Average collision velocity:", COL_VEL_SUM / COLS)
         print("Average agent speed:", COL_AGENT_VEL_SUM / COLS)
