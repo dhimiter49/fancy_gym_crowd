@@ -172,12 +172,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         # petential collision penatly
         Rpc = 0
         alpha_c_a = np.arccos(np.clip(np.diagonal(
-            self._crowd_vels / np.linalg.norm(self._crowd_vels, axis=-1).reshape(-1, 1) @
+            self._crowd_vels / np.linalg.norm(
+                self._crowd_vels + 1e-6, axis=-1
+            ).reshape(-1, 1) @
             ((self._agent_pos - self._crowd_poss) / np.linalg.norm(
              self._agent_pos - self._crowd_poss, axis=-1).reshape(-1, 1)).T
         ), -1.0, 1.0))
         alpha_a_c = np.arccos(np.clip(np.diagonal(
-            np.repeat([self._agent_vel / np.linalg.norm(self._agent_vel)], 6, axis=0) @
+            np.repeat([
+                self._agent_vel / np.linalg.norm(self._agent_vel + 1e-6)
+            ], 6, axis=0) @
             ((self._crowd_poss - self._agent_pos) / np.linalg.norm(
              self._crowd_poss - self._agent_pos, axis=-1).reshape(-1, 1)).T,
         ), -1.0, 1.0))
