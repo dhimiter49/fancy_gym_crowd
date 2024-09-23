@@ -5,6 +5,7 @@ import scipy.interpolate as interp
 from gymnasium import spaces
 from gymnasium.core import ObsType
 import pysocialforce as psf
+from pathlib import Path
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
@@ -366,9 +367,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self.obstacle_coords[[0, 1, 3, 3]],
                     self.obstacle_coords[[1, 1, 3, 2]],
                     self.obstacle_coords[[1, 0, 2, 2]],
-                ],
-                config_file="fancy_gym/envs/classic_control/crowd_navigation/" +
-                "sfm/config.toml",
+                ] if self.static_obstacle else None,
+                config_file=Path(__file__).resolve().parent.joinpath("sfm/config.toml")
             )
         else:
             print("Unsupported crowd modeling algorithm.")
