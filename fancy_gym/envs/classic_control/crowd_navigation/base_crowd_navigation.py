@@ -86,7 +86,6 @@ class BaseCrowdNavigationEnv(gym.Env):
                 self.action_space = spaces.Box(
                     low=np.array([0, -np.pi]),
                     high=np.array([self.AGENT_MAX_VEL, np.pi]),
-                    dtype=np.float32
                 )
             else:
                 action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])

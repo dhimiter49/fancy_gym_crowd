@@ -99,7 +99,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             [rel_goal_pos],
             [agent_vel],
             dist_walls
-        ]).astype(np.float32).flatten()
+        ]).flatten()
 
 
     def render(self):

@@ -20,8 +20,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         lidar_rays: int = 0,
+        sequence_obs: bool = False,
         polar: bool = False,
     ):
+        assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         self.MAX_EPISODE_STEPS = 80
         self.polar = polar
         super().__init__(
@@ -34,6 +36,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             velocity_control=velocity_control,
         )
 
+        self.seq_obs = sequence_obs
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
@@ -76,6 +79,21 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 [max_dist, np.pi] * (self.n_crowd + 1),
                 [self.AGENT_MAX_VEL, np.pi],
                 [self.MAX_STOPPING_DIST] * 4,  # four directions
+            ])
+        elif self.seq_obs:
+            state_bound_min = np.hstack([
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [-self.WIDTH, -self.HEIGHT],
+                [-self.WIDTH, -self.HEIGHT],
+                [-self.WIDTH, -self.HEIGHT] *
+                self.n_crowd,
+            ])
+            state_bound_max = np.hstack([
+                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [self.WIDTH, self.HEIGHT],
+                [self.WIDTH, self.HEIGHT],
+                [self.WIDTH, self.HEIGHT] *
+                self.n_crowd,
             ])
         else:
             state_bound_min = np.hstack([
@@ -170,7 +188,14 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 rel_goal_pos,
                 agent_vel,
                 ray_distances
-            ]).astype(np.float32).flatten()
+            ]).flatten()
+        elif self.seq_obs:
+            return np.concatenate([
+                [self._agent_vel],
+                [self._agent_pos],
+                [rel_goal_pos],
+                self._crowd_poss
+            ]).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
             dist_walls = np.array([
@@ -182,7 +207,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
                 [agent_vel],
                 dist_walls
-            ]).astype(np.float32).flatten()
+            ]).flatten()
 
 
     def render(self):
