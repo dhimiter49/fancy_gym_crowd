@@ -191,31 +191,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
             )
 
-        # petential collision penatly
-        Rpc = 0
-        alpha_c_a = np.arccos(np.clip(np.diagonal(
-            self._crowd_vels / np.linalg.norm(
-                self._crowd_vels + 1e-6, axis=-1
-            ).reshape(-1, 1) @
-            ((self._agent_pos - self._crowd_poss) / np.linalg.norm(
-             self._agent_pos - self._crowd_poss, axis=-1).reshape(-1, 1)).T
-        ), -1.0, 1.0))
-        alpha_a_c = np.arccos(np.clip(np.diagonal(
-            np.repeat([
-                self._agent_vel / np.linalg.norm(self._agent_vel + 1e-6)
-            ], 6, axis=0) @
-            ((self._crowd_poss - self._agent_pos) / np.linalg.norm(
-             self._crowd_poss - self._agent_pos, axis=-1).reshape(-1, 1)).T,
-        ), -1.0, 1.0))
-        idxs = np.where(
-            (alpha_c_a < np.pi / 6).astype(int) * (alpha_a_c < np.pi / 6).astype(int)
-        )[0]
-        if len(idxs) > 0:
-            Rpc = -np.sum(
-                np.linalg.norm(self._agent_vel - self._crowd_vels[idxs], axis=-1) *
-                (np.pi / 6 - alpha_a_c[idxs])
-            ) / 5
-
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
             max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
@@ -225,8 +200,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
         )
 
-        reward = Rg + Rc + Rw + Rpc
-        return reward, dict(goal=Rg, collision=Rc, wall=Rw, pred_collision=Rpc)
+        reward = Rg + Rc + Rw
+        return reward, dict(goal=Rg, collision=Rc, wall=Rw)
 
 
     def _terminate(self, info):
