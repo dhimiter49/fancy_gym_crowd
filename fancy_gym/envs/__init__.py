@@ -100,6 +100,22 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationConstSeqVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 20,
+        "height": 8,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "velocity_control": True,
+        "sequence_obs": True,
+    }
+)
+
+register(
     id='fancy/CrowdNavigationConstLiDAR-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd,
@@ -333,6 +349,21 @@ register(
         "height": 16,
         "interceptor_percentage": 2,
         "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationStaticSeqVel-v0',
+    entry_point=CrowdNavigationStaticEnv,
+    mp_wrapper=MPWrapper_CrowdStatic_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+        "sequence_obs": True,
     }
 )
 
