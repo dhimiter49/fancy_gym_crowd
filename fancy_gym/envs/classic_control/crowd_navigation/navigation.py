@@ -19,8 +19,10 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         polar: bool = False,
+        sequence_obs: bool = False,
     ):
         self.MAX_EPISODE_STEPS = 60
+        self.seq_obs = sequence_obs
         self.polar = polar
         super().__init__(
             0,
@@ -41,6 +43,17 @@ class NavigationEnv(BaseCrowdNavigationEnv):
                 [max_dist, np.pi],
                 [self.AGENT_MAX_VEL, np.pi],
                 [self.MAX_STOPPING_DIST] * 4,  # four directions
+            ])
+        elif self.seq_obs:
+            state_bound_min = np.hstack([
+                [-self.WIDTH, -self.HEIGHT],
+                [-self.WIDTH, -self.HEIGHT],
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+            ])
+            state_bound_max = np.hstack([
+                [self.WIDTH, self.HEIGHT],
+                [self.WIDTH, self.HEIGHT],
+                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
             ])
         else:
             state_bound_min = np.hstack([
@@ -88,18 +101,25 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _get_obs(self) -> ObsType:
-        rel_goal_pos = self._goal_pos - self._agent_pos
-        rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
-        agent_vel = self.c2p(self._agent_vel) if self.polar else self._agent_vel
-        dist_walls = np.array([
-            [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
-            [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
-        ])
-        return np.concatenate([
-            [rel_goal_pos],
-            [agent_vel],
-            dist_walls
-        ]).flatten()
+        if self.seq_obs:
+            return np.concatenate([
+                [self._agent_pos],
+                [self._goal_pos],
+                [self._agent_vel]
+            ]).flatten()
+        else:
+            rel_goal_pos = self._goal_pos - self._agent_pos
+            rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
+            agent_vel = self.c2p(self._agent_vel) if self.polar else self._agent_vel
+            dist_walls = np.array([
+                [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
+                [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
+            ])
+            return np.concatenate([
+                [rel_goal_pos],
+                [agent_vel],
+                dist_walls
+            ]).flatten()
 
 
     def render(self):
