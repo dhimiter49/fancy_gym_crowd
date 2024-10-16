@@ -274,10 +274,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         position as described above).
         """
         global seed, flip
-        if seed > 1:
-            if flip:
-                seed -= 1
-            flip = not flip
+        # if seed > 1:
+        #     if flip:
+        #         seed -= 1
+        #     flip = not flip
         np.random.seed(seed)
         seed += 1
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel:
