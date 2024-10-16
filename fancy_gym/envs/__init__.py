@@ -415,6 +415,19 @@ register(
 )
 
 register(
+    id='fancy/NavigationSeqVel-v0',
+    entry_point=NavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "width": 10,
+        "height": 10,
+        "velocity_control": True,
+        "sequence_obs": True,
+    }
+)
+
+register(
     id='fancy/LShapeNavigation-v0',
     entry_point=LShapeCrowdNavigationEnv,
     mp_wrapper=MPWrapper_Navigation_Vel,
