@@ -191,10 +191,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             ]).flatten()
         elif self.seq_obs:
             return np.concatenate([
-                [self._agent_vel],
                 [self._agent_pos],
                 [self._goal_pos],
-                self._crowd_poss
+                self._crowd_poss,
+                [self._agent_vel]
             ]).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
