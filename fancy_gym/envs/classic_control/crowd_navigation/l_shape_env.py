@@ -135,13 +135,13 @@ class LShapeCrowdNavigationEnv(BaseCrowdNavigationEnv):
                 rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
                 [self._agent_vel],
                 dist_walls
-            ]).flatten()
+            ]).astype(np.float32).flatten()
         else:
             return np.concatenate([
                 [rel_goal_pos],
                 [self._agent_vel],
                 dist_walls
-            ]).flatten()
+            ]).astype(np.float32).flatten()
 
 
 
