@@ -293,13 +293,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 rel_goal_pos,
                 agent_vel,
                 self._last_frames.flatten()
-            ]).flatten()
+            ]).astype(np.float32).flatten()
         elif self.seq_obs:
             return np.concatenate([
                 [np.concatenate([self._agent_pos, self._agent_vel])],
                 [np.concatenate([self._goal_pos, self._agent_vel * 0])],
                 np.concatenate([self._crowd_poss, self._crowd_vels], axis=-1)
-            ]).flatten()
+            ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
             dist_walls = np.array([
@@ -312,7 +312,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 [agent_vel],
                 self._crowd_vels,
                 dist_walls
-            ]).flatten()
+            ]).astype(np.float32).flatten()
 
 
     def _start_env_vars(self):

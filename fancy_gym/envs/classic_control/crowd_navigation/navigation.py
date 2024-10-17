@@ -106,7 +106,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
                 [self._agent_pos],
                 [self._goal_pos],
                 [self._agent_vel]
-            ]).flatten()
+            ]).astype(np.float32).flatten()
         else:
             rel_goal_pos = self._goal_pos - self._agent_pos
             rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
@@ -119,7 +119,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
                 [rel_goal_pos],
                 [agent_vel],
                 dist_walls
-            ]).flatten()
+            ]).astype(np.float32).flatten()
 
 
     def render(self):
