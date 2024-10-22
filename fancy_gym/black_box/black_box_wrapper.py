@@ -94,7 +94,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
         # cast dtype because metaworld returns incorrect that throws gym error
         return observation.astype(self.observation_space.dtype)
 
-    def get_trajectory(self, action: np.ndarray) -> Tuple:
+    def get_trajectory(self, action: np.ndarray, condition: np.ndarray) -> Tuple:
         duration = self.duration
         if self.learn_sub_trajectories:
             duration = None
@@ -115,6 +115,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             init_time, condition_pos, condition_vel)
         self.traj_gen.set_duration(duration, self.dt)
 
+        get_numpy(self.traj_gen.get_condition_traj_pos_mean(condition, action))
         position = get_numpy(self.traj_gen.get_traj_pos())
         velocity = get_numpy(self.traj_gen.get_traj_vel())
 
@@ -151,7 +152,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
     def step(self, action: np.ndarray):
         """ This function generates a trajectory based on a MP and then does the usual loop over reset and step"""
 
-        position, velocity = self.get_trajectory(action)
+        position, velocity = self.get_trajectory(action, self.unwrapped.goal_pos)
         position, velocity = self.env.set_episode_arguments(action, position, velocity)
         traj_is_valid, position, velocity = self.env.preprocessing_and_validity_callback(action, position, velocity,
                                                                                          self.tau_bound, self.delay_bound)
