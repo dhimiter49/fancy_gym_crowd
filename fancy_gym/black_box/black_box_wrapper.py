@@ -99,8 +99,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             (condition[:len(condition) // 2] - self.env.unwrapped.current_pos)
         ) / self.env.AGENT_MAX_VEL / self.dt
         time_step = min(time_step, self.duration / self.dt)
-        self.env.unwrapped.set_stopping_point(int(time_step))
-        # print(time_step)
+        # nself.env.unwrapped.set_stopping_point(int(time_step))
         self.traj_gen.set_params(get_numpy(self.traj_gen.get_condition_mean_std(
             int(time_step), condition, action
         )[0]))
@@ -169,7 +168,6 @@ class BlackBoxWrapper(gym.ObservationWrapper):
     def step(self, action: np.ndarray):
         """ This function generates a trajectory based on a MP and then does the usual loop over reset and step"""
 
-        action = (action[0][0], action[1][0]) if isinstance(action, tuple) else action
         if isinstance(action, tuple):
             condition = np.concatenate([self.unwrapped.goal_pos, np.zeros(2)])
             position, velocity = self.get_trajectory(action, condition)
