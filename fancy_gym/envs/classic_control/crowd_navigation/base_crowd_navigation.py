@@ -86,7 +86,6 @@ class BaseCrowdNavigationEnv(gym.Env):
                 self.action_space = spaces.Box(
                     low=np.array([0, -np.pi]),
                     high=np.array([self.AGENT_MAX_VEL, np.pi]),
-                    dtype=np.float32
                 )
             else:
                 action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
@@ -270,28 +269,38 @@ class BaseCrowdNavigationEnv(gym.Env):
         The size of the environment and the initial minial goal position (apart from other
         constants set in the environment) directly affect the probability of spawning a
         member of the crowd between the agent and the goal (with some noise in its
-        position as described above). The computed probabilities for WIDTH=HEIGHT=16 based
-        on the minimal spwaning distance of the goal from the agent are:
-            min_dist = PHYSICAL_SPACE -> ~65%
-            min_dist = PHYSICAL_SPACE + PERSONAL_SPACE -> ~75%
-            min_dist = PHYSICAL_SPACE + 2 * PERSONALSPACE -> ~89%
-            min_dist = PHYSICAL_SPACE + 3 * PERSONAL_SPACE -> ~100%
+        position as described above).
         """
-        agent_pos = np.random.uniform(
-            [-self.W_BORDER + self.PHYSICAL_SPACE,
-             -self.H_BORDER + self.PHYSICAL_SPACE],
-            [self.W_BORDER - self.PHYSICAL_SPACE,
-             self.H_BORDER - self.PHYSICAL_SPACE]
-        )
-        agent_vel = np.zeros(2)
-        goal_pos = agent_pos
-        while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE:
-            goal_pos = np.random.uniform(
+        if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel:
+            if self.one_way:
+                agent_pos = np.array([-self.W_BORDER + self.PHYSICAL_SPACE * 2, 0])
+            else:
+                agent_pos = np.zeros(2)
+        else:
+            agent_pos = np.random.uniform(
                 [-self.W_BORDER + self.PHYSICAL_SPACE,
                  -self.H_BORDER + self.PHYSICAL_SPACE],
                 [self.W_BORDER - self.PHYSICAL_SPACE,
                  self.H_BORDER - self.PHYSICAL_SPACE]
             )
+        agent_vel = np.zeros(2)
+        if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel and\
+            self.one_way:
+            goal_pos = np.random.uniform(
+                [self.W_BORDER / 2,
+                 -self.H_BORDER + self.PHYSICAL_SPACE],
+                [self.W_BORDER - self.PHYSICAL_SPACE,
+                 self.H_BORDER - self.PHYSICAL_SPACE]
+            )
+        else:
+            goal_pos = agent_pos
+            while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE:
+                goal_pos = np.random.uniform(
+                    [-self.W_BORDER + self.PHYSICAL_SPACE,
+                     -self.H_BORDER + self.PHYSICAL_SPACE],
+                    [self.W_BORDER - self.PHYSICAL_SPACE,
+                     self.H_BORDER - self.PHYSICAL_SPACE]
+                )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
         try_between = True

@@ -11,6 +11,7 @@ from .classic_control.hole_reacher.hole_reacher import HoleReacherEnv
 from .classic_control.hole_reacher import MPWrapper as MPWrapper_HoleReacher
 from .classic_control.crowd_navigation.crowd_navigation import CrowdNavigationEnv
 from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
+from .classic_control.crowd_navigation.l_shape_env import LShapeCrowdNavigationEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
 from .classic_control.crowd_navigation import (
     MPWrapper_Crowd,
@@ -99,6 +100,22 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationConstSeqVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 20,
+        "height": 8,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "velocity_control": True,
+        "sequence_obs": True,
+    }
+)
+
+register(
     id='fancy/CrowdNavigationConstLiDAR-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd,
@@ -142,6 +159,7 @@ register(
         "const_vel": True,
         "lidar_rays": 40,
         "velocity_control": True,
+        "lidar_vel": True,
     }
 )
 
@@ -158,6 +176,52 @@ register(
         "lidar_rays": 40,
         "polar": True,
         "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationConstOneWay-v0',
+    entry_point=CrowdNavigationEnv,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 20,
+        "width": 30,
+        "height": 10,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "one_way": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationConstOneWayVel-v0',
+    entry_point=CrowdNavigationEnv,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 20,
+        "width": 30,
+        "height": 10,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "one_way": True,
+        "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationConstOneWayLiDARVel-v0',
+    entry_point=CrowdNavigationEnv,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 20,
+        "width": 30,
+        "height": 10,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "one_way": True,
+        "velocity_control": True,
+        "lidar_rays": 40,
+        "lidar_vel": True
     }
 )
 
@@ -289,6 +353,21 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationStaticSeqVel-v0',
+    entry_point=CrowdNavigationStaticEnv,
+    mp_wrapper=MPWrapper_CrowdStatic_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+        "sequence_obs": True,
+    }
+)
+
+register(
     id='fancy/Navigation-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation,
@@ -332,6 +411,43 @@ register(
         "width": 10,
         "height": 10,
         "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/NavigationSeqVel-v0',
+    entry_point=NavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "width": 10,
+        "height": 10,
+        "velocity_control": True,
+        "sequence_obs": True,
+    }
+)
+
+register(
+    id='fancy/LShapeNavigation-v0',
+    entry_point=LShapeCrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Navigation_Vel,
+    max_episode_steps=60,
+    kwargs={
+        "width": 10,
+        "height": 10,
+    }
+)
+
+register(
+    id='fancy/LShapeCrowdNavigation-v0',
+    entry_point=LShapeCrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Navigation_Vel,
+    max_episode_steps=80,
+    kwargs={
+        "n_crowd": 4,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
     }
 )
 

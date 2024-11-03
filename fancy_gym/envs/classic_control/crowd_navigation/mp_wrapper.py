@@ -67,15 +67,15 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
                 'max_vel': 3.0,
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'dt': 0.1,
-                'min_dist_crowd': 1.4,  # personal space of the members of the crowd
-                'min_dist_wall': 0.5,  # physical space of agent + 0.1
+                'min_dist_crowd': 0.8001,  # personal space of the members of the crowd
+                'min_dist_wall': 0.41,  # physical space of agent + 0.01
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 6,
+                'goal_scale': 2,
             },
             'basis_generator_kwargs': {
-                'num_basis': 4,
+                'num_basis': 3,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
@@ -89,7 +89,7 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
     @property
     def context_mask(self):
         return np.hstack([
-            [True] * 2 * 2 * (self.env.n_crowd + 1),  # goal-crowd pos, agent-crowd vel
+            [True] * (4 * (self.env.n_crowd + 1) + 4),  # goal-agent-crowd pos vel + walls
         ])
 
 
@@ -118,15 +118,15 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'dt': 0.1,
                 'velocity_control': True,
-                'min_dist_crowd': 1.4,  # personal space of the members of the crowd
-                'min_dist_wall': 0.5,  # physical space of agent + 0.1
+                'min_dist_crowd': 0.8001,  # personal space of the members of the crowd
+                'min_dist_wall': 0.41,  # physical space of agent + 0.01
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 6,
+                'goal_scale': 2,
             },
             'basis_generator_kwargs': {
-                'num_basis': 4,
+                'num_basis': 3,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1

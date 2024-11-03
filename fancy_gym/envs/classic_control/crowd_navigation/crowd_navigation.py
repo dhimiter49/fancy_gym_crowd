@@ -14,6 +14,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     Crowd with linear movement. For each member of the crowd a goal position is sampled.
     Each member of the crowd moves to the goal using basic motion physics based on the
     maximal velocity and maximal acceleration.
+
+    Args:
+        lidar_rays: number of lidar rays, if 0 no lidar is used
+        const_vel: sets the dynamics to using constant velocity
+        polar: polar observation and action space
+        time_frame: time from which to sample and stack the last frames of obs
+        lidar_vel: use a velocity representation for each direction of the lidar
+        n_frames: number of frames to stack for lidar, irrelevant if lidar_vel
     """
     def __init__(
         self,
@@ -24,13 +32,19 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         lidar_rays: int = 0,
+        sequence_obs: bool = False,
         const_vel: bool = False,
+        one_way: bool = False,
         polar: bool = False,
         time_frame: int = 0,
+        lidar_vel: bool = False,
         n_frames: int = 4,
     ):
+        assert time_frame == 0 or not lidar_vel
+        assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
+        self.one_way = one_way
         self.polar = polar
         super().__init__(
             n_crowd,
@@ -42,11 +56,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             velocity_control=velocity_control,
         )
 
+        self.seq_obs = sequence_obs
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
+            self.lidar_vel = lidar_vel
             self.N_RAYS = lidar_rays
-            self._n_frames = n_frames
+            self._n_frames = n_frames if not self.lidar_vel else 2  # one for each pos-vel
             self.use_time_frame = time_frame != 0
             self.time_frame = time_frame
             self.frame_steps = int((time_frame * 10) / (self.dt * 10)) \
@@ -61,7 +77,32 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
         if self.lidar:
-            if self.polar:
+            if self.lidar_vel:
+                if self.polar:
+                    state_bound_min = np.hstack([
+                        [0, -np.pi],
+                        [0, -np.pi],
+                        [0] * self.N_RAYS * 2,
+                    ])
+                    state_bound_max = np.hstack([
+                        [max_dist, np.pi],
+                        [self.AGENT_MAX_VEL, np.pi],
+                        [max_dist] * self.N_RAYS,
+                        [self.CROWD_MAX_VEL] * self.N_RAYS,
+                    ])
+                else:
+                    state_bound_min = np.hstack([
+                        [-self.WIDTH, -self.HEIGHT],
+                        [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                        [0] * self.N_RAYS * 2,
+                    ])
+                    state_bound_max = np.hstack([
+                        [self.WIDTH, self.HEIGHT],
+                        [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                        [max_dist] * self.N_RAYS,
+                        [self.CROWD_MAX_VEL] * self.N_RAYS,
+                    ])
+            elif self.polar:
                 state_bound_min = np.hstack([
                     [0, -np.pi],
                     [0, -np.pi],
@@ -83,15 +124,30 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
                     [max_dist] * self.N_RAYS * self._n_frames,
                 ])
+        elif self.seq_obs:
+            state_bound_min = np.hstack([
+                [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [-self.WIDTH, -self.HEIGHT, -self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] *
+                self.n_crowd,
+            ])
+            state_bound_max = np.hstack([
+                [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [self.WIDTH, self.HEIGHT, self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] *
+                self.n_crowd,
+            ])
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
-                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL] * (self.n_crowd + 1),
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [-self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] * self.n_crowd,
                 [0] * 4,  # four directions
             ])
             state_bound_max = np.hstack([
                 [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
-                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL] * (self.n_crowd + 1),
+                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
                 np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
 
@@ -114,7 +170,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             Rg = self.Tc
         else:
             # Goal distance
-            Rg = -self.Cg * dg ** 2
+            Rg = -self.Cg * np.clip(dg, 1, np.inf) ** 2
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD
@@ -131,8 +187,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
-            self.W_BORDER - abs(self._agent_pos[0]),
-            self.H_BORDER - abs(self._agent_pos[1]),
+            max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
+            max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
         ])
         Rw = np.sum(
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
@@ -180,13 +236,37 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ray_distances = np.minimum(min_intersect_distances, wall_distances)
             self.ray_distances = ray_distances
 
-            if not self.use_time_frame:
+            if not self.use_time_frame and not self.lidar_vel:
                 if not np.any(self._last_frames):
                     self._last_frames[list(range(len(self._last_frames)))] = \
                         np.array(ray_distances)
                 else:
                     self._last_frames[:-1] = self._last_frames[1:]
                     self._last_frames[-1] = ray_distances
+            elif self.lidar_vel:
+                ray_velocities = np.zeros(ray_distances.shape)
+                for i, (member_pos, member_vel) in enumerate(zip(
+                    self._crowd_poss, self._crowd_vels
+                )):
+                    intersection = intersections_mask[i]
+                    if np.any(intersection):
+                        dir_idxs = np.where(intersection == 1)[0]
+                        for dir_idx in dir_idxs:
+                            lidar_vec = np.array([
+                                self.RAY_COS[dir_idx], self.RAY_SIN[dir_idx]
+                            ])
+                            if min_intersect_distances[dir_idx] == np.inf or\
+                               np.dot(lidar_vec, member_pos - self._agent_pos) < 0:
+                                continue  # account for correct direction
+                            vel_along_dir = np.dot(lidar_vec, member_vel)
+                            if ray_velocities[dir_idx] > 0 and\
+                               np.linalg.norm(member_pos - self._agent_pos) >\
+                               ray_distances[dir_idx]:  # keep only the closest one
+                                continue
+                            ray_velocities[dir_idx] = vel_along_dir
+
+                self._last_frames[0] = ray_distances
+                self._last_frames[1] = ray_velocities
             else:
                 if not np.any(self._last_frames):
                     self._last_second_frames[
@@ -207,6 +287,12 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 rel_goal_pos,
                 agent_vel,
                 self._last_frames.flatten()
+            ]).astype(np.float32).flatten()
+        elif self.seq_obs:
+            return np.concatenate([
+                [np.concatenate([self._agent_pos, self._agent_vel])],
+                [np.concatenate([self._goal_pos, self._agent_vel * 0])],
+                np.concatenate([self._crowd_poss, self._crowd_vels], axis=-1)
             ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
@@ -229,19 +315,19 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         if self.const_vel:
             for i, c in enumerate(crowd_poss):
-                if c[0] > 0:
+                if c[0] > 0 or self.one_way:
                     idx = np.random.choice([0, 1])
                     if idx == 0:
                         pol_vel = np.random.uniform(
-                            [0.5, np.pi * 5 / 6], [self.AGENT_MAX_VEL, np.pi]
+                            [0.5, np.pi * 5 / 6], [self.CROWD_MAX_VEL, np.pi]
                         )
                     else:
                         pol_vel = np.random.uniform(
-                            [0.5, -np.pi], [self.AGENT_MAX_VEL, -np.pi * 5 / 6]
+                            [0.5, -np.pi], [self.CROWD_MAX_VEL, -np.pi * 5 / 6]
                         )
                 else:
                     pol_vel = np.random.uniform(
-                        [0.5, -np.pi * 1 / 6], [self.AGENT_MAX_VEL, np.pi * 1 / 6]
+                        [0.5, -np.pi * 1 / 6], [self.CROWD_MAX_VEL, np.pi * 1 / 6]
                     )
                 next_crowd_vels[i] = self.p2c(pol_vel)
         else:
@@ -283,16 +369,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         for i, goal in enumerate(crowd_goal_pos):
             dist = np.linalg.norm(goal - crowd_poss[i])
             if dist > self.MAX_STOPPING_DIST * 2:
-                t_max_vel = (dist - self.MAX_STOPPING_DIST * 2) / self.AGENT_MAX_VEL
+                t_max_vel = (dist - self.MAX_STOPPING_DIST * 2) / self.CROWD_MAX_VEL
                 acc_vels = np.arange(
-                    max_step_acc, self.AGENT_MAX_VEL + 1e-8, max_step_acc
+                    max_step_acc, self.CROWD_MAX_VEL + 1e-8, max_step_acc
                 )
                 dec_vels = np.arange(
-                    self.AGENT_MAX_VEL - max_step_acc, 0 - 1e-8, -max_step_acc
+                    self.CROWD_MAX_VEL - max_step_acc, 0 - 1e-8, -max_step_acc
                 )
                 vels = np.concatenate([
                     acc_vels,
-                    np.full(int(t_max_vel / self._dt), self.AGENT_MAX_VEL),
+                    np.full(int(t_max_vel / self._dt), self.CROWD_MAX_VEL),
                     dec_vels
                 ])
             else:

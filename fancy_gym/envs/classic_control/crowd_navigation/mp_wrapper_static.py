@@ -72,7 +72,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 6,
+                'goal_scale': 4,
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
@@ -123,7 +123,7 @@ class MPWrapper_CrowdStatic_Vel(MPWrapper_CrowdStatic):
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 6,
+                'goal_scale': 4,
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
