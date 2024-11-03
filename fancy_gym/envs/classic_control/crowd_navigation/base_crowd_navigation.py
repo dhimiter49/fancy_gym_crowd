@@ -132,8 +132,10 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
-        self.current_trajectory = np.zeros((40, 2))
-        self.current_trajectory_vel = np.zeros((40, 2))
+        self.traj_idx = 0
+        self.current_trajectory = np.zeros((100, 2))
+        self.exec_traj = []
+        self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.n_crowd, 4))
 
 
@@ -143,15 +145,17 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         positions -= positions[0]
         positions += self._agent_pos + self._agent_vel * self._dt
-        self.current_trajectory = positions.copy()
+        self.current_trajectory[self.traj_idx * 10 :(self.traj_idx + 1) * 10] =\
+            positions.copy()
+        self.traj_idx += 1
 
-        velocities[0] += self._agent_vel * self._dt
-        positions = positions * 0
-        distances = velocities * self._dt
-        positions[0] = self._agent_pos
-        positions += distances
-        positions = np.cumsum(positions, 0)
-        self.current_trajectory_vel = positions.copy()
+        # velocities[0] += self._agent_vel * self._dt
+        # positions = positions * 0
+        # distances = velocities * self._dt
+        # positions[0] = self._agent_pos
+        # positions += distances
+        # positions = np.cumsum(positions, 0)
+        # self.current_trajectory_vel = positions.copy()
 
 
     def c2p(self, cart):
@@ -222,6 +226,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._crowd_vels
         ) = self._start_env_vars()
         self._steps = 0
+        self.traj_idx = 0
+        self.exec_traj = []
         self._goal_reached = False
         self._is_collided = False
         self._current_reward = 0

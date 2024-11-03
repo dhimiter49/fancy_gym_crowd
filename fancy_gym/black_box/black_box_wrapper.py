@@ -173,6 +173,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             return self.observation(obs), trajectory_return, terminated, truncated, infos
 
         self.plan_steps += 1
+        self.env.unwrapped.set_trajectory(position.copy(), velocity.copy())
         for t, (pos, vel) in enumerate(zip(position, velocity)):
             if not isinstance(self.tracking_controller, MPCController):
                 step_action = self.tracking_controller.get_action(
