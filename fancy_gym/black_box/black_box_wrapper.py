@@ -130,8 +130,6 @@ class BlackBoxWrapper(gym.ObservationWrapper):
 
         if condition is not None:
             self.condition_trajectory([clipped_params, action[1]], condition)
-        # else:
-        #     self.traj_gen.set_params(clipped_params)
         position = get_numpy(self.traj_gen.get_traj_pos())
         velocity = get_numpy(self.traj_gen.get_traj_vel())
 
