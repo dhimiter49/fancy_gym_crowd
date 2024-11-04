@@ -94,7 +94,17 @@ class BlackBoxWrapper(gym.ObservationWrapper):
         # cast dtype because metaworld returns incorrect that throws gym error
         return observation.astype(self.observation_space.dtype)
 
-    def get_trajectory(self, action: np.ndarray) -> Tuple:
+    def condition_trajectory(self, action: np.ndarray, condition: np.ndarray) -> None:
+        time_step = np.linalg.norm(
+            (condition[:len(condition) // 2] - self.env.unwrapped.current_pos)
+        ) / self.env.AGENT_MAX_VEL / self.dt
+        time_step = min(time_step, self.duration / self.dt)
+        # nself.env.unwrapped.set_stopping_point(int(time_step))
+        self.traj_gen.set_params(get_numpy(self.traj_gen.get_condition_mean_std(
+            int(time_step), condition, action
+        )[0]))
+
+    def get_trajectory(self, action: np.ndarray, condition: np.ndarray = None) -> Tuple:
         duration = self.duration
         if self.learn_sub_trajectories:
             duration = None
@@ -103,7 +113,10 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             self.traj_gen.reset()
 
         clipped_params = np.clip(
-            action, self.traj_gen_action_space.low, self.traj_gen_action_space.high)
+            action[0] if condition is not None else action,
+            self.traj_gen_action_space.low,
+            self.traj_gen_action_space.high
+        )
         self.traj_gen.set_params(clipped_params)
         init_time = np.array(
             0 if not self.do_replanning else self.current_traj_steps * self.dt)
@@ -115,6 +128,10 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             init_time, condition_pos, condition_vel)
         self.traj_gen.set_duration(duration, self.dt)
 
+        if condition is not None:
+            self.condition_trajectory([clipped_params, action[1]], condition)
+        # else:
+        #     self.traj_gen.set_params(clipped_params)
         position = get_numpy(self.traj_gen.get_traj_pos())
         velocity = get_numpy(self.traj_gen.get_traj_vel())
 
@@ -151,7 +168,12 @@ class BlackBoxWrapper(gym.ObservationWrapper):
     def step(self, action: np.ndarray):
         """ This function generates a trajectory based on a MP and then does the usual loop over reset and step"""
 
-        position, velocity = self.get_trajectory(action)
+        if isinstance(action, tuple):
+            condition = np.concatenate([self.unwrapped.goal_pos, np.zeros(2)])
+            position, velocity = self.get_trajectory(action, condition)
+        else:
+            position, velocity = self.get_trajectory(action)
+        action = action[0] if isinstance(action, tuple) else action
         position, velocity = self.env.set_episode_arguments(action, position, velocity)
         traj_is_valid, position, velocity = self.env.preprocessing_and_validity_callback(action, position, velocity,
                                                                                          self.tau_bound, self.delay_bound)
