@@ -277,10 +277,10 @@ class BaseCrowdNavigationEnv(gym.Env):
                 agent_pos = np.zeros(2)
         else:
             agent_pos = np.random.uniform(
-                [-self.W_BORDER + self.PHYSICAL_SPACE,
-                 -self.H_BORDER + self.PHYSICAL_SPACE],
-                [self.W_BORDER - self.PHYSICAL_SPACE,
-                 self.H_BORDER - self.PHYSICAL_SPACE]
+                [-self.W_BORDER + self.PHYSICAL_SPACE * 1.2,
+                 -self.H_BORDER + self.PHYSICAL_SPACE * 1.2],
+                [self.W_BORDER - self.PHYSICAL_SPACE * 1.2,
+                 self.H_BORDER - self.PHYSICAL_SPACE * 1.2]
             )
         agent_vel = np.zeros(2)
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel and\
