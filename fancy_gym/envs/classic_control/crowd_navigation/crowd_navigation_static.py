@@ -7,6 +7,9 @@ from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
 
 
+NUM_COL = 0
+
+
 class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
     """
     No real crowd, just obstacles.
@@ -394,6 +397,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         self.update_state(action)
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
+        if self._is_collided:
+            global NUM_COL
+            NUM_COL += 1
+            print(NUM_COL)
         self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
