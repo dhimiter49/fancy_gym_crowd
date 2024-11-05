@@ -192,6 +192,10 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     @property
+    def goal_pos(self):
+        return self._goal_pos.copy()
+
+    @property
     def current_pos(self):
         return self._agent_pos.copy()
 
