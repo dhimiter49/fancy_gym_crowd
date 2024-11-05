@@ -78,15 +78,15 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         else:
             # Goal distance
             dg = np.linalg.norm(self._agent_pos - self._goal_pos)
-            Rg = -self.Cg * dg ** 2
+            Rg = -self.Cg * np.clip(dg, 1, np.inf) ** 2
 
         if self._is_collided:
             Rw = self.COLLISION_REWARD
         else:
             # Walls, only one of the walls is closer (irrelevant which)
             dist_walls = np.array([
-                self.W_BORDER - abs(self._agent_pos[0]),
-                self.H_BORDER - abs(self._agent_pos[1]),
+                max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
+                max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
             ])
             Rw = np.sum(
                 (1 - np.exp(self.Cc / dist_walls)) *
