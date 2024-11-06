@@ -227,10 +227,14 @@ class BaseCrowdNavigationEnv(gym.Env):
         dist = np.linalg.norm(self._goal_pos - self._agent_pos)
         agent_vel = np.linalg.norm(self._agent_vel)
         time_to_max_vel = (self.AGENT_MAX_VEL - agent_vel) / self.MAX_ACC
+        time_to_stop = agent_vel / self.MAX_ACC
         dist_to_max_acc = agent_vel * time_to_max_vel +\
             0.5 * self.MAX_ACC * time_to_max_vel ** 2
+        dist_to_stop = agent_vel * time_to_stop - 0.5 * self.MAX_ACC * time_to_stop ** 2
 
-        if dist_to_max_acc + self.MAX_STOPPING_DIST > dist:
+        if dist_to_stop >= dist:
+            return time_to_stop
+        elif dist_to_max_acc + self.MAX_STOPPING_DIST > dist:
             # dx = t_acc * v0 + 0.5 * a * t_acc^2 + a * t_acc * t_dec - 0.5 * a * t_dec^2
             # 0 = v0 + a * t_acc - a * t_dec
             # replace in eq 1 t_dec with t_acc + v0 / a
