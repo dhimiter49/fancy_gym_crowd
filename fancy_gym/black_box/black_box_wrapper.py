@@ -95,11 +95,9 @@ class BlackBoxWrapper(gym.ObservationWrapper):
         return observation.astype(self.observation_space.dtype)
 
     def condition_trajectory(self, action: np.ndarray, condition: np.ndarray) -> None:
-        time_step = np.linalg.norm(
-            (condition[:len(condition) // 2] - self.env.unwrapped.current_pos)
-        ) / self.env.AGENT_MAX_VEL / self.dt
-        time_step = min(time_step, self.duration / self.dt)
-        # nself.env.unwrapped.set_stopping_point(int(time_step))
+        time = self.env.unwrapped.optimal_time
+        time_step = min(int(-(-time // self.dt)), self.duration / self.dt - 1)
+        # self.env.unwrapped.set_stopping_point(int(time_step))
         self.traj_gen.set_params(get_numpy(self.traj_gen.get_condition_mean_std(
             int(time_step), condition, action
         )[0]))
@@ -130,8 +128,6 @@ class BlackBoxWrapper(gym.ObservationWrapper):
 
         if condition is not None:
             self.condition_trajectory([clipped_params, action[1]], condition)
-        # else:
-        #     self.traj_gen.set_params(clipped_params)
         position = get_numpy(self.traj_gen.get_traj_pos())
         velocity = get_numpy(self.traj_gen.get_traj_vel())
 
