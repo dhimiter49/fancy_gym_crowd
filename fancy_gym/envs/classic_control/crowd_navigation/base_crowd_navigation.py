@@ -244,8 +244,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             t_acc = (self.AGENT_MAX_VEL - agent_vel) / self.MAX_ACC
             t_dec = self.AGENT_MAX_VEL / self.MAX_ACC
             t_const = (
-                dist - t_acc * agent_vel + 0.5 * self.MAX_ACC * t_acc ** 2 -
-                self.AGENT_MAX_VEL * t_dec - 0.5 * self.MAX_ACC * t_dec ** 2
+                dist - t_acc * agent_vel - 0.5 * self.MAX_ACC * t_acc ** 2 -
+                self.AGENT_MAX_VEL * t_dec + 0.5 * self.MAX_ACC * t_dec ** 2
             ) / self.AGENT_MAX_VEL
             return t_acc + t_dec + t_const
 
