@@ -198,6 +198,7 @@ class BaseCrowdNavigationEnv(gym.Env):
     def goal_pos(self):
         return self._goal_pos.copy()
 
+
     @property
     def current_pos(self):
         return self._agent_pos.copy()
@@ -219,6 +220,45 @@ class BaseCrowdNavigationEnv(gym.Env):
             [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
             [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
         ]).flatten()
+
+
+    @property
+    def optimal_time(self):
+        dist = np.linalg.norm(self._goal_pos - self._agent_pos)
+        agent_vel = np.linalg.norm(self._agent_vel)
+        time_to_max_vel = (self.AGENT_MAX_VEL - agent_vel) / self.MAX_ACC
+        time_to_stop = agent_vel / self.MAX_ACC
+        dist_to_max_acc = agent_vel * time_to_max_vel +\
+            0.5 * self.MAX_ACC * time_to_max_vel ** 2
+        dist_to_stop = agent_vel * time_to_stop - 0.5 * self.MAX_ACC * time_to_stop ** 2
+
+        if dist_to_stop >= dist:
+            return time_to_stop
+        elif dist_to_max_acc + self.MAX_STOPPING_DIST > dist:
+            # dx = t_acc * v0 + 0.5 * a * t_acc^2 + a * t_acc * t_dec - 0.5 * a * t_dec^2
+            # 0 = v0 + a * t_acc - a * t_dec
+            # replace in eq 1 t_dec with t_acc + v0 / a
+            a = self.MAX_ACC
+            b = 2 * agent_vel
+            c = 0.5 * agent_vel ** 2 / self.MAX_ACC - dist
+            if a == 0:
+                t_acc = - c / b
+            else:
+                disc = (b ** 2) - (4 * a * c)
+                t_acc = (-b + disc ** 0.5) / (2 * a)
+            t_dec = t_acc + agent_vel / self.MAX_ACC
+            return t_acc + t_dec
+        else:
+            # dx = t_acc * v0 + 0.5 * a * t_acc^2 +
+            #      v_max * t_const +
+            #      v_max * t_dec - 0.5 * a * t_dec^2
+            t_acc = (self.AGENT_MAX_VEL - agent_vel) / self.MAX_ACC
+            t_dec = self.AGENT_MAX_VEL / self.MAX_ACC
+            t_const = (
+                dist - t_acc * agent_vel - 0.5 * self.MAX_ACC * t_acc ** 2 -
+                self.AGENT_MAX_VEL * t_dec + 0.5 * self.MAX_ACC * t_dec ** 2
+            ) / self.AGENT_MAX_VEL
+            return t_acc + t_dec + t_const
 
 
     def reset(
