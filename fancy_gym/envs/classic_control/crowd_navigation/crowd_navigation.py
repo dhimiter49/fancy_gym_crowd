@@ -508,6 +508,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self.current_trajectory[:, 1],
                 "y",
             )
+            self.pred_trajectory_line, = ax.plot(
+                self.pred_current_trajectory[:, 0],
+                self.pred_current_trajectory[:, 1],
+                "m",
+            )
             self.trajectory_line_vel, = ax.plot(
                 self.current_trajectory_vel[:, 0],
                 self.current_trajectory_vel[:, 1],
@@ -573,6 +578,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.trajectory_line.set_data(
             self.current_trajectory[:self.traj_idx * 10, 0],
             self.current_trajectory[:self.traj_idx * 10, 1]
+        )
+        self.pred_trajectory_line.set_data(
+            self.pred_current_trajectory[:, 0],
+            self.pred_current_trajectory[:, 1]
         )
         self.trajectory_line_exec.set_data(
             np.array(self.exec_traj)[:, 0],
