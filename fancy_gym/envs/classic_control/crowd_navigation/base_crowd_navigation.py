@@ -250,7 +250,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             return t_acc + t_dec
         else:
             # dx = t_acc * v0 + 0.5 * a * t_acc^2 +
-            #      v_max * t_const
+            #      v_max * t_const +
             #      v_max * t_dec - 0.5 * a * t_dec^2
             t_acc = (self.AGENT_MAX_VEL - agent_vel) / self.MAX_ACC
             t_dec = self.AGENT_MAX_VEL / self.MAX_ACC
