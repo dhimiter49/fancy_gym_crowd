@@ -139,17 +139,19 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
         self.current_trajectory_vel = np.zeros((100, 2))
+        self._traj_index = 0
         self.separating_planes = np.zeros((self.n_crowd, 4))
 
 
     def set_trajectory(self, positions, velocities=None):
-        positions = positions[:10]
-        velocities = velocities[:10]
+        self._traj_index = 0
+        positions = positions[:]
+        # velocities = velocities[:10]
 
         positions -= positions[0]
         positions += self._agent_pos + self._agent_vel * self._dt
-        self.current_trajectory[self.traj_idx * 10 :(self.traj_idx + 1) * 10] =\
-            positions.copy()
+        self.current_trajectory[self.traj_idx * 10:(self.traj_idx + 1) * 10] =\
+            positions[:10].copy()
         self.traj_idx += 1
 
         # velocities[0] += self._agent_vel * self._dt
