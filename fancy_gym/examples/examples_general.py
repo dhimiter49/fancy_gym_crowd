@@ -24,7 +24,7 @@ def plot_rewards(rewards: list):
     plt.tight_layout()
     plt.show()
 
-def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, manual_control=False, plot=False):
+def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, manual_control=False, plot=False, condition=False):
     """
     Example for running any env in the step based setting.
     This also includes DMC environments when leveraging our custom make_env function.
@@ -53,6 +53,9 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, 
         else:
             action = env.action_space.sample()
 
+        if condition:
+            import torch
+            action = (torch.from_numpy(action), torch.diag(torch.ones(action.shape)) * 0.1)
         obs, reward, terminated, truncated, info = env.step(action)
         rewards += reward
         if render:
