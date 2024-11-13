@@ -638,6 +638,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
+        self._traj_index += 1
         terminated = self._terminate(info)
         truncated = False
 
