@@ -42,8 +42,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.SOCIAL_SPACE = 1.9
         self.MAX_ACC = 1.5
         self.MAX_STOPPING_TIME = self.AGENT_MAX_VEL / self.MAX_ACC
+        self.MAX_STOPPING_TIME_CROWD = self.CROWD_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\
             0.5 * self.MAX_ACC * self.MAX_STOPPING_TIME ** 2
+        self.MAX_STOPPING_DIST_CROWD = self.CROWD_MAX_VEL *\
+            self.MAX_STOPPING_TIME_CROWD - 0.5 * self.MAX_ACC *\
+            self.MAX_STOPPING_TIME_CROWD ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
         if type(self).__name__ == "CrowdNavigationEnv":
             self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 1.1
