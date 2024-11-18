@@ -14,6 +14,7 @@ from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavig
 from .classic_control.crowd_navigation.l_shape_env import LShapeCrowdNavigationEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
 from .classic_control.crowd_navigation.crowd_navigation_orca import CrowdNavigationORCAEnv
+from .classic_control.crowd_navigation.crowd_navigation_sfm import CrowdNavigationSFMEnv
 from .classic_control.crowd_navigation import (
     MPWrapper_Crowd,
     MPWrapper_Navigation,
@@ -87,6 +88,33 @@ register(
 register(
     id='fancy/CrowdNavigationORCAVel-v0',
     entry_point=CrowdNavigationORCAEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 18,
+        "height": 18,
+        "velocity_control": True,
+        "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSFM-v0',
+    entry_point=CrowdNavigationSFMEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSFMVel-v0',
+    entry_point=CrowdNavigationSFMEnv,
     mp_wrapper=MPWrapper_Crowd,
     max_episode_steps=100,
     kwargs={

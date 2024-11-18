@@ -12,9 +12,7 @@ from fancy_gym.envs.classic_control.crowd_navigation.crowd_navigation\
 
 class CrowdNavigationORCAEnv(CrowdNavigationEnv):
     """
-    Crowd with linear movement. For each member of the crowd a goal position is sampled.
-    Each member of the crowd moves to the goal using basic motion physics based on the
-    maximal velocity and maximal acceleration.
+    Crowd with ORCA policy.
 
     Args:
         lidar_rays: number of lidar rays, if 0 no lidar is used
@@ -159,16 +157,14 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         over = diff_speed > self.MAX_ACC * self._dt
         under = diff_speed < -self.MAX_ACC * self._dt
-        crowd_pref_vels[over] = self._crowd_vels[over] + np.einsum(
-            "ij,i->ij",
-            diff_vel[over],
-            1 / diff_speed[over]
-        ) * self.MAX_ACC * self._dt
-        crowd_pref_vels[under] = self._crowd_vels[under] - np.einsum(
-            "ij,i->ij",
-            diff_vel[under],
-            1 / diff_speed[under]
-        ) * self.MAX_ACC * self._dt
+        if np.any(over):
+            crowd_pref_vels[over] = self._crowd_vels[over] + np.einsum(
+                "ij,i->ij", diff_vel[over], 1 / diff_speed[over]
+            ) * self.MAX_ACC * self._dt
+        if np.any(under):
+            crowd_pref_vels[under] = self._crowd_vels[under] - np.einsum(
+                "ij,i->ij", diff_vel[under], 1 / diff_speed[under]
+            ) * self.MAX_ACC * self._dt
         crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
 
         over_vel = crowd_pref_vels_speed > self.CROWD_MAX_VEL
