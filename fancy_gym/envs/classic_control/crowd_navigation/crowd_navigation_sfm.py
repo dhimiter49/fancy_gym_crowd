@@ -54,9 +54,9 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             lidar_vel=lidar_vel,
             n_frames=n_frames,
         )
-        self.inv_relocation_time = 1
-        self.inter_strength = 2
-        self.inter_range = 1
+        self.inv_relocation_time = 2
+        self.inter_strength = 0.5
+        self.inter_range = 0.1
 
 
     def _start_env_vars(self):
@@ -96,20 +96,14 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         Agent doesn't stop moving after it reaches the goal,
         because once it stops moving, the reciprocal rule is broken
         """
-        rel_goal = self._goal_pos - self._agent_pos
-        rel_crowd_goal = self._crowd_goal_poss - self._crowd_poss
+        crowd_pref_dir = self._crowd_goal_poss - self._crowd_poss
+        crowd_pref_dist = np.linalg.norm(crowd_pref_dir, axis=-1)
 
-        dist_to_goal = np.linalg.norm(rel_goal)
-        dist_crowd_to_goal = np.linalg.norm(rel_crowd_goal, axis=-1)
-
-        pref_vel = (rel_goal / dist_to_goal) * self.AGENT_MAX_VEL
-        pref_crowd_vel = np.einsum(
-            "ij,i->ij", rel_crowd_goal, 1 / dist_crowd_to_goal
+        crowd_pref_vels = np.einsum(
+            "ij,i->ij", crowd_pref_dir, 1 / (crowd_pref_dist + 1e-8)
         ) * self.CROWD_MAX_VEL
-        pref_crowd_vel[dist_crowd_to_goal < self.PHYSICAL_SPACE] = np.zeros(2)
-
-        pref_vel = self.inv_relocation_time * (pref_vel - self._agent_vel)
-        pref_crowd_vel = self.inv_relocation_time * (pref_crowd_vel - self._crowd_vels)
+        crowd_pref_vels[crowd_pref_dist < self.PHYSICAL_SPACE] = 0
+        crowd_pref_vels = self.inv_relocation_time * (crowd_pref_vels - self._crowd_vels)
 
         # Push force(s) from other agents
         interact_crowd_others = []
@@ -132,7 +126,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             ))
 
         # Sum of push & pull forces
-        aggregate_vel = (pref_crowd_vel + np.array(interact_crowd_others)) * self._dt
+        aggregate_vel = (crowd_pref_vels + np.array(interact_crowd_others)) * self._dt
 
         # clip the speed so that sqrt(vx^2 + vy^2) <= v_pref
         actions = self._crowd_vels + aggregate_vel
@@ -140,7 +134,11 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
         over = act_norm > self.AGENT_MAX_VEL
         if np.any(over):
-            actions[over] = actions[over] / act_norm[over] * self.AGENT_MAX_VEL
+            actions[over] = np.einsum(
+                "ij,i->ij",
+                actions[over],
+                1 / act_norm[over] * self.AGENT_MAX_VEL
+            )
 
         self._crowd_vels = actions
         self._crowd_poss += self._crowd_vels * self._dt
