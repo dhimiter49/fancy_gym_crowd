@@ -55,8 +55,8 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             n_frames=n_frames,
         )
         self.inv_relocation_time = 10
-        self.inter_strength = 0.5
-        self.inter_range = 0.1
+        self.inter_strength = 0.05
+        self.inter_range = 0.15
 
 
     def _start_env_vars(self):
@@ -153,7 +153,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
                 np.einsum(
                     "i,ij->ij",
                     self.inter_strength * np.exp(
-                        (2 * self.PHYSICAL_SPACE - dist_member_others) / self.inter_range
+                        (4 * self.PHYSICAL_SPACE - dist_member_others) / self.inter_range
                     ),
                     np.einsum("ij,i->ij", rel_member_others, 1 / dist_member_others)
                 ),
