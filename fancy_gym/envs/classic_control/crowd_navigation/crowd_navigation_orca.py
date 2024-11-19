@@ -152,6 +152,19 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE
         ] = 0
         crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
+
+        # update crowd goals
+        crowd_goal_complete = np.logical_and(
+            crowd_pref_vels_speed < self.PHYSICAL_SPACE,
+            np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
+        )
+        if len(crowd_goal_complete) > 0:
+            self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
+                self._crowd_poss[crowd_goal_complete]
+            )
+            crowd_pref_vels = self._crowd_goal_poss - self._crowd_poss
+            crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
+
         diff_vel = crowd_pref_vels - self._crowd_vels
         diff_speed = np.linalg.norm(diff_vel, axis=-1)
 

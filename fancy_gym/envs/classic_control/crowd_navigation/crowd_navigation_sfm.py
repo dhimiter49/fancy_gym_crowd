@@ -54,7 +54,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             lidar_vel=lidar_vel,
             n_frames=n_frames,
         )
-        self.inv_relocation_time = 2
+        self.inv_relocation_time = 10
         self.inter_strength = 0.5
         self.inter_range = 0.1
 
@@ -98,11 +98,46 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         """
         crowd_pref_dir = self._crowd_goal_poss - self._crowd_poss
         crowd_pref_dist = np.linalg.norm(crowd_pref_dir, axis=-1)
+        crowd_goal_complete = np.logical_and(
+            crowd_pref_dist < self.PHYSICAL_SPACE,
+            np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
+        )
+        if len(crowd_goal_complete) > 0:
+            self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
+                self._crowd_poss[crowd_goal_complete]
+            )
+            crowd_pref_dir = self._crowd_goal_poss - self._crowd_poss
+            crowd_pref_dist = np.linalg.norm(crowd_pref_dir, axis=-1)
 
-        crowd_pref_vels = np.einsum(
-            "ij,i->ij", crowd_pref_dir, 1 / (crowd_pref_dist + 1e-8)
+        crowd_pref_vels = crowd_pref_dir.copy()
+        crowd_pref_vels[
+            np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE
+        ] = 0
+        crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
+        diff_vel = crowd_pref_vels - self._crowd_vels
+        diff_speed = np.linalg.norm(diff_vel, axis=-1)
+
+        over = diff_speed > self.MAX_ACC * self._dt
+        under = diff_speed < -self.MAX_ACC * self._dt
+        if np.any(over):
+            crowd_pref_vels[over] = self._crowd_vels[over] + np.einsum(
+                "ij,i->ij", diff_vel[over], 1 / diff_speed[over]
+            ) * self.MAX_ACC * self._dt
+        if np.any(under):
+            crowd_pref_vels[under] = self._crowd_vels[under] - np.einsum(
+                "ij,i->ij", diff_vel[under], 1 / diff_speed[under]
+            ) * self.MAX_ACC * self._dt
+        crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
+
+        over_vel = crowd_pref_vels_speed > self.CROWD_MAX_VEL
+        crowd_pref_vels[over_vel] = np.einsum(
+            "ij,i->ij", crowd_pref_vels[over_vel], 1 / crowd_pref_vels_speed[over_vel]
         ) * self.CROWD_MAX_VEL
-        crowd_pref_vels[crowd_pref_dist < self.PHYSICAL_SPACE] = 0
+
+        # crowd_pref_vels = np.einsum(
+        #     "ij,i->ij", crowd_pref_dir, 1 / (crowd_pref_dist + 1e-8)
+        # ) * self.CROWD_MAX_VEL
+        # crowd_pref_vels[crowd_pref_dist < self.PHYSICAL_SPACE] = 0
         crowd_pref_vels = self.inv_relocation_time * (crowd_pref_vels - self._crowd_vels)
 
         # Push force(s) from other agents
