@@ -136,8 +136,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
-        self.current_trajectory = np.zeros((40, 2))
-        self.current_trajectory_vel = np.zeros((40, 2))
+        self.current_trajectory = np.zeros((100, 2))
+        self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.n_crowd, 4))
 
 
