@@ -584,10 +584,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.pred_current_trajectory[:, 0],
             self.pred_current_trajectory[:, 1]
         )
-        self.trajectory_line_exec.set_data(
-            np.array(self.exec_traj)[:, 0],
-            np.array(self.exec_traj)[:, 1]
-        )
+        if len(self.exec_traj) > 0:
+            self.trajectory_line_exec.set_data(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1]
+            )
         self.trajectory_line_vel.set_data(
             self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
         )
