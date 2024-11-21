@@ -180,7 +180,7 @@ def register(
         mp_wrapper = getattr(mod, attr_name)
     if register_step_based:
         gym_register(id=id, entry_point=entry_point, **kwargs)
-    upgrade(id, mp_wrapper, add_mp_types, mp_config_override)
+    upgrade(id, mp_wrapper, add_mp_types, mp_config_override=mp_config_override)
 
 
 def upgrade(

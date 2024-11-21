@@ -46,6 +46,10 @@ from .mujoco.table_tennis.mp_wrapper import TT_MPWrapper_Replan as MPWrapper_Tab
 from .mujoco.table_tennis.mp_wrapper import TTRndRobot_MPWrapper as MPWrapper_TableTennis_Rnd
 from .mujoco.table_tennis.mp_wrapper import TTVelObs_MPWrapper as MPWrapper_TableTennis_VelObs
 from .mujoco.table_tennis.mp_wrapper import TTVelObs_MPWrapper_Replan as MPWrapper_TableTennis_VelObs_Replan
+from fancy_gym.envs.classic_control.crowd_navigation.dynamics import (
+    gen_mat_vc_pos_vel,
+    gen_mat_vc_acc_vel
+)
 
 # Classic Control
 # Simple Reacher
@@ -154,6 +158,45 @@ register(
         "velocity_control": True,
     }
 )
+
+for dt in [0.1, 0.2, 0.3, 0.4, 0.5]:
+    steps = int(-(-10 // dt))
+    traj = int(-(-2.01 // dt))  # assuming you need 2 seconds to stop
+    register(
+        id=f'fancy/CrowdNavigationConstVel{dt}-v0',
+        entry_point=CrowdNavigationEnv,
+        mp_wrapper=MPWrapper_Crowd_Vel,
+        max_episode_steps=steps,
+        mp_config_override={
+            'ProDMP': {
+                'controller_kwargs': {
+                    'controller_type': 'mpc',
+                    'mat_vc_pos_vel': gen_mat_vc_pos_vel(traj, dt),
+                    'mat_vc_acc_vel': gen_mat_vc_acc_vel(traj, dt),
+                    'max_acc': 1.5,
+                    'max_vel': 3.0,
+                    'horizon': traj,
+                    'dt': dt,
+                    'velocity_control': True,
+                    'min_dist_crowd': 0.8001,  # 2 * personal space
+                    'min_dist_wall': 0.41,  # physical space of agent + 0.01
+                },
+                'black_box_kwargs': {
+                    'replanning_schedule':
+                        lambda pos, vel, obs, action, t: t % int(1 // dt) == 0,
+                }
+            }
+        },
+        kwargs={
+            "dt": dt,
+            "n_crowd": 6,
+            "width": 20,
+            "height": 8,
+            "interceptor_percentage": 2,
+            "const_vel": True,
+            "velocity_control": True,
+        }
+    )
 
 register(
     id='fancy/CrowdNavigationConstSeqVel-v0',
