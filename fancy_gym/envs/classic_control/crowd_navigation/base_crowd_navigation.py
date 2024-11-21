@@ -33,6 +33,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         super().__init__()
 
         self._dt = 0.1
+        self._traj_len = int(1 // self._dt)  # trajectory for ProDMP is usually 1 second
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -151,12 +152,13 @@ class BaseCrowdNavigationEnv(gym.Env):
     def set_trajectory(self, positions, velocities=None):
         self._traj_index = 0
         positions = positions[:]
-        # velocities = velocities[:10]
+        # velocities = velocities[:self._traj_len]
 
         positions -= positions[0]
         positions += self._agent_pos + self._agent_vel * self._dt
-        self.current_trajectory[self.traj_idx * 10:(self.traj_idx + 1) * 10] =\
-            positions[:10].copy()
+        self.current_trajectory[
+            self.traj_idx * self._traj_len:(self.traj_idx + 1) * self._traj_len
+        ] = positions[:self._traj_len].copy()
         self.pred_current_trajectory = positions.copy()
         self.traj_idx += 1
 
