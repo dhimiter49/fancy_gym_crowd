@@ -26,10 +26,11 @@ class BaseCrowdNavigationEnv(gym.Env):
         allow_collision: bool = False,
         discrete_action: bool = False,
         velocity_control: bool = False,
+        dt: float = 0.1,
     ):
         super().__init__()
 
-        self._dt = 0.1
+        self._dt = dt
 
         self.WIDTH = width
         self.HEIGHT = height

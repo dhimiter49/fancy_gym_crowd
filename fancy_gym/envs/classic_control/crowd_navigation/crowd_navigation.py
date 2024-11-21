@@ -26,6 +26,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     def __init__(
         self,
         n_crowd: int,
+        dt: float = 0.1,
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
@@ -54,6 +55,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             allow_collision=False,
             discrete_action=discrete_action,
             velocity_control=velocity_control,
+            dt=dt,
         )
 
         self.seq_obs = sequence_obs
