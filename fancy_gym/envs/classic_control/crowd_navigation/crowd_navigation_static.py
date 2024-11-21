@@ -298,10 +298,20 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             )
 
             # Trajectory
+            self.trajectory_line_exec, = ax.plot(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1],
+                "k",
+            )
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],
                 self.current_trajectory[:, 1],
-                "k",
+                "y",
+            )
+            self.pred_trajectory_line, = ax.plot(
+                self.pred_current_trajectory[:, 0],
+                self.pred_current_trajectory[:, 1],
+                "m",
             )
             self.trajectory_line_vel, = ax.plot(
                 self.current_trajectory_vel[:, 0],
@@ -368,7 +378,16 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                     dx=distance * np.cos(angle), dy=distance * np.sin(angle)
                 )
         self.trajectory_line.set_data(
-            self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+            self.current_trajectory[:self.traj_idx * 10, 0],
+            self.current_trajectory[:self.traj_idx * 10, 1]
+        )
+        self.pred_trajectory_line.set_data(
+            self.pred_current_trajectory[:, 0],
+            self.pred_current_trajectory[:, 1]
+        )
+        self.trajectory_line_exec.set_data(
+            np.array(self.exec_traj)[:, 0],
+            np.array(self.exec_traj)[:, 1]
         )
         self.trajectory_line_vel.set_data(
             self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
@@ -390,6 +409,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
+        self.exec_traj.append(self._agent_pos)
+
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         if self._is_collided:
