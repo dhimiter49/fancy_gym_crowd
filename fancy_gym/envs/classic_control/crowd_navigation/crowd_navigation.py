@@ -498,7 +498,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
 
             # Goal
-            self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
+            self.goal_point, = ax.plot(
+                self._goal_pos[0], self._goal_pos[1], 'gx', markersize=10
+            )
 
             # Trajectory
             self.trajectory_line_exec, = ax.plot(
