@@ -128,13 +128,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 ])
         elif self.seq_obs:
             state_bound_min = np.hstack([
-                [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                [-self.W_BORDER, -self.H_BORDER, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
                 [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
                 [-self.WIDTH, -self.HEIGHT, -self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] *
                 self.n_crowd,
             ])
             state_bound_max = np.hstack([
-                [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                [self.W_BORDER, self.H_BORDER, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
                 [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
                 [self.WIDTH, self.HEIGHT, self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] *
                 self.n_crowd,
@@ -293,8 +293,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         elif self.seq_obs:
             return np.concatenate([
                 [np.concatenate([self._agent_pos, self._agent_vel])],
-                [np.concatenate([self._goal_pos, self._agent_vel * 0])],
-                np.concatenate([self._crowd_poss, self._crowd_vels], axis=-1)
+                [np.concatenate([self._goal_pos - self._agent_pos, self._agent_vel * 0])],
+                np.concatenate([
+                    self._crowd_poss - self._agent_pos, self._crowd_vels
+                ], axis=-1)
             ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos

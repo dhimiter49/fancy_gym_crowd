@@ -82,11 +82,13 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             ])
         elif self.seq_obs:
             state_bound_min = np.hstack([
+                [-self.W_BORDER, -self.H_BORDER],
                 [-self.WIDTH, -self.HEIGHT],
                 [-self.WIDTH, -self.HEIGHT] * self.n_crowd,
                 [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
             ])
             state_bound_max = np.hstack([
+                [self.W_BORDER, self.H_BORDER],
                 [self.WIDTH, self.HEIGHT],
                 [self.WIDTH, self.HEIGHT] * self.n_crowd,
                 [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
