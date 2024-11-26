@@ -104,7 +104,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         if self.seq_obs:
             return np.concatenate([
                 [self._agent_pos],
-                [self._goal_pos],
+                [self._goal_pos - self._agent_pos],
                 [self._agent_vel]
             ]).astype(np.float32).flatten()
         else:
