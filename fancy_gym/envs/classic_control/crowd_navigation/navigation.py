@@ -46,12 +46,12 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             ])
         elif self.seq_obs:
             state_bound_min = np.hstack([
-                [-self.WIDTH, -self.HEIGHT],
+                [-self.W_BORDER, -self.H_BORDER],
                 [-self.WIDTH, -self.HEIGHT],
                 [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
             ])
             state_bound_max = np.hstack([
-                [self.WIDTH, self.HEIGHT],
+                [self.W_BORDER, self.H_BORDER],
                 [self.WIDTH, self.HEIGHT],
                 [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
             ])
@@ -104,7 +104,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         if self.seq_obs:
             return np.concatenate([
                 [self._agent_pos],
-                [self._goal_pos],
+                [self._goal_pos - self._agent_pos],
                 [self._agent_vel]
             ]).astype(np.float32).flatten()
         else:

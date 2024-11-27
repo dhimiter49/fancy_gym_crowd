@@ -89,9 +89,7 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
 
     @property
     def context_mask(self):
-        return np.hstack([
-            [True] * 8,  # goal position,  agent velocity and walls
-        ])
+        return np.hstack([np.full(self.observation_space.shape, True)])
 
 
     @property
