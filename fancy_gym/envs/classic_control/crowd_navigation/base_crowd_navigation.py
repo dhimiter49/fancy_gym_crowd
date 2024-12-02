@@ -27,6 +27,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         discrete_action: bool = False,
         velocity_control: bool = False,
         dt: float = 0.1,
+        continuous_collision: bool = False,
     ):
         super().__init__()
 
@@ -65,6 +66,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self.n_crowd = n_crowd
         self.allow_collision = allow_collision
+        self.supersample_col = continuous_collision
         self.rot_mat = lambda deg: np.array([
             [np.cos(deg), -np.sin(deg)], [np.sin(deg), np.cos(deg)]
         ])
@@ -406,6 +408,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                     self.CARTESIAN_ACC[action[0]], self.CARTESIAN_ACC[action[1]]
                 ])
 
+        self._last_agent_pos = self._agent_pos.copy()
         if self.velocity_control:
             vel = self.p2c(action) if self.polar else action
             acc = (vel - self._agent_vel) / self._dt
@@ -453,9 +456,27 @@ class BaseCrowdNavigationEnv(gym.Env):
         colliding with a wall
         """
         # Crowd
-        if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
-           [self.PHYSICAL_SPACE * 2] * self.n_crowd):
-            return True
+        if self.n_crowd > 0:
+            if self.supersample_col:
+                over_sample_by = self._dt / 0.01
+                agent_poss = self._last_agent_pos + np.einsum(
+                    "i,j->ij",
+                    np.arange(1, int(over_sample_by) + 1),
+                    self._agent_pos - self._last_agent_pos
+                ) / over_sample_by
+                crowd_poss = self._last_crowd_poss + np.einsum(
+                    "i,kj->ikj",
+                    np.arange(1, int(over_sample_by) + 1),
+                    self._crowd_poss - self._last_agent_pos
+                ) / over_sample_by
+                agent_poss = np.expand_dims(agent_poss, axis=1)
+                if np.sum(np.linalg.norm(agent_poss - crowd_poss, axis=-1) <
+                   [self.PHYSICAL_SPACE * 2] * self.n_crowd):
+                    return True
+            else:
+                if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
+                   [self.PHYSICAL_SPACE * 2] * self.n_crowd):
+                    return True
         # Walls
         if np.sum(np.abs(self._agent_pos) >
            np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE):

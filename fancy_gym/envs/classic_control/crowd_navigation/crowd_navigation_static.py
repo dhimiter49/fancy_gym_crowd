@@ -369,6 +369,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
+        self._last_crowd_poss = self._crowd_poss.copy()
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         self._current_reward, info = self._get_reward(action)
