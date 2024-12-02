@@ -632,9 +632,26 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         if self._is_collided:
-            col_vec = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <\
-                [self.PHYSICAL_SPACE * 2] * self.n_crowd
-            col_idx = np.where(col_vec > 0)[0]
+            if self.supersample_col:
+                over_sample_by = self._dt / 0.01
+                agent_poss = self._last_agent_pos + np.einsum(
+                    "i,j->ij",
+                    np.arange(1, int(over_sample_by) + 1),
+                    self._agent_pos - self._last_agent_pos
+                ) / over_sample_by
+                crowd_poss = self._last_crowd_poss + np.einsum(
+                    "i,kj->ikj",
+                    np.arange(1, int(over_sample_by) + 1),
+                    self._crowd_poss - self._last_agent_pos
+                ) / over_sample_by
+                agent_poss = np.expand_dims(agent_poss, axis=1)
+                col_vec = np.linalg.norm(agent_poss - crowd_poss, axis=-1) <\
+                    [self.PHYSICAL_SPACE * 2] * self.n_crowd
+                col_idx = list(set(list(np.where(col_vec > 0)[-1])))
+            else:
+                col_vec = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <\
+                    [self.PHYSICAL_SPACE * 2] * self.n_crowd
+                col_idx = np.where(col_vec > 0)[0]
             global NUM_COL
             global COL_VEL_SUM
             global COL_AGENT_VEL_SUM
