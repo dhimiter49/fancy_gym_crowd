@@ -416,6 +416,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         self.update_state(action)
         self.exec_traj.append(self._agent_pos)
 
+        self._last_crowd_poss = self._crowd_poss.copy()
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         if self._is_collided:

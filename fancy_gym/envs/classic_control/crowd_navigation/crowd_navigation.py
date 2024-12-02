@@ -625,6 +625,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
+        self._last_crowd_poss = self._crowd_poss.copy()
         self.update_crowd()
         self.exec_traj.append(self._agent_pos)
 
