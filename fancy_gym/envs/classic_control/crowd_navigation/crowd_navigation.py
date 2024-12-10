@@ -14,6 +14,9 @@ COLS = 0
 COL_VEL_SUM = 0
 COL_AGENT_VEL_SUM = 0
 
+ACTIONS = []
+ACTION_DERIVS = []
+
 
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     """
@@ -64,6 +67,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             dt=dt,
         )
 
+        self._old_action = None
         self.seq_obs = sequence_obs
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
@@ -169,6 +173,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     ) -> Tuple[ObsType, Dict[str, Any]]:
         if self.lidar:
             self._last_frames *= 0
+        self._old_action = None
         return super().reset(seed=seed, options=options)
 
 
@@ -624,7 +629,23 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         A single step with action in angular velocity space
         """
+        global ACTIONS
+        if self._old_action is not None:
+            global ACTION_DERIVS
+            ACTION_DERIVS.append(np.linalg.norm(action - self._old_action))
+            if np.linalg.norm(action - self._old_action) >\
+               self.MAX_ACC * self._dt + 1e-4:
+                print("Old: ", self._old_action)
+                print("New: ", action)
+                print("Acceleartion: ", np.linalg.norm(action - self._old_action))
+                input()
+        ACTIONS.append(np.linalg.norm(action))
+        if np.linalg.norm(action) > self.AGENT_MAX_VEL:
+            print("Action: ", action)
+            print("Action velocity: ", np.linalg.norm(action))
+            input()
         self.update_state(action)
+        self._old_action = action
         self._last_crowd_poss = self._crowd_poss.copy()
         self.update_crowd()
         self.exec_traj.append(self._agent_pos)
@@ -680,6 +701,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         global COL_VEL_SUM
         global COL_AGENT_VEL_SUM
         global COLS
-        print(NUM_COL)
-        print("Average collision velocity:", COL_VEL_SUM / COLS)
-        print("Average agent speed:", COL_AGENT_VEL_SUM / COLS)
+        global ACTIONS
+        global ACTION_DERIVS
+        if COLS > 0:
+            print("Average collision velocity:", COL_VEL_SUM / COLS)
+            print("Average agent speed:", COL_AGENT_VEL_SUM / COLS)
+        print("Mean actions:", np.mean(np.array(ACTIONS)))
+        print("Mean action derivs:", np.mean(np.array(ACTION_DERIVS)))
