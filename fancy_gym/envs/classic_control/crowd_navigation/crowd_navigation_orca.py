@@ -25,6 +25,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
     def __init__(
         self,
         n_crowd: int,
+        dt: float = 0.1,
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
@@ -41,6 +42,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
     ):
         super().__init__(
             n_crowd,
+            dt,
             width,
             height,
             interceptor_percentage,
