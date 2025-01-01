@@ -287,7 +287,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         ) = self._start_env_vars()
         self._steps = 0
         self.traj_idx = 0
-        self.exec_traj = []
+        self.exec_traj = [self._agent_pos]
         self._goal_reached = False
         self._is_collided = False
         self._current_reward = 0
