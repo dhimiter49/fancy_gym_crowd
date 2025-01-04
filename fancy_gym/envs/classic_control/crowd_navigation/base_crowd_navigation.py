@@ -145,6 +145,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         )
         self.traj_idx = 0
         self.current_trajectory = np.zeros((100, 2))
+        self.casc_trajectory = np.zeros((35, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
         self.current_trajectory_vel = np.zeros((100, 2))
@@ -172,6 +173,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         # positions += distances
         # positions = np.cumsum(positions, 0)
         # self.current_trajectory_vel = positions.copy()
+
+
+    def set_casc_trajectory(self, positions):
+        self.casc_trajectory = positions + self._agent_pos
 
 
     def c2p(self, cart):

@@ -515,6 +515,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 np.array(self.exec_traj)[:, 1],
                 "k",
             )
+            self.casc_trajectory_line, = ax.plot(
+                self.casc_trajectory[:, 0],
+                self.casc_trajectory[:, 1],
+                "y",
+            )
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],
                 self.current_trajectory[:, 1],
@@ -590,6 +595,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.trajectory_line.set_data(
             self.current_trajectory[:self.traj_idx * self._traj_len, 0],
             self.current_trajectory[:self.traj_idx * self._traj_len, 1]
+        )
+        self.casc_trajectory_line.set_data(
+            self.casc_trajectory[:, 0],
+            self.casc_trajectory[:, 1]
         )
         self.pred_trajectory_line.set_data(
             self.pred_current_trajectory[:, 0],
