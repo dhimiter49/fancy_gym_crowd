@@ -638,21 +638,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         A single step with action in angular velocity space
         """
-        global ACTIONS
-        if self._old_action is not None:
-            global ACTION_DERIVS
-            ACTION_DERIVS.append(np.linalg.norm(action - self._old_action))
-            if np.linalg.norm(action - self._old_action) >\
-               self.MAX_ACC * self._dt + 1e-4:
-                print("Old: ", self._old_action)
-                print("New: ", action)
-                print("Acceleartion: ", np.linalg.norm(action - self._old_action))
-                input()
-        ACTIONS.append(np.linalg.norm(action))
-        if np.linalg.norm(action) > self.AGENT_MAX_VEL:
-            print("Action: ", action)
-            print("Action velocity: ", np.linalg.norm(action))
-            input()
         self.update_state(action)
         self._old_action = action
         self._last_crowd_poss = self._crowd_poss.copy()
@@ -692,9 +677,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ))
             COL_AGENT_VEL_SUM += np.linalg.norm(self._agent_vel)
             NUM_COL += 1
-            print(NUM_COL)
-            print("Average collision velocity:", COL_VEL_SUM / COLS)
-            print("Average agent speed:", COL_AGENT_VEL_SUM / COLS)
         self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
@@ -710,10 +692,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         global COL_VEL_SUM
         global COL_AGENT_VEL_SUM
         global COLS
-        global ACTIONS
-        global ACTION_DERIVS
         if COLS > 0:
+            print("Num cols", NUM_COL)
             print("Average collision velocity:", COL_VEL_SUM / COLS)
             print("Average agent speed:", COL_AGENT_VEL_SUM / COLS)
-        print("Mean actions:", np.mean(np.array(ACTIONS)))
-        print("Mean action derivs:", np.mean(np.array(ACTION_DERIVS)))
