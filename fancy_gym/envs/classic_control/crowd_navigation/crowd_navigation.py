@@ -619,11 +619,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             )
         for i, casc_traj in enumerate(self.casc_trajectory_line):
             casc_traj.set_color(color=((0, 0, 0, 0)))
-        colors = ['r', 'g', 'b', 'y', 'm', 'c', 'k',]
-        print(self.casc_trajectory)
         for i, casc_traj in enumerate(self.casc_trajectory_line):
             curr_idx = i * self._safety_traj
-            print(curr_idx)
             casc_traj.set_data(
                 self.casc_trajectory[curr_idx:curr_idx + self._safety_traj, 0],
                 self.casc_trajectory[curr_idx:curr_idx + self._safety_traj, 1],
