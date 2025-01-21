@@ -515,11 +515,15 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 np.array(self.exec_traj)[:, 1],
                 "k",
             )
-            self.casc_trajectory_line, = ax.plot(
-                self.casc_trajectory[:, 0],
-                self.casc_trajectory[:, 1],
-                "y",
-            )
+            self.casc_trajectory_line = []
+            for i in range(self._plan_traj):
+                self.casc_trajectory_line.append(
+                    ax.plot(
+                        self.casc_trajectory[:, 0],
+                        self.casc_trajectory[:, 1],
+                        color=((1, 0.8, 0.05, 1 - 0.1 * i))
+                    )[0]
+                )
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],
                 self.current_trajectory[:, 1],
@@ -593,12 +597,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     dx=distance * np.cos(angle), dy=distance * np.sin(angle)
                 )
         self.trajectory_line.set_data(
-            self.current_trajectory[:self.traj_idx * self._traj_len, 0],
-            self.current_trajectory[:self.traj_idx * self._traj_len, 1]
-        )
-        self.casc_trajectory_line.set_data(
-            self.casc_trajectory[:, 0],
-            self.casc_trajectory[:, 1]
+            self.current_trajectory[:, 0],
+            self.current_trajectory[:, 1]
         )
         self.pred_trajectory_line.set_data(
             self.pred_current_trajectory[:, 0],
@@ -617,6 +617,23 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 x=self.separating_planes[i][0], y=self.separating_planes[i][1],
                 dx=self.separating_planes[i][2], dy=self.separating_planes[i][3]
             )
+        for i, casc_traj in enumerate(self.casc_trajectory_line):
+            casc_traj.set_color(color=((0, 0, 0, 0)))
+        colors = ['r', 'g', 'b', 'y', 'm', 'c', 'k',]
+        print(self.casc_trajectory)
+        for i, casc_traj in enumerate(self.casc_trajectory_line):
+            curr_idx = i * self._safety_traj
+            print(curr_idx)
+            casc_traj.set_data(
+                self.casc_trajectory[curr_idx:curr_idx + self._safety_traj, 0],
+                self.casc_trajectory[curr_idx:curr_idx + self._safety_traj, 1],
+            )
+            for j in range(i):
+                self.casc_trajectory_line[j].set_color(color=((0, 0, 0, 0)))
+            casc_traj.set_color(color="r")
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
+
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()

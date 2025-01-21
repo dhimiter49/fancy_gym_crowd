@@ -36,6 +36,8 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self._dt = dt
         self._traj_len = int(1 // self._dt)  # trajectory for ProDMP is usually 1 second
+        self._safety_traj = 2
+        self._plan_traj = 7
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -145,7 +147,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         )
         self.traj_idx = 0
         self.current_trajectory = np.zeros((100, 2))
-        self.casc_trajectory = np.zeros((35, 2))
+        self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
         self.current_trajectory_vel = np.zeros((100, 2))
@@ -177,6 +179,9 @@ class BaseCrowdNavigationEnv(gym.Env):
 
     def set_casc_trajectory(self, positions):
         self.casc_trajectory = positions + self._agent_pos
+        self.current_trajectory = self.casc_trajectory[np.arange(
+            0, self._plan_traj * self._safety_traj, self._safety_traj
+        )]
 
 
     def c2p(self, cart):
@@ -202,7 +207,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             vec = pos / np.linalg.norm(pos)
             norm = np.array([-vec[1], vec[0]])
             self.separating_planes[i] = np.concatenate((
-                self._crowd_poss[i] + vec * 4 * self.PHYSICAL_SPACE - norm * 50,
+                self._crowd_poss[i] + vec * 2 * self.PHYSICAL_SPACE - norm * 50,
                 norm * 100
             ))
 
