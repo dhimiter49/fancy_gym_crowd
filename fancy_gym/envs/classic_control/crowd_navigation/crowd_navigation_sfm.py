@@ -100,6 +100,8 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         """
         crowd_pref_dir = self._crowd_goal_poss - self._crowd_poss
         crowd_pref_dist = np.linalg.norm(crowd_pref_dir, axis=-1)
+
+        # Handle crowd members that reached the goal, a new goal will be generated
         crowd_goal_complete = np.logical_and(
             crowd_pref_dist < self.PHYSICAL_SPACE,
             np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
@@ -108,13 +110,18 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
                 self._crowd_poss[crowd_goal_complete]
             )
+            # Update information using the new goals
             crowd_pref_dir = self._crowd_goal_poss - self._crowd_poss
             crowd_pref_dist = np.linalg.norm(crowd_pref_dir, axis=-1)
 
+        # Preferred crowd velocity is zero when close to the goal
         crowd_pref_vels = crowd_pref_dir.copy()
         crowd_pref_vels[
             np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE
         ] = 0
+
+        # If preferred velocity changes too much copmared to current velocity,
+        # it is clipped to maximum_velocity * time_step
         crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
         diff_vel = crowd_pref_vels - self._crowd_vels
         diff_speed = np.linalg.norm(diff_vel, axis=-1)
@@ -131,6 +138,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             ) * self.MAX_ACC * self._dt
         crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
 
+        # Normalize the preferred velocity to not go over the maximum velocity
         over_vel = crowd_pref_vels_speed > self.CROWD_MAX_VEL
         crowd_pref_vels[over_vel] = np.einsum(
             "ij,i->ij", crowd_pref_vels[over_vel], 1 / crowd_pref_vels_speed[over_vel]
