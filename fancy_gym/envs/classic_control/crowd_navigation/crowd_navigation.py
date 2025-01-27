@@ -597,8 +597,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     dx=distance * np.cos(angle), dy=distance * np.sin(angle)
                 )
         self.trajectory_line.set_data(
-            self.current_trajectory[:, 0],
-            self.current_trajectory[:, 1]
+            self.current_trajectory[:self.traj_idx * self._traj_len, 0],
+            self.current_trajectory[:self.traj_idx * self._traj_len, 1]
         )
         self.pred_trajectory_line.set_data(
             self.pred_current_trajectory[:, 0],
