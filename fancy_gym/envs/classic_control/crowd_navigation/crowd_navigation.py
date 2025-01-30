@@ -691,6 +691,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ))
             COL_AGENT_VEL_SUM += np.linalg.norm(self._agent_vel)
             NUM_COL += 1
+            # print("Num col", NUM_COL)
+            # print("Col vel", COL_VEL_SUM / COLS)
+            # print("Col agent vel", COL_AGENT_VEL_SUM / COLS)
         self._current_reward, info = self._get_reward(action)
 
         self._steps += 1
