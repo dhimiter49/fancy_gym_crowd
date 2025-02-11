@@ -116,7 +116,6 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             self._goal_pos[0],
             self._goal_pos[1],
         ))
-        print(np.linalg.norm(self._crowd_vels, axis=-1))
         for pos, vel, goal in zip(
             self._crowd_poss, self._crowd_vels, self._crowd_goal_poss
         ):
