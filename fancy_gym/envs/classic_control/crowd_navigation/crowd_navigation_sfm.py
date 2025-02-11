@@ -1,9 +1,5 @@
-from typing import Tuple, Optional, Any, Dict
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy.interpolate as interp
-from gymnasium import spaces
-from gymnasium.core import ObsType
+import socialforce
 
 from fancy_gym.envs.classic_control.crowd_navigation.crowd_navigation\
     import CrowdNavigationEnv
@@ -56,9 +52,9 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             lidar_vel=lidar_vel,
             n_frames=n_frames,
         )
-        self.inv_relocation_time = 10
-        self.inter_strength = 0.05
-        self.inter_range = 0.15
+        self.initial_speed = self.CROWD_MAX_VEL
+        self.v0 = 10
+        self.sigma = 0.6
 
 
     def _start_env_vars(self):
@@ -92,90 +88,34 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
 
     def update_crowd(self):
-        """
-        Create a rvo2 simulation at each time step and run one step
-
-        Agent doesn't stop moving after it reaches the goal,
-        because once it stops moving, the reciprocal rule is broken
-        """
-        crowd_pref_dir = self._crowd_goal_poss - self._crowd_poss
-        crowd_pref_dist = np.linalg.norm(crowd_pref_dir, axis=-1)
+        # Handle crowd members that reached the goal, a new goal will be generated
         crowd_goal_complete = np.logical_and(
-            crowd_pref_dist < self.PHYSICAL_SPACE,
+            np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
+            self.PHYSICAL_SPACE,
             np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
         )
+
         if len(crowd_goal_complete) > 0:
             self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
                 self._crowd_poss[crowd_goal_complete]
             )
-            crowd_pref_dir = self._crowd_goal_poss - self._crowd_poss
-            crowd_pref_dist = np.linalg.norm(crowd_pref_dir, axis=-1)
 
-        crowd_pref_vels = crowd_pref_dir.copy()
-        crowd_pref_vels[
-            np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE
-        ] = 0
-        crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
-        diff_vel = crowd_pref_vels - self._crowd_vels
-        diff_speed = np.linalg.norm(diff_vel, axis=-1)
-
-        over = diff_speed > self.MAX_ACC * self._dt
-        under = diff_speed < -self.MAX_ACC * self._dt
-        if np.any(over):
-            crowd_pref_vels[over] = self._crowd_vels[over] + np.einsum(
-                "ij,i->ij", diff_vel[over], 1 / diff_speed[over]
-            ) * self.MAX_ACC * self._dt
-        if np.any(under):
-            crowd_pref_vels[under] = self._crowd_vels[under] - np.einsum(
-                "ij,i->ij", diff_vel[under], 1 / diff_speed[under]
-            ) * self.MAX_ACC * self._dt
-        crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
-
-        over_vel = crowd_pref_vels_speed > self.CROWD_MAX_VEL
-        crowd_pref_vels[over_vel] = np.einsum(
-            "ij,i->ij", crowd_pref_vels[over_vel], 1 / crowd_pref_vels_speed[over_vel]
-        ) * self.CROWD_MAX_VEL
-
-        # crowd_pref_vels = np.einsum(
-        #     "ij,i->ij", crowd_pref_dir, 1 / (crowd_pref_dist + 1e-8)
-        # ) * self.CROWD_MAX_VEL
-        # crowd_pref_vels[crowd_pref_dist < self.PHYSICAL_SPACE] = 0
-        crowd_pref_vels = self.inv_relocation_time * (crowd_pref_vels - self._crowd_vels)
-
-        # Push force(s) from other agents
-        interact_crowd_others = []
-        for i, member in enumerate(self._crowd_poss):
-            rel_member_others = member - np.concatenate([
-                np.delete(self._crowd_poss, i, axis=0),
-                self._agent_pos.reshape(1, -1)
-            ])  # other crowd members and agent
-            dist_member_others = np.linalg.norm(rel_member_others, axis=-1)
-
-            interact_crowd_others.append(np.sum(
-                np.einsum(
-                    "i,ij->ij",
-                    self.inter_strength * np.exp(
-                        (4 * self.PHYSICAL_SPACE - dist_member_others) / self.inter_range
-                    ),
-                    np.einsum("ij,i->ij", rel_member_others, 1 / dist_member_others)
-                ),
-                axis=0
-            ))
-
-        # Sum of push & pull forces
-        aggregate_vel = (crowd_pref_vels + np.array(interact_crowd_others)) * self._dt
-
-        # clip the speed so that sqrt(vx^2 + vy^2) <= v_pref
-        actions = self._crowd_vels + aggregate_vel
-        act_norm = np.linalg.norm(actions, axis=-1)
-
-        over = act_norm > self.AGENT_MAX_VEL
-        if np.any(over):
-            actions[over] = np.einsum(
-                "ij,i->ij",
-                actions[over],
-                1 / act_norm[over] * self.AGENT_MAX_VEL
+        sf_state = np.concatenate([
+            [np.concatenate([self._agent_pos, self._agent_vel, self._goal_pos])],
+            np.concatenate(
+                [self._crowd_poss, self._crowd_vels, self._crowd_goal_poss], axis=-1
             )
+        ])
+        sim = socialforce.Simulator(
+            sf_state,
+            delta_t=self._dt,
+            initial_speed=self.initial_speed,
+            v0=self.v0,
+            tau=1.8,
+            sigma=self.sigma
+        )
+        sim.step()
+        actions = sim.state[1:, 2:4]
 
         self._crowd_vels = actions
         self._crowd_poss += self._crowd_vels * self._dt
