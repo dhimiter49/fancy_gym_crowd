@@ -54,8 +54,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         )
         self.initial_speed = self.CROWD_MAX_VEL
         self.v0 = 10
-        self.sigma = 0.3
-        self.sim = None
+        self.sigma = 0.6
 
 
     def _start_env_vars(self):
@@ -118,6 +117,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             delta_t=self._dt,
             initial_speed=self.initial_speed,
             v0=self.v0,
+            tau=1.8,
             sigma=self.sigma
         )
         sim.step()
