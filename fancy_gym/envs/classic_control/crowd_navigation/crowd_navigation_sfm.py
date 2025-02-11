@@ -88,12 +88,6 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
 
     def update_crowd(self):
-        """
-        Create a rvo2 simulation at each time step and run one step
-
-        Agent doesn't stop moving after it reaches the goal,
-        because once it stops moving, the reciprocal rule is broken
-        """
         # Handle crowd members that reached the goal, a new goal will be generated
         crowd_goal_complete = np.logical_and(
             np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
