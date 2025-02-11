@@ -107,25 +107,17 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
                 self._crowd_poss[crowd_goal_complete]
             )
 
-        sf_state = []
-        sf_state.append((
-            self._agent_pos[0],
-            self._agent_pos[1],
-            self._agent_vel[0],
-            self._agent_vel[1],
-            self._goal_pos[0],
-            self._goal_pos[1],
-        ))
-        for pos, vel, goal in zip(
-            self._crowd_poss, self._crowd_vels, self._crowd_goal_poss
-        ):
-            sf_state.append((pos[0], pos[1], vel[0], vel[1], goal[0], goal[1]))
+        sf_state = np.concatenate([
+            [np.concatenate([self._agent_pos, self._agent_vel, self._goal_pos])],
+            np.concatenate(
+                [self._crowd_poss, self._crowd_vels, self._crowd_goal_poss], axis=-1
+            )
+        ])
         sim = socialforce.Simulator(
-            np.array(sf_state),
+            sf_state,
             delta_t=self._dt,
             initial_speed=self.initial_speed,
             v0=self.v0,
-            tau=1,
             sigma=self.sigma
         )
         sim.step()
