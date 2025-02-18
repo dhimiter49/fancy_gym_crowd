@@ -35,7 +35,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         super().__init__()
 
         self._dt = dt
-        self._traj_len = int(1 // self._dt)  # trajectory for ProDMP is usually 1 second
+        self._traj_len = int(1 / self._dt)  # trajectory for ProDMP is usually 1 second
         self._safety_traj = 2
         self._plan_traj = 7
 
@@ -146,7 +146,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
         self.traj_idx = 0
-        self.current_trajectory = np.zeros((100, 2))
+        self.current_trajectory = np.zeros((200, 2))
         self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []

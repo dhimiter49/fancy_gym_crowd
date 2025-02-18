@@ -174,6 +174,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         if self.lidar:
             self._last_frames *= 0
         self._old_action = None
+        self.traj_idx = 0
         return super().reset(seed=seed, options=options)
 
 
