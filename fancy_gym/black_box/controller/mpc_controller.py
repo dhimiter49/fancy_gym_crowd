@@ -36,6 +36,7 @@ class MPCController(BaseController):
     :param mat_vc_pos_vel : matrix calculating positions from velocity control
     :param mat_vc_acc_vel : matrix calculating acceleration from velocities
     :param horizon : horizon for which to optimize control
+    :param replan_steps : how often to replan
     :param dt : time step
     :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
     :param min_dist_wall: minimum distance to the wall
@@ -51,12 +52,14 @@ class MPCController(BaseController):
         mat_vc_pos_vel: np.ndarray = None,
         mat_vc_acc_vel: np.ndarray = None,
         horizon: int = 20,
+        replan_steps: int = None,
         dt: float = 0.1,
         min_dist_crowd: float = 0.0,
         min_dist_wall: float = 0.4,
         velocity_control: float = False,
     ):
         self.N = horizon
+        self.replan = replan_steps if replan_steps is not None else self.N
         self.MAX_STOPPING_TIME = max_vel / max_acc
         self.MAX_STOPPING_DIST = 2 * (
             max_vel * self.MAX_STOPPING_TIME - 0.5 * max_acc * self.MAX_STOPPING_TIME ** 2
@@ -276,11 +279,15 @@ class MPCController(BaseController):
             reference_vel = np.append(
                 reference_vel[:self.N - 1], reference_vel[self.N:2 * self.N - 1]
             )
-            opt_V = (reference_pos + 0.5 * self.dt * np.repeat(curr_vel, self.N)).T @\
-                self.mat_vc_pos_vel + 1.0 * reference_vel.T
+            vec = reference_pos + 0.5 * self.dt * np.repeat(curr_vel, self.N)
+            vec[self.replan:self.N] *= 0
+            vec[self.N + self.replan:] *= 0
+            opt_V = vec.T @ self.mat_vc_pos_vel + 1.0 * reference_vel.T
         else:
-            opt_V = (reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)).T @\
-                self.mat_pos_acc + 2.0 * reference_vel.T @ self.mat_vel_acc
+            vec = reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)
+            vec[self.replan:self.N] *= 0
+            vec[self.N + self.replan:] *= 0
+            opt_V = vec.T @ self.mat_pos_acc + 2.0 * reference_vel.T @ self.mat_vel_acc
 
         # constraint matrices and bounds
         const_M = []
