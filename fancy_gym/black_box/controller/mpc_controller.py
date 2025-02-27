@@ -282,11 +282,15 @@ class MPCController(BaseController):
             vec = reference_pos + 0.5 * self.dt * np.repeat(curr_vel, self.N)
             vec[self.replan:self.N] *= 0
             vec[self.N + self.replan:] *= 0
+            reference_vel[self.replan:self.N] *= 0
+            reference_vel[self.N + self.replan:] *= 0
             opt_V = vec.T @ self.mat_vc_pos_vel + 1.0 * reference_vel.T
         else:
             vec = reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)
             vec[self.replan:self.N] *= 0
             vec[self.N + self.replan:] *= 0
+            reference_vel[self.replan:self.N] *= 0
+            reference_vel[self.N + self.replan:] *= 0
             opt_V = vec.T @ self.mat_pos_acc + 2.0 * reference_vel.T @ self.mat_vel_acc
 
         # constraint matrices and bounds
