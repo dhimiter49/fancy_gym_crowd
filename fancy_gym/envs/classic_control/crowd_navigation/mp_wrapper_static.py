@@ -66,6 +66,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'max_acc': 1.5,
                 'max_vel': 3.0,
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
+                'replan_steps': 10,
                 'dt': 0.1,
                 'min_dist_crowd': 1.4,  # personal space of the members of the crowd
                 'min_dist_wall': 0.5,  # physical space of agent + 0.1
@@ -114,6 +115,7 @@ class MPWrapper_CrowdStatic_Vel(MPWrapper_CrowdStatic):
                 'max_acc': 1.5,
                 'max_vel': 3.0,
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
+                'replan_steps': 10,
                 'dt': 0.1,
                 'velocity_control': True,
                 'min_dist_crowd': 1.4,  # personal space of the members of the crowd
