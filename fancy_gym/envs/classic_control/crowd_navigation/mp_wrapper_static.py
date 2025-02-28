@@ -68,7 +68,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
                 'replan_steps': 10,
                 'dt': 0.1,
-                'min_dist_crowd': 1.4,  # personal space of the members of the crowd
+                'min_dist_crowd': 1,  # physical distance + 0.2
                 'min_dist_wall': 0.5,  # physical space of agent + 0.1
             },
             'trajectory_generator_kwargs': {
@@ -118,7 +118,7 @@ class MPWrapper_CrowdStatic_Vel(MPWrapper_CrowdStatic):
                 'replan_steps': 10,
                 'dt': 0.1,
                 'velocity_control': True,
-                'min_dist_crowd': 1.4,  # personal space of the members of the crowd
+                'min_dist_crowd': 1,  # physical distance + 0.2
                 'min_dist_wall': 0.5,  # physical space of agent + 0.1
             },
             'trajectory_generator_kwargs': {
