@@ -494,12 +494,12 @@ class BaseCrowdNavigationEnv(gym.Env):
                 over_sample_by = self._dt / 0.01
                 agent_poss = self._last_agent_pos + np.einsum(
                     "i,j->ij",
-                    np.arange(1, int(over_sample_by) + 1),
+                    np.arange(0, int(over_sample_by) + 1),
                     self._agent_pos - self._last_agent_pos
                 ) / over_sample_by
                 crowd_poss = self._last_crowd_poss + np.einsum(
                     "i,kj->ikj",
-                    np.arange(1, int(over_sample_by) + 1),
+                    np.arange(0, int(over_sample_by) + 1),
                     self._crowd_poss - self._last_agent_pos
                 ) / over_sample_by
                 agent_poss = np.expand_dims(agent_poss, axis=1)
