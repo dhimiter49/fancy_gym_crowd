@@ -399,7 +399,7 @@ register(
     mp_wrapper=MPWrapper_CrowdStatic,
     max_episode_steps=100,
     kwargs={
-        "n_crowd": 10,
+        "n_crowd": 4,
         "width": 16,
         "height": 16,
         "interceptor_percentage": 2,
