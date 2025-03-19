@@ -396,7 +396,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         Update robot position and velocity for time self._dt based on its dynamics.
 
         Args:
-            action (numpy.ndarray): 2D array representing the acc for current step
+            action (numpy.ndarray): 1D (x, y) array representing the acc for current step
         """
         if self.discrete_action:
             if self.velocity_control:
@@ -467,7 +467,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 crowd_poss = self._last_crowd_poss + np.einsum(
                     "i,kj->ikj",
                     np.arange(0, int(over_sample_by) + 1),
-                    self._crowd_poss - self._last_agent_pos
+                    self._crowd_poss - self._last_crowd_poss
                 ) / over_sample_by
                 agent_poss = np.expand_dims(agent_poss, axis=1)
                 if np.sum(np.linalg.norm(agent_poss - crowd_poss, axis=-1) <

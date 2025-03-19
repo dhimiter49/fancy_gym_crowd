@@ -10,6 +10,7 @@ from .classic_control.simple_reacher import MPWrapper as MPWrapper_SimpleReacher
 from .classic_control.hole_reacher.hole_reacher import HoleReacherEnv
 from .classic_control.hole_reacher import MPWrapper as MPWrapper_HoleReacher
 from .classic_control.crowd_navigation.crowd_navigation import CrowdNavigationEnv
+from .classic_control.crowd_navigation.crowd_navigation_inter import CrowdNavigationInterEnv
 from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
 from .classic_control.crowd_navigation.l_shape_env import LShapeCrowdNavigationEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
@@ -547,6 +548,91 @@ register(
         "width": 16,
         "height": 16,
         "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationInter-v0',
+    entry_point=CrowdNavigationInterEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationInterVel-v0',
+    entry_point=CrowdNavigationInterEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationLiDARInter-v0',
+    entry_point=CrowdNavigationInterEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "lidar_rays": 40,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationLiDARInterVel-v0',
+    entry_point=CrowdNavigationInterEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "lidar_rays": 40,
+        "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSeqInter-v0',
+    entry_point=CrowdNavigationInterEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "sequence_obs": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSeqInterVel-v0',
+    entry_point=CrowdNavigationInterEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "sequence_obs": True,
+        "velocity_control": True,
     }
 )
 
