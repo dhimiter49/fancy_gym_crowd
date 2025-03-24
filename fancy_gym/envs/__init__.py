@@ -13,6 +13,8 @@ from .classic_control.crowd_navigation.crowd_navigation import CrowdNavigationEn
 from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavigationStaticEnv
 from .classic_control.crowd_navigation.l_shape_env import LShapeCrowdNavigationEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
+from .classic_control.crowd_navigation.crowd_navigation_orca import CrowdNavigationORCAEnv
+from .classic_control.crowd_navigation.crowd_navigation_sfm import CrowdNavigationSFMEnv
 from .classic_control.crowd_navigation import (
     MPWrapper_Crowd,
     MPWrapper_Navigation,
@@ -44,6 +46,10 @@ from .mujoco.table_tennis.mp_wrapper import TT_MPWrapper_Replan as MPWrapper_Tab
 from .mujoco.table_tennis.mp_wrapper import TTRndRobot_MPWrapper as MPWrapper_TableTennis_Rnd
 from .mujoco.table_tennis.mp_wrapper import TTVelObs_MPWrapper as MPWrapper_TableTennis_VelObs
 from .mujoco.table_tennis.mp_wrapper import TTVelObs_MPWrapper_Replan as MPWrapper_TableTennis_VelObs_Replan
+from fancy_gym.envs.classic_control.crowd_navigation.dynamics import (
+    gen_mat_vc_pos_vel,
+    gen_mat_vc_acc_vel
+)
 
 # Classic Control
 # Simple Reacher
@@ -66,6 +72,60 @@ register(
         "n_crowd": 4,
         "width": 18,
         "height": 18,
+        "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationORCA-v0',
+    entry_point=CrowdNavigationORCAEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationORCAVel-v0',
+    entry_point=CrowdNavigationORCAEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 18,
+        "height": 18,
+        "velocity_control": True,
+        "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSFM-v0',
+    entry_point=CrowdNavigationSFMEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 18,
+        "height": 18,
+        "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSFMVel-v0',
+    entry_point=CrowdNavigationSFMEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 18,
+        "height": 18,
+        "velocity_control": True,
         "interceptor_percentage": 2,
     }
 )
@@ -96,6 +156,61 @@ register(
         "interceptor_percentage": 2,
         "const_vel": True,
         "velocity_control": True,
+    }
+)
+
+for dt in [0.1, 0.2, 0.3, 0.4, 0.5]:
+    steps = int(-(-10 // dt))
+    traj = int(-(-2.01 // dt))  # assuming you need 2 seconds to stop
+    register(
+        id=f'fancy/CrowdNavigationConstVel{dt}-v0',
+        entry_point=CrowdNavigationEnv,
+        mp_wrapper=MPWrapper_Crowd_Vel,
+        max_episode_steps=steps,
+        mp_config_override={
+            'ProDMP': {
+                'controller_kwargs': {
+                    'controller_type': 'mpc',
+                    'mat_vc_pos_vel': gen_mat_vc_pos_vel(traj, dt),
+                    'mat_vc_acc_vel': gen_mat_vc_acc_vel(traj, dt),
+                    'max_acc': 1.5,
+                    'max_vel': 3.0,
+                    'horizon': traj,
+                    'dt': dt,
+                    'velocity_control': True,
+                    'min_dist_crowd': 0.8001,  # 2 * personal space
+                    'min_dist_wall': 0.41,  # physical space of agent + 0.01
+                },
+                'black_box_kwargs': {
+                    'replanning_schedule':
+                        lambda pos, vel, obs, action, t: t % int(1 // dt) == 0,
+                }
+            }
+        },
+        kwargs={
+            "dt": dt,
+            "n_crowd": 6,
+            "width": 20,
+            "height": 8,
+            "interceptor_percentage": 2,
+            "const_vel": True,
+            "velocity_control": True,
+        }
+    )
+
+register(
+    id='fancy/CrowdNavigationConstSeqVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 6,
+        "width": 20,
+        "height": 8,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "velocity_control": True,
+        "sequence_obs": True,
     }
 )
 
@@ -337,6 +452,21 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationStaticSeqVel-v0',
+    entry_point=CrowdNavigationStaticEnv,
+    mp_wrapper=MPWrapper_CrowdStatic_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "n_crowd": 4,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "velocity_control": True,
+        "sequence_obs": True,
+    }
+)
+
+register(
     id='fancy/Navigation-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation,
@@ -380,6 +510,19 @@ register(
         "width": 10,
         "height": 10,
         "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/NavigationSeqVel-v0',
+    entry_point=NavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=100,
+    kwargs={
+        "width": 10,
+        "height": 10,
+        "velocity_control": True,
+        "sequence_obs": True,
     }
 )
 

@@ -20,8 +20,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         lidar_rays: int = 0,
+        sequence_obs: bool = False,
         polar: bool = False,
     ):
+        assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         self.MAX_EPISODE_STEPS = 80
         self.polar = polar
         super().__init__(
@@ -34,6 +36,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             velocity_control=velocity_control,
         )
 
+        self.seq_obs = sequence_obs
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
@@ -77,6 +80,19 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 [self.AGENT_MAX_VEL, np.pi],
                 [self.MAX_STOPPING_DIST] * 4,  # four directions
             ])
+        elif self.seq_obs:
+            state_bound_min = np.hstack([
+                [-self.W_BORDER, -self.H_BORDER],
+                [-self.WIDTH, -self.HEIGHT],
+                [-self.WIDTH, -self.HEIGHT] * self.n_crowd,
+                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+            ])
+            state_bound_max = np.hstack([
+                [self.W_BORDER, self.H_BORDER],
+                [self.WIDTH, self.HEIGHT],
+                [self.WIDTH, self.HEIGHT] * self.n_crowd,
+                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+            ])
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
@@ -117,8 +133,8 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
-            self.W_BORDER - abs(self._agent_pos[0]),
-            self.H_BORDER - abs(self._agent_pos[1]),
+            max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
+            max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
         ])
         Rw = np.sum(
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
@@ -170,6 +186,13 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 rel_goal_pos,
                 agent_vel,
                 ray_distances
+            ]).astype(np.float32).flatten()
+        elif self.seq_obs:
+            return np.concatenate([
+                [self._agent_pos],
+                [self._goal_pos - self._agent_pos],
+                self._crowd_poss - self._agent_pos,
+                [self._agent_vel]
             ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
@@ -346,6 +369,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
+        self._last_crowd_poss = self._crowd_poss.copy()
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         self._current_reward, info = self._get_reward(action)

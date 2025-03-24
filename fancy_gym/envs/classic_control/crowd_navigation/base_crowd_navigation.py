@@ -26,10 +26,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         allow_collision: bool = False,
         discrete_action: bool = False,
         velocity_control: bool = False,
+        dt: float = 0.1,
+        continuous_collision: bool = False,
     ):
         super().__init__()
 
-        self._dt = 0.1
+        self._dt = dt
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -42,8 +44,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.SOCIAL_SPACE = 1.9
         self.MAX_ACC = 1.5
         self.MAX_STOPPING_TIME = self.AGENT_MAX_VEL / self.MAX_ACC
+        self.MAX_STOPPING_TIME_CROWD = self.CROWD_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\
             0.5 * self.MAX_ACC * self.MAX_STOPPING_TIME ** 2
+        self.MAX_STOPPING_DIST_CROWD = self.CROWD_MAX_VEL *\
+            self.MAX_STOPPING_TIME_CROWD - 0.5 * self.MAX_ACC *\
+            self.MAX_STOPPING_TIME_CROWD ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
         if type(self).__name__ == "CrowdNavigationEnv":
             self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 1.1
@@ -60,6 +66,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self.n_crowd = n_crowd
         self.allow_collision = allow_collision
+        self.supersample_col = continuous_collision
         self.rot_mat = lambda deg: np.array([
             [np.cos(deg), -np.sin(deg)], [np.sin(deg), np.cos(deg)]
         ])
@@ -86,7 +93,6 @@ class BaseCrowdNavigationEnv(gym.Env):
                 self.action_space = spaces.Box(
                     low=np.array([0, -np.pi]),
                     high=np.array([self.AGENT_MAX_VEL, np.pi]),
-                    dtype=np.float32
                 )
             else:
                 action_bound = np.array([self.AGENT_MAX_VEL, self.AGENT_MAX_VEL])
@@ -133,8 +139,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
-        self.current_trajectory = np.zeros((40, 2))
-        self.current_trajectory_vel = np.zeros((40, 2))
+        self.current_trajectory = np.zeros((100, 2))
+        self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.n_crowd, 4))
 
 
@@ -189,6 +195,11 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     @property
+    def goal_pos(self):
+        return self._goal_pos.copy()
+
+
+    @property
     def current_pos(self):
         return self._agent_pos.copy()
 
@@ -209,6 +220,45 @@ class BaseCrowdNavigationEnv(gym.Env):
             [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
             [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
         ]).flatten()
+
+
+    @property
+    def optimal_time(self):
+        dist = np.linalg.norm(self._goal_pos - self._agent_pos)
+        agent_vel = np.linalg.norm(self._agent_vel)
+        time_to_max_vel = (self.AGENT_MAX_VEL - agent_vel) / self.MAX_ACC
+        time_to_stop = agent_vel / self.MAX_ACC
+        dist_to_max_acc = agent_vel * time_to_max_vel +\
+            0.5 * self.MAX_ACC * time_to_max_vel ** 2
+        dist_to_stop = agent_vel * time_to_stop - 0.5 * self.MAX_ACC * time_to_stop ** 2
+
+        if dist_to_stop >= dist:
+            return time_to_stop
+        elif dist_to_max_acc + self.MAX_STOPPING_DIST > dist:
+            # dx = t_acc * v0 + 0.5 * a * t_acc^2 + a * t_acc * t_dec - 0.5 * a * t_dec^2
+            # 0 = v0 + a * t_acc - a * t_dec
+            # replace in eq 1 t_dec with t_acc + v0 / a
+            a = self.MAX_ACC
+            b = 2 * agent_vel
+            c = 0.5 * agent_vel ** 2 / self.MAX_ACC - dist
+            if a == 0:
+                t_acc = - c / b
+            else:
+                disc = (b ** 2) - (4 * a * c)
+                t_acc = (-b + disc ** 0.5) / (2 * a)
+            t_dec = t_acc + agent_vel / self.MAX_ACC
+            return t_acc + t_dec
+        else:
+            # dx = t_acc * v0 + 0.5 * a * t_acc^2 +
+            #      v_max * t_const +
+            #      v_max * t_dec - 0.5 * a * t_dec^2
+            t_acc = (self.AGENT_MAX_VEL - agent_vel) / self.MAX_ACC
+            t_dec = self.AGENT_MAX_VEL / self.MAX_ACC
+            t_const = (
+                dist - t_acc * agent_vel - 0.5 * self.MAX_ACC * t_acc ** 2 -
+                self.AGENT_MAX_VEL * t_dec + 0.5 * self.MAX_ACC * t_dec ** 2
+            ) / self.AGENT_MAX_VEL
+            return t_acc + t_dec + t_const
 
 
     def reset(
@@ -278,10 +328,10 @@ class BaseCrowdNavigationEnv(gym.Env):
                 agent_pos = np.zeros(2)
         else:
             agent_pos = np.random.uniform(
-                [-self.W_BORDER + self.PHYSICAL_SPACE,
-                 -self.H_BORDER + self.PHYSICAL_SPACE],
-                [self.W_BORDER - self.PHYSICAL_SPACE,
-                 self.H_BORDER - self.PHYSICAL_SPACE]
+                [-self.W_BORDER + self.PHYSICAL_SPACE * 1.2,
+                 -self.H_BORDER + self.PHYSICAL_SPACE * 1.2],
+                [self.W_BORDER - self.PHYSICAL_SPACE * 1.2,
+                 self.H_BORDER - self.PHYSICAL_SPACE * 1.2]
             )
         agent_vel = np.zeros(2)
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel and\
@@ -358,6 +408,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                     self.CARTESIAN_ACC[action[0]], self.CARTESIAN_ACC[action[1]]
                 ])
 
+        self._last_agent_pos = self._agent_pos.copy()
         if self.velocity_control:
             vel = self.p2c(action) if self.polar else action
             acc = (vel - self._agent_vel) / self._dt
@@ -405,9 +456,27 @@ class BaseCrowdNavigationEnv(gym.Env):
         colliding with a wall
         """
         # Crowd
-        if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
-           [self.PHYSICAL_SPACE * 2] * self.n_crowd):
-            return True
+        if self.n_crowd > 0:
+            if self.supersample_col:
+                over_sample_by = self._dt / 0.01
+                agent_poss = self._last_agent_pos + np.einsum(
+                    "i,j->ij",
+                    np.arange(0, int(over_sample_by) + 1),
+                    self._agent_pos - self._last_agent_pos
+                ) / over_sample_by
+                crowd_poss = self._last_crowd_poss + np.einsum(
+                    "i,kj->ikj",
+                    np.arange(0, int(over_sample_by) + 1),
+                    self._crowd_poss - self._last_agent_pos
+                ) / over_sample_by
+                agent_poss = np.expand_dims(agent_poss, axis=1)
+                if np.sum(np.linalg.norm(agent_poss - crowd_poss, axis=-1) <
+                   [self.PHYSICAL_SPACE * 2] * self.n_crowd):
+                    return True
+            else:
+                if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
+                   [self.PHYSICAL_SPACE * 2] * self.n_crowd):
+                    return True
         # Walls
         if np.sum(np.abs(self._agent_pos) >
            np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE):

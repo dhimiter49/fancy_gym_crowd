@@ -66,13 +66,14 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
                 'max_acc': 1.5,
                 'max_vel': 3.0,
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
+                'replan_steps': 10,
                 'dt': 0.1,
-                'min_dist_crowd': 1.4,  # personal space of the members of the crowd
+                'min_dist_crowd': 1,  # physical distance + 0.2
                 'min_dist_wall': 0.5,  # physical space of agent + 0.1
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 4,
+                'goal_scale': 2,
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
@@ -88,9 +89,7 @@ class MPWrapper_CrowdStatic(RawInterfaceWrapper):
 
     @property
     def context_mask(self):
-        return np.hstack([
-            [True] * (2 * (self.n_crowd + 2) + 4),  # agent vel, crowd-goal pos, 4 walls
-        ])
+        return np.hstack([np.full(self.observation_space.shape, True)])
 
 
     @property
@@ -116,14 +115,15 @@ class MPWrapper_CrowdStatic_Vel(MPWrapper_CrowdStatic):
                 'max_acc': 1.5,
                 'max_vel': 3.0,
                 'horizon': 21,  # 2 sec to stop (1 extra step is current step)
+                'replan_steps': 10,
                 'dt': 0.1,
                 'velocity_control': True,
-                'min_dist_crowd': 1.4,  # personal space of the members of the crowd
+                'min_dist_crowd': 1,  # physical distance + 0.2
                 'min_dist_wall': 0.5,  # physical space of agent + 0.1
             },
             'trajectory_generator_kwargs': {
                 'weights_scale': 1,
-                'goal_scale': 4,
+                'goal_scale': 2,
             },
             'basis_generator_kwargs': {
                 'num_basis': 3,
