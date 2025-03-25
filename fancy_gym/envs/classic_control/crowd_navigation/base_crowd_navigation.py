@@ -467,7 +467,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 crowd_poss = self._last_crowd_poss + np.einsum(
                     "i,kj->ikj",
                     np.arange(0, int(over_sample_by) + 1),
-                    self._crowd_poss - self._last_agent_pos
+                    self._crowd_poss - self._last_crowd_pos
                 ) / over_sample_by
                 agent_poss = np.expand_dims(agent_poss, axis=1)
                 if np.sum(np.linalg.norm(agent_poss - crowd_poss, axis=-1) <
