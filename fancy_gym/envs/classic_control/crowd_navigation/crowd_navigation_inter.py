@@ -92,6 +92,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
 
     def _get_reward(self, action: np.ndarray):
         dg = np.linalg.norm(self._crowd_poss - self._crowd_goal_poss, axis=-1)
+        dg_old = np.linalg.norm(self._last_crowd_poss - self._crowd_goal_poss, axis=-1)
         self._goal_reached = np.logical_and(
             dg < self.PHYSICAL_SPACE,  # close enought to goal
             np.linalg.norm(self._crowd_vels) < self.MAX_ACC * self._dt  # low velocity
@@ -100,7 +101,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         # Goal distance when task is not completed yet
         idx_no_goal = np.where(self._goal_reached == 0)[0]
         Rg = Rg.astype(np.float32)
-        Rg[idx_no_goal] += -self.Cg * np.clip(dg[idx_no_goal], 1, np.inf) ** 2
+        Rg[idx_no_goal] += self.Cg * (dg_old - dg)[idx_no_goal]
 
         Rc = self._is_collided * self.COLLISION_REWARD
         # Crowd distance
@@ -588,6 +589,10 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
 
         self._is_collided = self._check_collisions()
         self._current_reward, info = self._get_reward(action)
+        if np.any(self._goal_reached):
+            idx_goal_reached = np.where(self._goal_reached == 1)[0]
+            self._crowd_goal_poss[idx_goal_reached] =\
+                self._gen_crowd_goal(self._crowd_poss[idx_goal_reached])
         dummy_rew = np.sum(self._current_reward)
         info["terminal"] = self._is_collided
         info["rewards"] = self._current_reward
