@@ -112,12 +112,12 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             ]]
         rel_crowd_poss = rel_crowd_poss.reshape(self.n_crowd, self.n_crowd - 1, 2)
         dist_crowd = np.linalg.norm(rel_crowd_poss, axis=-1)
+        Rc = Rc.astype(np.float32)
         Rc[idx_no_collision] = np.sum(
             (1 - np.exp(self.Cc / dist_crowd[idx_no_collision])) *
             (dist_crowd[idx_no_collision] < self.SOCIAL_SPACE + self.PHYSICAL_SPACE),
             axis=-1
         )
-        print(Rc)
 
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
