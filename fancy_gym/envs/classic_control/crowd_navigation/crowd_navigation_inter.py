@@ -41,6 +41,22 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         self.INTER_CROWD = True
         self.MAX_EPISODE_STEPS = 100
+        self.COLORS = [
+            "red",
+            "blue",
+            "black",
+            "gray",
+            "green",
+            "gold",
+            "brown",
+            "orange",
+            "olive",
+            "cyan",
+            "pink",
+            "magenta",
+            "teal",
+            "lightblue"
+        ]
         self.one_way = one_way
         self.polar = polar
         super().__init__(
@@ -343,7 +359,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                     head_width=self.PERSONAL_SPACE / 4,
                     overhang=1,
                     head_length=0.2,
-                    ec="r"
+                    ec=self.COLORS[i]
                 ))
 
             self.sep_planes = []
@@ -352,7 +368,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                     self.separating_planes[i][0], self.separating_planes[i][1],
                     self.separating_planes[i][2], self.separating_planes[i][3],
                     head_width=0.0,
-                    ec="r"
+                    ec=self.COLORS[i]
                 ))
 
             # Social space, Personal space, Physical space, Crowd goal positions
@@ -360,31 +376,34 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             self.PrS_crowd = []
             self.PhS_crowd = []
             self.crowd_goal_points = []
-            for m in self._crowd_poss:
+            for i, m in enumerate(self._crowd_poss):
                 self.ScS_crowd.append(
                     plt.Circle(
-                        m, self.SOCIAL_SPACE, color="r", fill=False, linestyle="--"
+                        m,
+                        self.SOCIAL_SPACE,
+                        color=self.COLORS[i],
+                        fill=False,
+                        linestyle="--"
                     )
                 )
                 ax.add_patch(self.ScS_crowd[-1])
                 self.PrS_crowd.append(
                     plt.Circle(
-                        m, self.PERSONAL_SPACE, color="r", fill=False
+                        m, self.PERSONAL_SPACE, color=self.COLORS[i], fill=False
                     )
                 )
                 ax.add_patch(self.PrS_crowd[-1])
                 self.PhS_crowd.append(
                     plt.Circle(
-                        m, self.PHYSICAL_SPACE, color="r", alpha=0.5
+                        m, self.PHYSICAL_SPACE, color=self.COLORS[i], alpha=0.5
                     )
                 )
                 ax.add_patch(self.PhS_crowd[-1])
             if not self.const_vel:
-                for g in self._crowd_goal_poss:
-                    self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
-
-            # Goal
-            self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
+                for i, g in enumerate(self._crowd_goal_poss):
+                    self.crowd_goal_points.append(ax.plot(
+                        g[0], g[1], c=self.COLORS[i], marker="x"
+                    )[0])
 
             # Trajectory
             self.trajectory_line, = ax.plot(
@@ -425,10 +444,6 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             fontsize=11,
             fontweight='bold'
         )
-
-        if self._steps == 1:
-            self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
-
         for i, member in enumerate(self._crowd_poss):
             self.ScS_crowd[i].center = member
             self.PrS_crowd[i].center = member
