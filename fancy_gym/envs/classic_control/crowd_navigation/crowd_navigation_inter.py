@@ -111,7 +111,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         dg_old = np.linalg.norm(self._last_crowd_poss - self._crowd_goal_poss, axis=-1)
         self._goal_reached = np.logical_and(
             dg < self.PHYSICAL_SPACE,  # close enought to goal
-            np.linalg.norm(self._crowd_vels) < self.MAX_ACC * self._dt  # low velocity
+            np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt  # low vel
         )
         Rg = self._goal_reached * self.Tc
         # Goal distance when task is not completed yet
