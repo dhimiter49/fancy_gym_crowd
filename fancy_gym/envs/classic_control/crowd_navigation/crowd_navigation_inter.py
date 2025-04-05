@@ -66,6 +66,9 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             height,
             interceptor_percentage,
             velocity_control=velocity_control,
+            lidar_rays=lidar_rays,
+            lidar_vel=lidar_vel,
+            sequence_obs=sequence_obs,
         )
 
         self.seq_obs = sequence_obs

@@ -589,6 +589,7 @@ register(
         "height": 16,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
+        "lidar_vel": True,
     }
 )
 
@@ -603,6 +604,7 @@ register(
         "height": 16,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
+        "lidar_vel": True,
         "velocity_control": True,
     }
 )
