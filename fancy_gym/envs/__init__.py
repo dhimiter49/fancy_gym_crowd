@@ -579,7 +579,7 @@ register(
 )
 
 register(
-    id='fancy/CrowdNavigationLiDARInter-v0',
+    id='fancy/CrowdNavigationInterLiDAR-v0',
     entry_point=CrowdNavigationInterEnv,
     mp_wrapper=MPWrapper_Crowd,
     max_episode_steps=100,
@@ -593,7 +593,7 @@ register(
 )
 
 register(
-    id='fancy/CrowdNavigationLiDARInterVel-v0',
+    id='fancy/CrowdNavigationInterLiDARVel-v0',
     entry_point=CrowdNavigationInterEnv,
     mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=100,
@@ -608,7 +608,7 @@ register(
 )
 
 register(
-    id='fancy/CrowdNavigationSeqInter-v0',
+    id='fancy/CrowdNavigationInterSeq-v0',
     entry_point=CrowdNavigationInterEnv,
     mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=100,
@@ -622,7 +622,7 @@ register(
 )
 
 register(
-    id='fancy/CrowdNavigationSeqInterVel-v0',
+    id='fancy/CrowdNavigationInterSeqVel-v0',
     entry_point=CrowdNavigationInterEnv,
     mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=100,
