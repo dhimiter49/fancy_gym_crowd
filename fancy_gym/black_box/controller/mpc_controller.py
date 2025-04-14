@@ -75,9 +75,13 @@ class MPCController(BaseController):
         self.mat_vc_acc_vel = mat_vc_acc_vel
         if self.velocity_control:
             self.mat_pos_control = self.mat_vc_pos_vel
-            self.vec_pos_vel = 0.5 * self.dt
+            self.vec_pos_vel = self.vec_pos_vel_crowd = 0.5 * self.dt
         else:
             self.mat_pos_control = self.mat_pos_acc
+            self.vec_pos_vel_crowd = np.concatenate([
+                self.vec_pos_vel[:self.N_crowd],
+                self.vec_pos_vel[self.N: self.N + self.N_crowd]
+            ])
 
         self.mat_pos_control_crowd = np.concatenate([
             self.mat_pos_control[:self.N_crowd],
@@ -236,7 +240,8 @@ class MPCController(BaseController):
                 np.eye(self.N_crowd) * vec[:, 0], np.eye(self.N_crowd) * vec[:, 1]
             ])
             v_cb = M_ca @ (
-                -poss.flatten("F") + self.vec_pos_vel * np.repeat(agent_vel, self.N_crowd)
+                -poss.flatten("F") + self.vec_pos_vel_crowd *
+                np.repeat(agent_vel, self.N_crowd)
             ) - np.array([self.min_dist_crowd] * self.N_crowd)
             M_cac = -M_ca @ self.mat_pos_control_crowd
             const_M.append(M_cac)
