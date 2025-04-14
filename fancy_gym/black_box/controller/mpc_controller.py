@@ -52,6 +52,7 @@ class MPCController(BaseController):
         mat_vc_pos_vel: np.ndarray = None,
         mat_vc_acc_vel: np.ndarray = None,
         horizon: int = 20,
+        horizon_crowd_pred: int = None,
         replan_steps: int = None,
         dt: float = 0.1,
         min_dist_crowd: float = 0.0,
@@ -59,6 +60,7 @@ class MPCController(BaseController):
         velocity_control: float = False,
     ):
         self.N = horizon
+        self.N_crowd = self.N if horizon_crowd_pred is None else horizon_crowd_pred
         self.replan = replan_steps if replan_steps is not None else self.N
         self.MAX_STOPPING_TIME = max_vel / max_acc
         self.MAX_STOPPING_DIST = 2 * (
@@ -76,6 +78,11 @@ class MPCController(BaseController):
             self.vec_pos_vel = 0.5 * self.dt
         else:
             self.mat_pos_control = self.mat_pos_acc
+
+        self.mat_pos_control_crowd = np.concatenate([
+            self.mat_pos_control[:self.N_crowd],
+            self.mat_pos_control[self.N: self.N + self.N_crowd]
+        ])
         self.lin_sides = 8
         self.polygon_acc_lines = gen_polygon(max_acc, self.lin_sides)
         self.polygon_vel_lines = gen_polygon(max_vel, self.lin_sides)
@@ -203,10 +210,10 @@ class MPCController(BaseController):
         Return:
             (numpy.ndarray): predicted positions of the crowd throughout the horizon
         """
-        return np.stack([crowd_poss] * self.N) + np.einsum(
+        return np.stack([crowd_poss] * self.N_crowd) + np.einsum(
             'ijk,i->ijk',
-            np.stack([crowd_vels] * self.N, 0) * self.dt,
-            np.arange(1, self.N + 1)
+            np.stack([crowd_vels] * self.N_crowd, 0) * self.dt,
+            np.arange(1, self.N_crowd + 1)
         )
 
 
@@ -225,11 +232,13 @@ class MPCController(BaseController):
             if np.all(dist > self.MAX_STOPPING_DIST) or\
                (np.all(dist > self.MAX_STOPPING_DIST / 2) and np.all(angle)):
                 continue
-            M_ca = np.hstack([np.eye(self.N) * vec[:, 0], np.eye(self.N) * vec[:, 1]])
+            M_ca = np.hstack([
+                np.eye(self.N_crowd) * vec[:, 0], np.eye(self.N_crowd) * vec[:, 1]
+            ])
             v_cb = M_ca @ (
-                -poss.flatten("F") + self.vec_pos_vel * np.repeat(agent_vel, self.N)
-            ) - np.array([self.min_dist_crowd] * self.N)
-            M_cac = -M_ca @ self.mat_pos_control
+                -poss.flatten("F") + self.vec_pos_vel * np.repeat(agent_vel, self.N_crowd)
+            ) - np.array([self.min_dist_crowd] * self.N_crowd)
+            M_cac = -M_ca @ self.mat_pos_control_crowd
             const_M.append(M_cac)
             const_b.append(v_cb)
 
