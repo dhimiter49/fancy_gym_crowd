@@ -231,6 +231,8 @@ class MPCController(BaseController):
         for member in range(len(horizon_crowd_poss[1])):
             poss = horizon_crowd_poss[:, member, :]
             dist = np.linalg.norm(poss, axis=-1)
+            zero_idx = np.where(np.linalg.norm(poss, axis=-1) == 0)[0]
+            poss[zero_idx] += 1e-8
             vec = -(poss.T / np.linalg.norm(poss, axis=-1)).T
             angle = np.arccos(np.clip(np.dot(-vec, agent_vel), -1, 1)) > np.pi / 4
             if np.all(dist > self.MAX_STOPPING_DIST) or\
