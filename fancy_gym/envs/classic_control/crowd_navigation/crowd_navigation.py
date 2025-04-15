@@ -318,7 +318,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ])
             return np.concatenate([
                 [rel_goal_pos],
-                rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
+                rel_crowd_poss,
                 [agent_vel],
                 self._crowd_vels,
                 dist_walls
