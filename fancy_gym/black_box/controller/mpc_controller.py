@@ -376,9 +376,10 @@ class MPCController(BaseController):
 
                 if not self.short_hor_only_crowd:
                     # remove indeces from the objective
+                    obj_horizon = horizon - 1 if self.velocity_control else horizon
                     del_idx = list(np.array([
-                        np.arange(horizon - 1 - shorten_by, horizon - 1) + (horizon - 1) * i
-                        for i in range(0, 2)  # 2 dims x and y, and horizon one less bc 0
+                        np.arange(obj_horizon - shorten_by, obj_horizon) + obj_horizon * i
+                        for i in range(0, 2)  # 2 dims x and y
                     ]).flatten())
                     opt_M = np.delete(opt_M, del_idx, axis=0)
                     opt_M = np.delete(opt_M, del_idx, axis=1)
