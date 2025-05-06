@@ -27,7 +27,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         discrete_action: bool = False,
         velocity_control: bool = False,
         dt: float = 0.1,
-        continuous_collision: bool = False,
+        continuous_collision: bool = True,
     ):
         super().__init__()
 
@@ -467,7 +467,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 crowd_poss = self._last_crowd_poss + np.einsum(
                     "i,kj->ikj",
                     np.arange(0, int(over_sample_by) + 1),
-                    self._crowd_poss - self._last_agent_pos
+                    self._crowd_poss - self._last_crowd_poss
                 ) / over_sample_by
                 agent_poss = np.expand_dims(agent_poss, axis=1)
                 if np.sum(np.linalg.norm(agent_poss - crowd_poss, axis=-1) <
