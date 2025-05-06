@@ -36,6 +36,11 @@ class MPCController(BaseController):
     :param mat_vc_pos_vel : matrix calculating positions from velocity control
     :param mat_vc_acc_vel : matrix calculating acceleration from velocities
     :param horizon : horizon for which to optimize control
+    :param horizon_crowd_pred: define explicitly a shorter horizon for the crowd, future
+        crowd positions are complitly neglected as the memebr of the crowd would dissapear
+    :param horizon_tries: if the qp doesnt hind a solution theme many times again with a
+        shorter horizon (the horizon is shortned arbitrarily by half of the current
+        horizon e.g. for horizon_tries=3 and horizon 21 -> 21, 11, 6, 3)
     :param replan_steps : how often to replan
     :param dt : time step
     :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
@@ -55,6 +60,8 @@ class MPCController(BaseController):
         mat_vc_pos_vel: np.ndarray = None,
         mat_vc_acc_vel: np.ndarray = None,
         horizon: int = 20,
+        horizon_crowd_pred: int = None,
+        horizon_tries: int = 0,
         replan_steps: int = None,
         dt: float = 0.1,
         min_dist_crowd: float = 0.0,
@@ -63,6 +70,9 @@ class MPCController(BaseController):
         uncertainty: str = '',
     ):
         self.N = horizon
+        self.horizon_tries = horizon_tries
+        self.short_hor_only_crowd = True
+        self.N_crowd = self.N if horizon_crowd_pred is None else horizon_crowd_pred
         self.replan = replan_steps if replan_steps is not None else self.N
         self.MAX_STOPPING_TIME = max_vel / max_acc
         self.MAX_STOPPING_DIST = 2 * (
@@ -78,9 +88,18 @@ class MPCController(BaseController):
         self.mat_vc_acc_vel = mat_vc_acc_vel
         if self.velocity_control:
             self.mat_pos_control = self.mat_vc_pos_vel
-            self.vec_pos_vel = 0.5 * self.dt
+            self.vec_pos_vel = self.vec_pos_vel_crowd = 0.5 * self.dt
         else:
             self.mat_pos_control = self.mat_pos_acc
+            self.vec_pos_vel_crowd = np.concatenate([
+                self.vec_pos_vel[:self.N_crowd],
+                self.vec_pos_vel[self.N: self.N + self.N_crowd]
+            ])
+
+        self.mat_pos_control_crowd = np.concatenate([
+            self.mat_pos_control[:self.N_crowd],
+            self.mat_pos_control[self.N: self.N + self.N_crowd]
+        ])
         self.lin_sides = 8
         self.polygon_acc_lines = gen_polygon(max_acc, self.lin_sides)
         self.polygon_vel_lines = gen_polygon(max_vel, self.lin_sides)
@@ -243,10 +262,10 @@ class MPCController(BaseController):
                     new_crowd_vels[i] += np.linalg.norm(new_crowd_vels[i]) * 0.2
             crowd_vels = new_crowd_vels
 
-        return np.stack([crowd_poss] * self.N) + np.einsum(
+        return np.stack([crowd_poss] * self.N_crowd) + np.einsum(
             'ijk,i->ijk',
-            np.stack([crowd_vels] * self.N, 0) * self.dt,
-            np.arange(1, self.N + 1)
+            np.stack([crowd_vels] * self.N_crowd, 0) * self.dt,
+            np.arange(1, self.N_crowd + 1)
         )
 
 
@@ -260,16 +279,21 @@ class MPCController(BaseController):
         for member in range(len(horizon_crowd_poss[1])):
             poss = horizon_crowd_poss[:, member, :]
             dist = np.linalg.norm(poss, axis=-1)
+            zero_idx = np.where(np.linalg.norm(poss, axis=-1) == 0)[0]
+            poss[zero_idx] += 1e-8
             vec = -(poss.T / np.linalg.norm(poss, axis=-1)).T
             angle = np.arccos(np.clip(np.dot(-vec, agent_vel), -1, 1)) > np.pi / 4
             if np.all(dist > self.MAX_STOPPING_DIST) or\
                (np.all(dist > self.MAX_STOPPING_DIST / 2) and np.all(angle)):
                 continue
-            M_ca = np.hstack([np.eye(self.N) * vec[:, 0], np.eye(self.N) * vec[:, 1]])
+            M_ca = np.hstack([
+                np.eye(self.N_crowd) * vec[:, 0], np.eye(self.N_crowd) * vec[:, 1]
+            ])
             v_cb = M_ca @ (
-                -poss.flatten("F") + self.vec_pos_vel * np.repeat(agent_vel, self.N)
-            ) - np.array([self.min_dist_crowd] * self.N)
-            M_cac = -M_ca @ self.mat_pos_control
+                -poss.flatten("F") + self.vec_pos_vel_crowd *
+                np.repeat(agent_vel, self.N_crowd)
+            ) - np.array([self.min_dist_crowd] * self.N_crowd)
+            M_cac = -M_ca @ self.mat_pos_control_crowd
             const_M.append(M_cac)
             const_b.append(v_cb)
 
@@ -340,14 +364,17 @@ class MPCController(BaseController):
         # constrain distance relative to the crowd
         if self.min_dist_crowd > 0:
             self.const_crowd(const_M, const_b, crowd, curr_pos, curr_vel)
+        crowd_const_dim = len(const_M)
 
         # constraint distance to the wall
         wall_eqs = self.wall_eq(wall_dist)
         if len(wall_eqs) != 0:
             self.const_lin_pos(const_M, const_b, wall_eqs, curr_vel)
+        wall_const_dim = len(const_M) - crowd_const_dim
 
         # constrain acceleration and velocity limits by using an inner polygon of a circle
         self.const_acc_vel(const_M, const_b, curr_vel)
+        acc_vel_const_dim = len(const_M) - crowd_const_dim - wall_const_dim
 
         term_const_M = None
         term_const_b = None
@@ -357,9 +384,11 @@ class MPCController(BaseController):
             term_const_M = self.mat_vel_acc[[self.N - 1, 2 * self.N - 1], :]
             term_const_b = -curr_vel
 
+        const_M = sparse.csr_matrix(np.vstack(const_M))
+        const_b = np.hstack(const_b)
         control = solve_qp(
             self.opt_M, opt_V,
-            G=sparse.csr_matrix(np.vstack(const_M)), h=np.hstack(const_b),
+            G=const_M, h=const_b,
             A=term_const_M, b=term_const_b,
             solver="clarabel",
             tol_gap_abs=5e-5,
@@ -370,18 +399,70 @@ class MPCController(BaseController):
             tol_ktratio=1e-4
         )
 
+        if control is None and self.horizon_tries > 0:
+            horizon = self.N
+            full_dim = crowd_const_dim + wall_const_dim + acc_vel_const_dim
+            opt_M = self.opt_M.toarray() if not self.short_hor_only_crowd else self.opt_M
+            short_dims = crowd_const_dim if self.short_hor_only_crowd else full_dim
+            while self.horizon_tries > 0:
+                shorten_by = horizon // 2
+                # print("Using a shorter crowd horizon of: ", horizon - shorten_by)
+                del_idx = list(np.array([
+                    np.arange(horizon - shorten_by, horizon) + horizon * i
+                    for i in range(0, short_dims)
+                ]).flatten())
+                const_M = np.delete(const_M.toarray(), del_idx, axis=0)
+                const_b = np.delete(const_b, del_idx, axis=0)
+
+                if not self.short_hor_only_crowd:
+                    # remove indeces from the objective
+                    obj_horizon = horizon - 1 if self.velocity_control else horizon
+                    del_idx = list(np.array([
+                        np.arange(obj_horizon - shorten_by, obj_horizon) + obj_horizon * i
+                        for i in range(0, 2)  # 2 dims x and y
+                    ]).flatten())
+                    opt_M = np.delete(opt_M, del_idx, axis=0)
+                    opt_M = np.delete(opt_M, del_idx, axis=1)
+                    const_M = np.delete(const_M, del_idx, axis=1)
+                    opt_V = np.delete(opt_V, del_idx, axis=0)
+                    opt_M = sparse.csr_matrix(opt_M)
+
+                const_M = sparse.csr_matrix(const_M)
+
+                # try again with shorter crowd horizon
+                control = solve_qp(
+                    opt_M, opt_V,
+                    G=const_M, h=const_b,
+                    A=term_const_M, b=term_const_b,
+                    solver="clarabel",
+                    tol_gap_abs=5e-5,
+                    tol_gap_rel=5e-5,
+                    tol_feas=1e-4,
+                    tol_infeas_abs=5e-5,
+                    tol_infeas_rel=5e-5,
+                    tol_ktratio=1e-4
+                )
+                opt_M = opt_M.toarray() if not self.short_hor_only_crowd else opt_M
+                if control is not None:
+                    break
+                horizon -= shorten_by
+                self.horizon_tries -= 1
+            self.horizon_tries = 3
+
+
         if control is None:
-            control = np.zeros(2 * self.N)
-            control[0:self.N - 1] = self.last_braking_traj[1:, 0]
-            control[self.N:2 * self.N - 1] = self.last_braking_traj[1:, 1]
-            actions = np.array([control[:self.N], control[self.N:]]).T
+            horizon = len(self.last_braking_traj.flatten()) // 2
+            control = np.zeros(2 * horizon)
+            control[0:horizon - 1] = self.last_braking_traj[1:, 0]
+            control[horizon:2 * horizon - 1] = self.last_braking_traj[1:, 1]
+            actions = np.array([control[:horizon], control[horizon:]]).T
         else:
             if not self.velocity_control:
                 actions = np.array([control[:self.N], control[self.N:]]).T
             else:
                 actions = np.array([
-                    np.append(control[:self.N - 1], 0),
-                    np.append(control[self.N - 1:], 0)]
+                    np.append(control[:len(control) // 2], 0),
+                    np.append(control[len(control) // 2:], 0)]
                 ).T
         self.last_braking_traj = actions  # save last trajecotry in case next step fails
         return actions
