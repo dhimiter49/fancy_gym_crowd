@@ -213,6 +213,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
                     self.env.unwrapped.crowd_pos_vel,
                 )
                 c_action = step_action[0]
+                self.env.set_des_position(pos)
             obs, c_reward, terminated, truncated, info = self.env.step(
                 c_action)
             rewards[t] = c_reward

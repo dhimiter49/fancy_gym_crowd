@@ -139,6 +139,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
+        self.desired_position = np.empty(2)  # desired position when using ProDMP
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.n_crowd, 4))
@@ -159,6 +160,15 @@ class BaseCrowdNavigationEnv(gym.Env):
         positions += distances
         positions = np.cumsum(positions, 0)
         self.current_trajectory_vel = positions.copy()
+
+
+    def set_des_position(self, position):
+        """
+        Set the next desired position from the ProDMP, relevant to calculate the intrinsic
+        reward when using MPC. The learned agent must predict (feasible) trajectories that
+        MPC can follow.
+        """
+        self.desired_position = position
 
 
     def c2p(self, cart):
