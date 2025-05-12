@@ -75,11 +75,11 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
                 'goal_scale': 2,
             },
             'basis_generator_kwargs': {
-                'num_basis': 3,
+                'num_basis': 4,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
-                'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0,
+                'replanning_schedule': lambda pos, vel, obs, action, t: t % 2 == 0,
                 # 'duration': (21 + 10) * 0.1  # should be at least replan + MPC horizon
             }
         },
@@ -103,6 +103,24 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
 
 class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
     mp_config = {
+        # 'ProDMP': {
+        #     'phase_generator_kwargs': {
+        #         'tau': 10.,
+        #     },
+        #     'controller_kwargs': {
+        #         'controller_type': 'velocity',
+        #     },
+        #     'trajectory_generator_kwargs': {
+        #         'weights_scale': 1,
+        #         'goal_scale': 2,
+        #     },
+        #     'basis_generator_kwargs': {
+        #         'num_basis': 4,
+        #     },
+        #     'black_box_kwargs': {
+        #         'replanning_schedule': lambda pos, vel, obs, action, t: t % 2 == 0
+        #     }
+        # },
         'ProDMP': {
             'phase_generator_kwargs': {
                 'tau': 10.,  # self._dt * max_episode_steps
@@ -124,11 +142,11 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
                 'goal_scale': 2,
             },
             'basis_generator_kwargs': {
-                'num_basis': 3,
+                'num_basis': 4,
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
-                'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0,
+                'replanning_schedule': lambda pos, vel, obs, action, t: t % 2 == 0,
                 # 'duration': (21 + 10) * 0.1  # should be at least replan + MPC horizon
             }
         },
