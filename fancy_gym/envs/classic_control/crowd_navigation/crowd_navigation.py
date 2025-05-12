@@ -127,18 +127,37 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     [max_dist] * self.N_RAYS * self._n_frames,
                 ])
         elif self.seq_obs:
-            state_bound_min = np.hstack([
-                [-self.W_BORDER, -self.H_BORDER, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-                [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-                [-self.WIDTH, -self.HEIGHT, -self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] *
-                self.n_crowd,
-            ])
-            state_bound_max = np.hstack([
-                [self.W_BORDER, self.H_BORDER, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.WIDTH, self.HEIGHT, self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] *
-                self.n_crowd,
-            ])
+            if self.polar:
+                max_dist = np.linalg.norm([self.W_BORDER, self.H_BORDER])
+                state_bound_min = np.hstack([
+                    [-max_dist, -np.pi, 0] * (2 + self.n_crowd),
+                ])
+                state_bound_max = np.hstack([
+                    [max_dist, np.pi, self.AGENT_MAX_VEL] * (2 + self.n_crowd)
+                ])
+            else:
+                state_bound_min = np.hstack([
+                    [
+                        -self.W_BORDER,
+                        -self.H_BORDER,
+                        -self.AGENT_MAX_VEL,
+                        -self.AGENT_MAX_VEL
+                     ],
+                    [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                    [-self.WIDTH, -self.HEIGHT, -self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL]
+                    * self.n_crowd,
+                ])
+                state_bound_max = np.hstack([
+                    [
+                       self.W_BORDER,
+                       self.H_BORDER,
+                       self.AGENT_MAX_VEL,
+                       self.AGENT_MAX_VEL
+                    ],
+                    [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                    [self.WIDTH, self.HEIGHT, self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] *
+                    self.n_crowd,
+                ])
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
