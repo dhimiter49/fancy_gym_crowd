@@ -5,6 +5,7 @@ from gymnasium.core import ObsType
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
+from fancy_gym.envs.classic_control.crowd_navigation.utils import REPLAN_STATIC
 
 
 NUM_COL = 0
@@ -30,6 +31,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         self.MAX_EPISODE_STEPS = 80
         self.polar = polar
+        self.replan = REPLAN_STATIC
         super().__init__(
             n_crowd,
             width,

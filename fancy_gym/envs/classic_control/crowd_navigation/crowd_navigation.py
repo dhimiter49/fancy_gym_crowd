@@ -7,6 +7,7 @@ from gymnasium.core import ObsType
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
+from fancy_gym.envs.classic_control.crowd_navigation.utils import REPLAN_MOVING
 
 
 NUM_COL = 0
@@ -56,6 +57,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.const_vel = const_vel
         self.one_way = one_way
         self.polar = polar
+        self.replan = REPLAN_MOVING
         super().__init__(
             n_crowd,
             width,
