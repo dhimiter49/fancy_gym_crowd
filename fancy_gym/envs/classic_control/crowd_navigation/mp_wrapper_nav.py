@@ -43,26 +43,6 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
                 'alpha_phase': 2,
             },
         },
-        # 'ProDMP': {
-        #     'phase_generator_kwargs': {
-        #         'tau': 10.,
-        #     },
-        #     'controller_kwargs': {
-        #         'p_gains': 10,
-        #         'd_gains': 5,
-        #     },
-        #     'trajectory_generator_kwargs': {
-        #         'weights_scale': 10,
-        #         'goal_scale': 5,
-        #         'auto_scale_basis': True,
-        #     },
-        #     'basis_generator_kwargs': {
-        #         'num_basis': 3,
-        #     },
-        #     'black_box_kwargs': {
-        #         'replanning_schedule': lambda pos, vel, obs, action, t: t % 10 == 0
-        #     }
-        # },
         'ProDMP': {
             'phase_generator_kwargs': {
                 'tau': 6.,  # self._dt * max_episode_steps
