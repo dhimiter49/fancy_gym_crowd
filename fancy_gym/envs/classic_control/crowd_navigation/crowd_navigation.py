@@ -684,7 +684,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             rew, new_info = self._get_intrinsic_reward()
             self._current_reward += rew
             info.update(new_info)
-        print(info)
 
         self._steps += 1
         terminated = self._terminate(info)
