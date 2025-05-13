@@ -35,7 +35,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         super().__init__()
 
         self._dt = dt
-        self._traj_len = int(1 / self._dt)  # trajectory for ProDMP is usually 1 second
+        self._traj_len = self.replan
         self._safety_traj = 2
         self._plan_traj = 7
 
