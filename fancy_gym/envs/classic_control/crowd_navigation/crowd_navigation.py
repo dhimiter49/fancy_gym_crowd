@@ -319,25 +319,27 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     orient = np.array([1, 0])
                 norm = np.array([-orient[1], orient[0]])
                 rel_goal_pos = self.goal_pos - self._agent_pos
-                goal_angle_rel_orient = np.arccos(np.clip(
-                    np.dot(
-                        rel_goal_pos / np.linalg.norm(rel_goal_pos),
-                        orient
-                    ),
-                    -1.0, 1.0
-                ))
-                rel_crowd_pos = self._crowd_poss - self._agent_pos
-                crowd_angle_rel_orient = np.arccos(np.clip(
-                    np.dot(
-                        np.einsum(  # normalize
-                            "ij,i->ij",
-                            rel_crowd_pos,
-                            1 / np.linalg.norm(rel_crowd_pos, axis=-1)
+                goal_angle_rel_orient = np.sign(np.cross(rel_goal_pos, orient)) *\
+                    np.arccos(np.clip(
+                        np.dot(
+                            rel_goal_pos / np.linalg.norm(rel_goal_pos),
+                            orient
                         ),
-                        orient,
-                    ),
-                    -1.0, 1.0
-                ))
+                        -1.0, 1.0
+                    ))
+                rel_crowd_pos = self._crowd_poss - self._agent_pos
+                crowd_angle_rel_orient = np.sign(np.cross(rel_crowd_pos, orient)) *\
+                    np.arccos(np.clip(
+                        np.dot(
+                            np.einsum(  # normalize
+                                "ij,i->ij",
+                                rel_crowd_pos,
+                                1 / np.linalg.norm(rel_crowd_pos, axis=-1)
+                            ),
+                            orient,
+                        ),
+                        -1.0, 1.0
+                    ))
                 crowd_vel_rel_norm = np.dot(self._crowd_vels, norm)
                 return np.concatenate([
                     [np.concatenate([
