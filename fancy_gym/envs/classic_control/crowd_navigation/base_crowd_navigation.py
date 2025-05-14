@@ -33,8 +33,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         dt: float = 0.1,
         continuous_collision: bool = True,
     ):
-        calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
         self.non_polar_action = False
+        calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
         for c_frame in calling_frames:
             if "fancy_gym/envs/registry.py" in c_frame.filename:
                 self.non_polar_action = True
