@@ -10,9 +10,7 @@ from fancy_gym.envs.classic_control.crowd_navigation.dynamics import (
     gen_mat_vc_pos_vel,
     gen_mat_vc_acc_vel
 )
-from fancy_gym.envs.classic_control.crowd_navigation.utils import (
-    replan_close, REPLAN_NO_CROWD
-)
+from fancy_gym.envs.classic_control.crowd_navigation.utils import REPLAN_NO_CROWD
 
 
 class MPWrapper_Navigation(RawInterfaceWrapper):
@@ -63,8 +61,8 @@ class MPWrapper_Navigation(RawInterfaceWrapper):
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
-                'replanning_schedule': lambda pos, vel, obs, action, t: t %
-                    REPLAN_NO_CROWD == 0,
+                'replanning_schedule': lambda pos, vel, obs, action, t: t %\
+                REPLAN_NO_CROWD == 0,
                 # 'duration': (21 + 10) * 0.1  # should be at least replan + MPC horizon
             }
         },
@@ -108,8 +106,8 @@ class MPWrapper_Navigation_Vel(MPWrapper_Navigation):
             },
             'black_box_kwargs': {
                 # one second for dt of 0.1
-                'replanning_schedule': lambda pos, vel, obs, action, t: t %
-                    REPLAN_NO_CROWD == 0,
+                'replanning_schedule': lambda pos, vel, obs, action, t: t %\
+                REPLAN_NO_CROWD == 0,
                 # 'duration': (21 + 10) * 0.1  # should be at least replan + MPC horizon
             }
         },
