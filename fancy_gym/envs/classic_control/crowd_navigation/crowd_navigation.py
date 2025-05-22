@@ -332,7 +332,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     orient = self._agent_vel / np.linalg.norm(self._agent_vel)
                 else:
                     orient = np.array([1, 0])
-                norm = np.array([-orient[1], orient[0]])
                 rel_goal_pos = self.goal_pos - self._agent_pos
                 goal_angle_rel_orient = np.sign(np.cross(rel_goal_pos, orient)) *\
                     np.arccos(np.clip(
@@ -355,7 +354,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         ),
                         -1.0, 1.0
                     ))
-                crowd_vel_rel_norm = np.dot(self._crowd_vels, norm)
+                crowd_vel_rel_norm = np.dot(self._crowd_vels, orient)
                 return np.concatenate([
                     [np.concatenate([
                         self.c2p(self._agent_pos), [np.linalg.norm(self._agent_vel)]
