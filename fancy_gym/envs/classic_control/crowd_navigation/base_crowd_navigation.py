@@ -1,4 +1,5 @@
 from typing import Union, Tuple, Optional, Any, Dict
+import inspect
 
 import gymnasium as gym
 import numpy as np
@@ -27,8 +28,14 @@ class BaseCrowdNavigationEnv(gym.Env):
         discrete_action: bool = False,
         velocity_control: bool = False,
         dt: float = 0.1,
-        continuous_collision: bool = False,
+        continuous_collision: bool = True,
     ):
+        self.non_polar_action = False
+        calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
+        for c_frame in calling_frames:
+            if "fancy_gym/envs/registry.py" in c_frame.filename:
+                self.non_polar_action = True
+                break
         super().__init__()
 
         self._dt = dt
@@ -89,7 +96,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 self.action_space = spaces.MultiDiscrete(
                     [len(self.CARTESIAN_VEL), len(self.CARTESIAN_VEL)]
                 )
-            elif self.polar:
+            elif self.polar and not self.non_polar_action:
                 self.action_space = spaces.Box(
                     low=np.array([0, -np.pi]),
                     high=np.array([self.AGENT_MAX_VEL, np.pi]),
@@ -142,6 +149,17 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.n_crowd, 4))
+
+
+    def hard_set_vars(self, vars):
+        """
+        Hard set variables that define the whole state of the environment.
+
+        Args:
+            action (dict): dictionary of variable names and the value to assign
+        """
+        for key in vars:
+            setattr(self, key, vars[key])
 
 
     def set_trajectory(self, positions, velocities=None):
@@ -410,7 +428,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self._last_agent_pos = self._agent_pos.copy()
         if self.velocity_control:
-            vel = self.p2c(action) if self.polar else action
+            vel = self.p2c(action) if self.polar and not self.non_polar_action else action
             acc = (vel - self._agent_vel) / self._dt
             acc_norm = np.linalg.norm(acc)
             if acc_norm > self.MAX_ACC:

@@ -7,6 +7,7 @@ from gymnasium.core import ObsType
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
+from fancy_gym.envs.classic_control.crowd_navigation.utils import REPLAN_MOVING
 
 
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
@@ -47,6 +48,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.const_vel = const_vel
         self.one_way = one_way
         self.polar = polar
+        self.replan = REPLAN_MOVING
         super().__init__(
             n_crowd,
             width,
@@ -129,23 +131,41 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     [max_dist] * self.N_RAYS * self._n_frames,
                 ])
         elif self.seq_obs:
-            state_bound_min = np.hstack([
-                [
-                    -self.W_BORDER,
-                    -self.H_BORDER,
-                    -self.AGENT_MAX_VEL,
-                    -self.AGENT_MAX_VEL
-                ],
-                [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-                [-self.WIDTH, -self.HEIGHT, -self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] *
-                self.n_crowd,
-            ])
-            state_bound_max = np.hstack([
-                [self.W_BORDER, self.H_BORDER, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.WIDTH, self.HEIGHT, self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] *
-                self.n_crowd,
-            ])
+            if self.polar:
+                max_dist = np.linalg.norm([self.W_BORDER, self.H_BORDER])
+                state_bound_min = np.hstack([
+                    [-max_dist, -np.pi, 0] * (2 + self.n_crowd),
+                ])
+                state_bound_max = np.hstack([
+                    [max_dist, np.pi, self.AGENT_MAX_VEL] * (2 + self.n_crowd)
+                ])
+            else:
+                state_bound_min = np.hstack([
+                    [
+                        -self.W_BORDER,
+                        -self.H_BORDER,
+                        -self.AGENT_MAX_VEL,
+                        -self.AGENT_MAX_VEL
+                    ],
+                    [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                    [
+                        -self.WIDTH,
+                        -self.HEIGHT,
+                        -self.CROWD_MAX_VEL,
+                        -self.CROWD_MAX_VEL
+                    ] * self.n_crowd,
+                ])
+                state_bound_max = np.hstack([
+                    [
+                        self.W_BORDER,
+                        self.H_BORDER,
+                        self.AGENT_MAX_VEL,
+                        self.AGENT_MAX_VEL
+                    ],
+                    [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                    [self.WIDTH, self.HEIGHT, self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] *
+                    self.n_crowd,
+                ])
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
@@ -256,26 +276,25 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self._last_frames[-1] = ray_distances
             elif self.lidar_vel:
                 ray_velocities = np.zeros(ray_distances.shape)
-                for i, (member_pos, member_vel) in enumerate(zip(
-                    self._crowd_poss, self._crowd_vels
-                )):
-                    intersection = intersections_mask[i]
-                    if np.any(intersection):
-                        dir_idxs = np.where(intersection == 1)[0]
-                        for dir_idx in dir_idxs:
-                            lidar_vec = np.array([
-                                self.RAY_COS[dir_idx], self.RAY_SIN[dir_idx]
-                            ])
-                            if min_intersect_distances[dir_idx] == np.inf or\
-                               np.dot(lidar_vec, member_pos - self._agent_pos) < 0:
-                                continue  # account for correct direction
-                            vel_along_dir = np.dot(lidar_vec, member_vel)
-                            if ray_velocities[dir_idx] > 0 and\
-                               np.linalg.norm(member_pos - self._agent_pos) >\
-                               ray_distances[dir_idx]:  # keep only the closest one
-                                continue
-                            ray_velocities[dir_idx] = vel_along_dir
-
+                vel_along_all_dir_all_crowd = np.einsum(
+                    "ij,ij->i",
+                    np.concatenate(
+                        [np.array(list(zip(self.RAY_COS, self.RAY_SIN)))] * self.n_crowd
+                    ),
+                    np.repeat(self._crowd_vels, self.N_RAYS, axis=0)
+                )
+                vel_along_all_dir_all_crowd *= intersections_mask.flatten()
+                viable_distances = np.where(
+                    intersect_distances > 0, intersect_distances, np.inf
+                )
+                crowd_min_dist_idx = np.argmin(  # which one is closer
+                    viable_distances, axis=0
+                )
+                vel_along_dir = vel_along_all_dir_all_crowd[
+                    crowd_min_dist_idx * self.N_RAYS + np.arange(self.N_RAYS)
+                ]
+                intersection_mask_dir = min_intersect_distances != np.inf
+                ray_velocities = vel_along_dir * intersection_mask_dir
                 self._last_frames[0] = ray_distances
                 self._last_frames[1] = ray_velocities
             else:
@@ -300,22 +319,68 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self._last_frames.flatten()
             ]).astype(np.float32).flatten()
         elif self.seq_obs:
-            return np.concatenate([
-                [np.concatenate([self._agent_pos, self._agent_vel])],
-                [np.concatenate([self._goal_pos - self._agent_pos, self._agent_vel * 0])],
-                np.concatenate([
-                    self._crowd_poss - self._agent_pos, self._crowd_vels
-                ], axis=-1)
-            ]).astype(np.float32).flatten()
+            if self.polar:
+                if np.linalg.norm(self._agent_vel) > 0:
+                    orient = self._agent_vel / np.linalg.norm(self._agent_vel)
+                else:
+                    orient = np.array([1, 0])
+                rel_goal_pos = self.goal_pos - self._agent_pos
+                goal_angle_rel_orient = np.sign(np.cross(rel_goal_pos, orient)) *\
+                    np.arccos(np.clip(
+                        np.dot(
+                            rel_goal_pos / np.linalg.norm(rel_goal_pos),
+                            orient
+                        ),
+                        -1.0, 1.0
+                    ))
+                rel_crowd_pos = self._crowd_poss - self._agent_pos
+                crowd_angle_rel_orient = np.sign(np.cross(rel_crowd_pos, orient)) *\
+                    np.arccos(np.clip(
+                        np.dot(
+                            np.einsum(  # normalize
+                                "ij,i->ij",
+                                rel_crowd_pos,
+                                1 / np.linalg.norm(rel_crowd_pos, axis=-1)
+                            ),
+                            orient,
+                        ),
+                        -1.0, 1.0
+                    ))
+                crowd_vel_rel_norm = np.dot(self._crowd_vels, orient)
+                return np.concatenate([
+                    [np.concatenate([
+                        self.c2p(self._agent_pos), [np.linalg.norm(self._agent_vel)]
+                    ])],
+                    [np.concatenate([
+                        [np.linalg.norm(rel_goal_pos), goal_angle_rel_orient],
+                        [0]
+                    ])],
+                    np.concatenate([
+                        np.linalg.norm(rel_crowd_pos, axis=-1).reshape(-1, 1),
+                        crowd_angle_rel_orient.reshape(-1, 1),
+                        crowd_vel_rel_norm.reshape(-1, 1)
+                    ], axis=-1),
+                ]).astype(np.float32).flatten()
+            else:
+                return np.concatenate([
+                    [np.concatenate([self._agent_pos, self._agent_vel])],
+                    [np.concatenate([
+                        self._goal_pos - self._agent_pos, self._agent_vel * 0
+                    ])],
+                    np.concatenate([
+                        self._crowd_poss - self._agent_pos, self._crowd_vels
+                    ], axis=-1)
+                ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
+            rel_crowd_poss = self.c2p(rel_crowd_poss) if self.polar else rel_crowd_poss
             dist_walls = np.array([
                 [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
                 [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
             ])
             return np.concatenate([
                 [rel_goal_pos],
-                rel_crowd_poss if self.n_crowd > 1 else [rel_crowd_poss],
+                rel_crowd_poss,
                 [agent_vel],
                 self._crowd_vels,
                 dist_walls

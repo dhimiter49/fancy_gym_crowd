@@ -167,7 +167,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             return spaces.Box(low=min_obs_bound, high=max_obs_bound, dtype=self.env.observation_space.dtype)
         return self.env.observation_space
 
-    def step(self, action: np.ndarray):
+    def step(self, action: np.ndarray, verbose: int = 2):
         """ This function generates a trajectory based on a MP and then does the usual loop over reset and step"""
 
         if isinstance(action, tuple):
@@ -182,7 +182,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
 
         trajectory_length = len(position)
         rewards = np.zeros(shape=(trajectory_length,))
-        if self.verbose >= 2:
+        if self.verbose >= 2 or verbose >= 2:
             actions = np.zeros(shape=(trajectory_length,) +
                                self.env.action_space.shape)
             observations = np.zeros(shape=(trajectory_length,) + self.env.observation_space.shape,
@@ -217,7 +217,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
                 c_action)
             rewards[t] = c_reward
 
-            if self.verbose >= 2:
+            if self.verbose >= 2 or verbose >= 2:
                 actions[t, :] = c_action
                 observations[t, :] = obs
 
@@ -241,7 +241,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
         infos.update({k: v[:t + 1] for k, v in infos.items()})
         self.current_traj_steps += t + 1
 
-        if self.verbose >= 2:
+        if self.verbose >= 2 or verbose >= 2:
             infos['positions'] = position
             infos['velocities'] = velocity
             infos['step_actions'] = actions[:t + 1]
