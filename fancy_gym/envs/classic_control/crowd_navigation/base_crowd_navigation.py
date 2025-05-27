@@ -151,6 +151,17 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.separating_planes = np.zeros((self.n_crowd, 4))
 
 
+    def hard_set_vars(self, vars):
+        """
+        Hard set variables that define the whole state of the environment.
+
+        Args:
+            action (dict): dictionary of variable names and the value to assign
+        """
+        for key in vars:
+            setattr(self, key, vars[key])
+
+
     def set_trajectory(self, positions, velocities=None):
         positions = positions[:10]
         velocities = velocities[:10]
