@@ -45,6 +45,9 @@ class MPCController(BaseController):
     :param dt : time step
     :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
     :param min_dist_wall: minimum distance to the wall
+    :param velocity_control: use velocity to control agent or not
+    :param uncertainty: uncertainty type, '' no uncertainty, 'dir' velocity direction,
+        'vel' for speed and direction
     """
 
     def __init__(
@@ -64,6 +67,7 @@ class MPCController(BaseController):
         min_dist_crowd: float = 0.0,
         min_dist_wall: float = 0.4,
         velocity_control: float = False,
+        uncertainty: str = '',
     ):
         self.N = horizon
         self.horizon_tries = horizon_tries
@@ -74,6 +78,7 @@ class MPCController(BaseController):
         self.MAX_STOPPING_DIST = 2 * (
             max_vel * self.MAX_STOPPING_TIME - 0.5 * max_acc * self.MAX_STOPPING_TIME ** 2
         )
+        self.MAX_VEL = max_vel
         self.dt = dt
         self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc
@@ -109,6 +114,7 @@ class MPCController(BaseController):
                 2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
                 0.2 * np.eye(2 * self.N)
         self.opt_M = sparse.csr_matrix(self.opt_M)
+        self.uncertainty = uncertainty
 
         if not self.velocity_control:
             M_v_ = np.vstack([
@@ -214,6 +220,9 @@ class MPCController(BaseController):
         each member. The formula P_i = p_0 + i * v * dt, where for point i in horizon the
         position will be p_0 + i * v * dt.
 
+        Uncertainty handling by copying positions and generating new plausible velocities
+        depending on the direction and speed uncertainty.
+
         Args:
             crowd_poss (numpy.ndarray): an array of size (n_crowd, 2) with the current
                 positions of each member
@@ -222,6 +231,37 @@ class MPCController(BaseController):
         Return:
             (numpy.ndarray): predicted positions of the crowd throughout the horizon
         """
+        new_crowd_vels = []
+        if self.uncertainty in ["dir", "vel"]:
+            alphas = np.pi - 5 * np.pi / 6 * (
+                np.linalg.norm(crowd_vels, axis=-1) / self.MAX_VEL
+            )
+            n_trajs = np.where(alphas > np.pi / 2, 5, 3)  # 3 traj if less then 90, else 5
+            angles = alphas * (1 / (n_trajs - 1))
+            for i, vel in enumerate(crowd_vels):
+                for j in range(n_trajs[i]):
+                    angle = (j // 2 if j % 2 == 0 else - (j + 1) // 2) * angles[i]
+                    new_crowd_vels.append(np.array([
+                        np.cos(angle) * vel[0] - np.sin(angle) * vel[1],
+                        np.sin(angle) * vel[0] + np.cos(angle) * vel[1],
+                    ]))
+
+            crowd_poss = np.repeat(crowd_poss, n_trajs, axis=0)
+            new_crowd_vels = np.array(new_crowd_vels)
+            crowd_vels = new_crowd_vels
+
+        if self.uncertainty == "vel":
+            crowd_poss = np.repeat(crowd_poss, 3, axis=0)
+            new_crowd_vels = np.repeat(crowd_vels, 3, axis=0)
+            for i in range(len(new_crowd_vels)):
+                if i % 3 == 0:
+                    continue
+                if i % 3 == 1:
+                    new_crowd_vels[i] -= np.linalg.norm(new_crowd_vels[i]) * 0.2
+                if i % 3 == 2:
+                    new_crowd_vels[i] += np.linalg.norm(new_crowd_vels[i]) * 0.2
+            crowd_vels = new_crowd_vels
+
         return np.stack([crowd_poss] * self.N_crowd) + np.einsum(
             'ijk,i->ijk',
             np.stack([crowd_vels] * self.N_crowd, 0) * self.dt,
