@@ -387,10 +387,10 @@ class BaseCrowdNavigationEnv(gym.Env):
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
-                        [-self.W_BORDER + self.PHYSICAL_SPACE,
-                         -self.H_BORDER + self.PHYSICAL_SPACE],
-                        [self.W_BORDER - self.PHYSICAL_SPACE,
-                         self.H_BORDER - self.PHYSICAL_SPACE]
+                        [-self.W_BORDER + self.PHYSICAL_SPACE * 1.2,
+                         -self.H_BORDER + self.PHYSICAL_SPACE * 1.2],
+                        [self.W_BORDER - self.PHYSICAL_SPACE * 1.2,
+                         self.H_BORDER - self.PHYSICAL_SPACE * 1.2]
                     )
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
@@ -414,7 +414,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         Update robot position and velocity for time self._dt based on its dynamics.
 
         Args:
-            action (numpy.ndarray): 2D array representing the acc for current step
+            action (numpy.ndarray): 1D (x, y) array representing the acc for current step
         """
         if self.discrete_action:
             if self.velocity_control:

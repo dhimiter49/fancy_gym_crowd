@@ -80,6 +80,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ) + 1e-6
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
+        if hasattr(self, 'INTER_CROWD'):
+            self.n_crowd -= 1
         if self.lidar:
             if self.lidar_vel:
                 if self.polar:
@@ -177,6 +179,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
                 np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
+        if hasattr(self, 'INTER_CROWD'):
+            self.n_crowd += 1
 
         self.observation_space = spaces.Box(
             low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
