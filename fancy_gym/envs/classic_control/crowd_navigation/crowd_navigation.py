@@ -82,6 +82,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ) + 1e-6
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
+        if hasattr(self, 'INTER_CROWD'):
+            self.n_crowd -= 1
         if self.lidar:
             if self.lidar_vel:
                 if self.polar:
@@ -179,6 +181,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
                 np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
+        if hasattr(self, 'INTER_CROWD'):
+            self.n_crowd += 1
 
         self.observation_space = spaces.Box(
             low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
@@ -331,7 +335,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     orient = self._agent_vel / np.linalg.norm(self._agent_vel)
                 else:
                     orient = np.array([1, 0])
-                norm = np.array([-orient[1], orient[0]])
                 rel_goal_pos = self.goal_pos - self._agent_pos
                 goal_angle_rel_orient = np.sign(np.cross(rel_goal_pos, orient)) *\
                     np.arccos(np.clip(
@@ -354,7 +357,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         ),
                         -1.0, 1.0
                     ))
-                crowd_vel_rel_norm = np.dot(self._crowd_vels, norm)
+                crowd_vel_rel_norm = np.dot(self._crowd_vels, orient)
                 return np.concatenate([
                     [np.concatenate([
                         self.c2p(self._agent_pos), [np.linalg.norm(self._agent_vel)]
