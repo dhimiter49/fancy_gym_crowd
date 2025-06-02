@@ -322,8 +322,8 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         if len(crowd_poss.shape) == 1:
             crowd_poss = np.array([crowd_poss])
         crowd_goal_poss = np.random.uniform(
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER],
+            [-self.W_BORDER + self.PHYSICAL_SPACE, -self.H_BORDER + self.PHYSICAL_SPACE],
+            [self.W_BORDER - self.PHYSICAL_SPACE, self.H_BORDER - self.PHYSICAL_SPACE],
             (len(crowd_poss), 2)
         )
 
@@ -588,7 +588,6 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                     axis=-1
                 ) > 0
 
-        # TODO: Walls
         wall_crash = np.sum(
             np.abs(self._crowd_poss) >
             np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE,
