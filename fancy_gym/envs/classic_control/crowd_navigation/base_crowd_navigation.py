@@ -157,9 +157,21 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
+        self.desired_position = np.empty(2)  # desired position when using ProDMP
         self.current_trajectory_vel = np.zeros((100, 2))
         self._traj_index = 0
         self.separating_planes = np.zeros((self.n_crowd, 4))
+
+
+    def hard_set_vars(self, vars):
+        """
+        Hard set variables that define the whole state of the environment.
+
+        Args:
+            action (dict): dictionary of variable names and the value to assign
+        """
+        for key in vars:
+            setattr(self, key, vars[key])
 
 
     def set_trajectory(self, positions, velocities=None):
@@ -189,6 +201,15 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.current_trajectory = self.casc_trajectory[np.arange(
             0, self._plan_traj * self._safety_traj, self._safety_traj
         )]
+
+
+    def set_des_position(self, position):
+        """
+        Set the next desired position from the ProDMP, relevant to calculate the intrinsic
+        reward when using MPC. The learned agent must predict (feasible) trajectories that
+        MPC can follow.
+        """
+        self.desired_position = position
 
 
     def c2p(self, cart):
@@ -409,10 +430,10 @@ class BaseCrowdNavigationEnv(gym.Env):
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
-                        [-self.W_BORDER + self.PHYSICAL_SPACE,
-                         -self.H_BORDER + self.PHYSICAL_SPACE],
-                        [self.W_BORDER - self.PHYSICAL_SPACE,
-                         self.H_BORDER - self.PHYSICAL_SPACE]
+                        [-self.W_BORDER + self.PHYSICAL_SPACE * 1.2,
+                         -self.H_BORDER + self.PHYSICAL_SPACE * 1.2],
+                        [self.W_BORDER - self.PHYSICAL_SPACE * 1.2,
+                         self.H_BORDER - self.PHYSICAL_SPACE * 1.2]
                     )
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
@@ -436,7 +457,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         Update robot position and velocity for time self._dt based on its dynamics.
 
         Args:
-            action (numpy.ndarray): 2D array representing the acc for current step
+            action (numpy.ndarray): 1D (x, y) array representing the acc for current step
         """
         if self.discrete_action:
             if self.velocity_control:

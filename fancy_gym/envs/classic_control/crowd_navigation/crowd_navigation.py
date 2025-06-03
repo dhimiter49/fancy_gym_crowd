@@ -50,6 +50,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         time_frame: int = 0,
         lidar_vel: bool = False,
         n_frames: int = 4,
+        intrinsic_rew: bool = False,
     ):
         assert time_frame == 0 or not lidar_vel
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
@@ -71,6 +72,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         self._old_action = None
         self.seq_obs = sequence_obs
+        self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
@@ -90,6 +92,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ) + 1e-6
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
+        if hasattr(self, 'INTER_CROWD'):
+            self.n_crowd -= 1
         if self.lidar:
             if self.lidar_vel:
                 if self.polar:
@@ -187,6 +191,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
                 np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
             ])
+        if hasattr(self, 'INTER_CROWD'):
+            self.n_crowd += 1
 
         self.observation_space = spaces.Box(
             low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
@@ -235,6 +241,15 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         reward = Rg + Rc + Rw
         return reward, dict(goal=Rg, collision=Rc, wall=Rw)
+
+
+    def _get_intrinsic_reward(self):
+        """
+        Check how far the current position after the action is relative to the desired
+        position proposed by the ProDMP.
+        """
+        Ri = -np.linalg.norm(self._agent_pos - self.desired_position)
+        return Ri, dict(intrinsic=Ri)
 
 
     def _terminate(self, info):
@@ -766,6 +781,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             print("Col vel", COL_VEL_SUM / COLS)
             print("Col agent vel", COL_AGENT_VEL_SUM / COLS)
         self._current_reward, info = self._get_reward(action)
+        if self.intrinsic_rew:
+            rew, new_info = self._get_intrinsic_reward()
+            self._current_reward += rew
+            info.update(new_info)
 
         self._steps += 1
         self._traj_index += 1
