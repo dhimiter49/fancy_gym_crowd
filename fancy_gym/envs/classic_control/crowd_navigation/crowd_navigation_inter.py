@@ -561,12 +561,14 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                 time_dim = crowd_poss.shape[0]
 
                 rel_crowd_poss = np.repeat(crowd_poss, (self.n_crowd - 1), axis=1) -\
-                    np.stack([crowd_poss] * (self.n_crowd - 1)).reshape(time_dim, -1, 2)[
-                        :, [
-                            j for i in range(self.n_crowd)
-                            for j in range(self.n_crowd) if i != j
-                        ]
-                ]
+                    np.delete(
+                        np.repeat(
+                            crowd_poss, self.n_crowd, axis=0
+                        ).reshape(time_dim, -1, 2),
+                        [i * self.n_crowd + i for i in range(self.n_crowd)],
+                        axis=1
+                )
+
                 rel_crowd_poss = rel_crowd_poss.reshape(
                     time_dim, self.n_crowd, self.n_crowd - 1, 2
                 )

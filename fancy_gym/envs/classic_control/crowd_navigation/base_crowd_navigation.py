@@ -381,7 +381,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
-        try_between = True
+        try_between = "Inter" not in type(self).__name__  # no need in case of inter crowd
         for i in range(self.n_crowd):
             while True:
                 if try_between:
