@@ -225,9 +225,9 @@ class MPCController(BaseController):
         depending on the direction and speed uncertainty.
 
         Args:
-            crowd_poss (numpy.ndarray): an array of size (n_crowd, 2) with the current
+            crowd_poss (numpy.ndarray): an array of size (#crowd, 2) with the current
                 positions of each member
-            crowd_vels (numpy.ndarray): an array of size (n_crowd, 2) with the current
+            crowd_vels (numpy.ndarray): an array of size (#crowd, 2) with the current
                 velocities of each member
         Return:
             (numpy.ndarray): predicted positions of the crowd throughout the horizon
