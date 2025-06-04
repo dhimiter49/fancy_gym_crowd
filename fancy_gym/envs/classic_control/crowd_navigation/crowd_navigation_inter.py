@@ -506,9 +506,9 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             vels_norm = np.linalg.norm(vels, axis=-1)
             idxs_vel_too_high = np.where(vels_norm > self.AGENT_MAX_VEL)[0]
             if len(idxs_vel_too_high) > 0:
-                vels[idxs_acc_too_high] = np.einsum(
+                vels[idxs_vel_too_high] = np.einsum(
                     'ij,i->ij',
-                    vels[idxs_acc_too_high],
+                    vels[idxs_vel_too_high],
                     self.AGENT_MAX_VEL / vels_norm[idxs_vel_too_high]
                 )
 
