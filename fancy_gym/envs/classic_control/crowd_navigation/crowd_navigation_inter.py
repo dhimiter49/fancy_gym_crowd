@@ -3,10 +3,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 from gymnasium.core import ObsType
+import sys
+np. set_printoptions(threshold=sys.maxsize)
+
 
 from fancy_gym.envs.classic_control.crowd_navigation.crowd_navigation\
     import CrowdNavigationEnv
 
+
+COLLISION = 0
 
 class CrowdNavigationInterEnv(CrowdNavigationEnv):
     """
@@ -609,6 +614,10 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         self.update_state(action)
 
         self._is_collided = self._check_collisions()
+        if np.any(self._is_collided):
+            global COLLISION
+            COLLISION += 1
+            print(COLLISION)
         self._current_reward, info = self._get_reward(action)
         if np.any(self._goal_reached):
             idx_goal_reached = np.where(self._goal_reached == 1)[0]
