@@ -15,9 +15,6 @@ COLS = 0
 COL_VEL_SUM = 0
 COL_AGENT_VEL_SUM = 0
 
-ACTIONS = []
-ACTION_DERIVS = []
-
 
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     """
