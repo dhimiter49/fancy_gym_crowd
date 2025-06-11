@@ -287,9 +287,9 @@ class MPCController(BaseController):
             zero_idx = np.where(np.linalg.norm(poss, axis=-1) == 0)[0]
             poss[zero_idx] += 1e-8
             vec = -(poss.T / np.linalg.norm(poss, axis=-1)).T
-            angle = np.arccos(np.clip(np.dot(-vec, agent_vel), -1, 1)) > np.pi / 4
-            if np.all(dist > self.MAX_STOPPING_DIST) or\
-               (np.all(dist > self.MAX_STOPPING_DIST / 2) and np.all(angle)):
+            angle = np.arccos(np.clip(np.dot(-vec, agent_vel), -1, 1)) > np.pi / 2
+            if np.all(dist > self.MAX_STOPPING_DIST * 2) or\
+               (np.all(dist > self.MAX_STOPPING_DIST) and np.all(angle)):
                 continue
             M_ca = np.hstack([
                 np.eye(self.N_crowd) * vec[:, 0], np.eye(self.N_crowd) * vec[:, 1]
