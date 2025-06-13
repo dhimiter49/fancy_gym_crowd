@@ -677,6 +677,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self._crowd_vels[i] = self._planned_crowd_vels[i][0]
 
 
+    def get_obs(self):
+        return self._get_obs().copy()
+
+
     def step(self, action: np.ndarray):
         """
         A single step with action in angular velocity space
