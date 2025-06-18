@@ -34,6 +34,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         discrete_action: bool = False,
         velocity_control: bool = False,
         lidar_rays: int = 0,
+        lidar_max: float = 0.0,
         sequence_obs: bool = False,
         const_vel: bool = False,
         one_way: bool = False,
@@ -45,6 +46,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     ):
         assert time_frame == 0 or not lidar_vel
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
+        # need to specify num of rays if there is a maximum distance to the lidar
+        assert not lidar_max > 0.0 or lidar_rays > 0
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
         self.one_way = one_way
@@ -64,6 +67,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.seq_obs = sequence_obs
         self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
+        self.lidar_max = lidar_max if lidar_max > 0.0 else None
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
             self.lidar_vel = lidar_vel
@@ -71,12 +75,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self._n_frames = n_frames if not self.lidar_vel else 2  # one for each pos-vel
             self.use_time_frame = time_frame != 0
             self.time_frame = time_frame
-            self.frame_steps = int((time_frame * 10) / (self.dt * 10)) \
-                if self.use_time_frame else None
+            if self.use_time_frame:
+                self.frame_steps = int((time_frame * 10) / (self.dt * 10))
             self._last_frames = np.zeros((self._n_frames, self.N_RAYS))
-            self._last_second_frames = np.zeros(
-                (self.frame_steps, self.N_RAYS)
-            ) if self.use_time_frame else None
+            if self.use_time_frame:
+                self._last_second_frames = np.zeros((self.frame_steps, self.N_RAYS))
             self.RAY_ANGLES = np.linspace(
                 0, 2 * np.pi, self.N_RAYS, endpoint=False
             ) + 1e-6
@@ -249,7 +252,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
         agent_vel = self.c2p(self._agent_vel) if self.polar else self._agent_vel
         if self.lidar:
-            wall_distances = np.min([
+            wall_or_max_distances = np.min([
                 (self.W_BORDER - np.where(
                     self.RAY_COS > 0, self._agent_pos[0], -self._agent_pos[0]
                 )) / np.abs(self.RAY_COS),
@@ -257,25 +260,37 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self.RAY_SIN > 0, self._agent_pos[1], -self._agent_pos[1]
                 )) / np.abs(self.RAY_SIN)
             ], axis=0)
+            if self.lidar_max is not None:
+                wall_or_max_distances = np.minimum(
+                    wall_or_max_distances,
+                    np.ones_like(wall_or_max_distances) * self.lidar_max
+                )
 
-            x_crowd_rel, y_crowd_rel = self._crowd_poss[:, 0] - self._agent_pos[0], \
-                self._crowd_poss[:, 1] - self._agent_pos[1]
-            orthog_dist = np.abs(
-                np.outer(x_crowd_rel, self.RAY_SIN) - np.outer(y_crowd_rel, self.RAY_COS)
-            )
-            intersections_mask = orthog_dist <= self.PHYSICAL_SPACE
-            along_dist = np.outer(x_crowd_rel, self.RAY_COS) +\
-                np.outer(y_crowd_rel, self.RAY_SIN)
-            orthog_to_intersect_dist = np.sqrt(np.maximum(
-                self.PHYSICAL_SPACE ** 2 - orthog_dist ** 2, 0
-            ))
-            intersect_distances = np.where(
-                intersections_mask, along_dist - orthog_to_intersect_dist, np.inf
-            )
-            min_intersect_distances = np.min(np.where(
-                intersect_distances > 0, intersect_distances, np.inf), axis=0
-            )
-            ray_distances = np.minimum(min_intersect_distances, wall_distances)
+            if self.n_crowd > 0:
+                x_crowd_rel, y_crowd_rel = self._crowd_poss[:, 0] - self._agent_pos[0], \
+                    self._crowd_poss[:, 1] - self._agent_pos[1]
+                orthog_dist = np.abs(
+                    np.outer(x_crowd_rel, self.RAY_SIN) -
+                    np.outer(y_crowd_rel, self.RAY_COS)
+                )
+                intersections_mask = orthog_dist <= self.PHYSICAL_SPACE
+                along_dist = np.outer(x_crowd_rel, self.RAY_COS) +\
+                    np.outer(y_crowd_rel, self.RAY_SIN)
+                orthog_to_intersect_dist = np.sqrt(np.maximum(
+                    self.PHYSICAL_SPACE ** 2 - orthog_dist ** 2, 0
+                ))
+                intersect_distances = np.where(
+                    intersections_mask, along_dist - orthog_to_intersect_dist, np.inf
+                )
+                intersect_distances = np.where(
+                    intersect_distances < self.lidar_max, intersect_distances, np.inf
+                )
+                min_intersect_distances = np.min(np.where(
+                    intersect_distances > 0, intersect_distances, np.inf), axis=0
+                )
+                ray_distances = np.minimum(min_intersect_distances, wall_or_max_distances)
+            else:
+                ray_distances = wall_or_max_distances
             self.ray_distances = ray_distances
 
             if not self.use_time_frame and not self.lidar_vel:
@@ -287,25 +302,27 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self._last_frames[-1] = ray_distances
             elif self.lidar_vel:
                 ray_velocities = np.zeros(ray_distances.shape)
-                vel_along_all_dir_all_crowd = np.einsum(
-                    "ij,ij->i",
-                    np.concatenate(
-                        [np.array(list(zip(self.RAY_COS, self.RAY_SIN)))] * self.n_crowd
-                    ),
-                    np.repeat(self._crowd_vels, self.N_RAYS, axis=0)
-                )
-                vel_along_all_dir_all_crowd *= intersections_mask.flatten()
-                viable_distances = np.where(
-                    intersect_distances > 0, intersect_distances, np.inf
-                )
-                crowd_min_dist_idx = np.argmin(  # which one is closer
-                    viable_distances, axis=0
-                )
-                vel_along_dir = vel_along_all_dir_all_crowd[
-                    crowd_min_dist_idx * self.N_RAYS + np.arange(self.N_RAYS)
-                ]
-                intersection_mask_dir = min_intersect_distances != np.inf
-                ray_velocities = vel_along_dir * intersection_mask_dir
+                if self.n_crowd > 0:
+                    vel_along_all_dir_all_crowd = np.einsum(
+                        "ij,ij->i",
+                        np.concatenate(
+                            [np.array(list(zip(self.RAY_COS, self.RAY_SIN)))] *
+                            self.n_crowd
+                        ),
+                        np.repeat(self._crowd_vels, self.N_RAYS, axis=0)
+                    )
+                    vel_along_all_dir_all_crowd *= intersections_mask.flatten()
+                    viable_distances = np.where(
+                        intersect_distances > 0, intersect_distances, np.inf
+                    )
+                    crowd_min_dist_idx = np.argmin(  # which one is closer
+                        viable_distances, axis=0
+                    )
+                    vel_along_dir = vel_along_all_dir_all_crowd[
+                        crowd_min_dist_idx * self.N_RAYS + np.arange(self.N_RAYS)
+                    ]
+                    intersection_mask_dir = min_intersect_distances != np.inf
+                    ray_velocities = vel_along_dir * intersection_mask_dir
                 self._last_frames[0] = ray_distances
                 self._last_frames[1] = ray_velocities
             else:
