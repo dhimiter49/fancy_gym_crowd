@@ -277,7 +277,7 @@ class MPCController(BaseController):
     def const_crowd(self, const_M, const_b, crowd, agent_pos, agent_vel):
         crowd_poss, crowd_vels = crowd
         crowd_poss -= agent_pos  # relative crowd position
-        if len(crowd_poss.shape) == 2:  # no positions of during horizon provided
+        if len(crowd_poss.shape) == 2:  # no positions of horizon provided
             horizon_crowd_poss = self.calculate_crowd_positions(crowd_poss, crowd_vels)
         else:
             horizon_crowd_poss = crowd_poss
