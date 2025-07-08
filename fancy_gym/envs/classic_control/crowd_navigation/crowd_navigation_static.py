@@ -8,6 +8,10 @@ from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
 from fancy_gym.envs.classic_control.crowd_navigation.utils import REPLAN_STATIC
 
 
+NUM_COL = 0
+COL_AGENT_VEL_SUM = 0
+
+
 class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
     """
     No real crowd, just obstacles.
@@ -110,6 +114,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         self.observation_space = spaces.Box(
             low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
         )
+        self.traj_pos = []
 
 
     def _get_reward(self, action: np.ndarray):
@@ -230,7 +235,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                         distance * np.cos(angle), distance * np.sin(angle),
                         head_width=0.0,
                         ec=(0.5, 0.5, 0.5, 0.3),
-                        linestyle="--"
+                        linestyle=":",
                     ))
 
             # Agent velocity
@@ -256,6 +261,12 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
             )
             ax.add_patch(self.space_agent)
+            self.traj_agent = []
+            for i in range(100):
+                self.traj_agent.append(plt.Circle(
+                    np.array([0, 0]), self.PHYSICAL_SPACE, color="g", alpha=0.0
+                ))
+                ax.add_patch(self.traj_agent[-1])
 
             # Social space
             self.ScS_crowd = []
@@ -288,13 +299,25 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 ax.add_patch(self.PhS_crowd[-1])
 
             # Goal
-            self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
+            self.goal_point, = ax.plot(
+                self._goal_pos[0], self._goal_pos[1], 'yx', markersize=10
+            )
 
             # Trajectory
+            self.trajectory_line_exec, = ax.plot(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1],
+                "k",
+            )
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],
                 self.current_trajectory[:, 1],
-                "k",
+                "y",
+            )
+            self.pred_trajectory_line, = ax.plot(
+                self.pred_current_trajectory[:, 0],
+                self.pred_current_trajectory[:, 1],
+                "m",
             )
             self.trajectory_line_vel, = ax.plot(
                 self.current_trajectory_vel[:, 0],
@@ -343,6 +366,16 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             dx=self._agent_vel[0], dy=self._agent_vel[1]
         )
         self.space_agent.center = self._agent_pos
+        if self.traj_pos == []:
+            for i in range(len(self.traj_agent)):
+                self.traj_agent[i].center = np.array([0, 0])
+                self.traj_agent[i].set_alpha(0.0)
+        traj_steps = len(self.traj_pos)
+        for i, pos in enumerate(self.traj_pos):
+            self.traj_agent[i].center = pos
+            self.traj_agent[i].set_alpha(0.1 + 0.2 * i / traj_steps)
+
+        self.space_agent.center = self._agent_pos
         if self.lidar:
             for i, (angle, distance) in \
                 enumerate(zip(self.RAY_ANGLES, self.ray_distances)):
@@ -351,8 +384,18 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                     dx=distance * np.cos(angle), dy=distance * np.sin(angle)
                 )
         self.trajectory_line.set_data(
-            self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+            self.current_trajectory[:self.traj_idx * self._traj_len, 0],
+            self.current_trajectory[:self.traj_idx * self._traj_len, 1]
         )
+        self.pred_trajectory_line.set_data(
+            self.pred_current_trajectory[:, 0],
+            self.pred_current_trajectory[:, 1]
+        )
+        if len(self.exec_traj) > 0:
+            self.trajectory_line_exec.set_data(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1]
+            )
         self.trajectory_line_vel.set_data(
             self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
         )
@@ -361,7 +404,9 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 x=self.separating_planes[i][0], y=self.separating_planes[i][1],
                 dx=self.separating_planes[i][2], dy=self.separating_planes[i][3]
             )
+        self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
 
+        self.traj_pos.append(self._agent_pos)
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
@@ -371,9 +416,18 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
+        self.exec_traj.append(self._agent_pos)
+
         self._last_crowd_poss = self._crowd_poss.copy()
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
+        if self._is_collided:
+            global NUM_COL
+            global COL_AGENT_VEL_SUM
+            COL_AGENT_VEL_SUM += np.linalg.norm(self._agent_vel)
+            NUM_COL += 1
+            print("Num col", NUM_COL)
+            print("Average agent speed:", COL_AGENT_VEL_SUM / NUM_COL)
         self._current_reward, info = self._get_reward(action)
 
         self._steps += 1

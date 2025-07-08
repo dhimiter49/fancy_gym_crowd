@@ -7,6 +7,9 @@ from gymnasium import spaces
 from gymnasium.core import ObsType
 
 
+seed = 0
+flip = True
+
 class BaseCrowdNavigationEnv(gym.Env):
     """
     Base class crowd navigation. Units are defined to reflect plausible values in the real
@@ -39,6 +42,9 @@ class BaseCrowdNavigationEnv(gym.Env):
         super().__init__()
 
         self._dt = dt
+        self._traj_len = self.replan
+        self._safety_traj = 2
+        self._plan_traj = 7
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -146,9 +152,14 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
+        self.traj_idx = 0
+        self.current_trajectory = np.zeros((200, 2))
+        self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
+        self.pred_current_trajectory = np.zeros((100, 2))
+        self.exec_traj = []
         self.desired_position = np.empty(2)  # desired position when using ProDMP
-        self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
+        self._traj_index = 0
         self.separating_planes = np.zeros((self.n_crowd, 4))
 
 
@@ -164,20 +175,32 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def set_trajectory(self, positions, velocities=None):
-        positions = positions[:10]
-        velocities = velocities[:10]
+        self._traj_index = 0
+        positions = positions[:]
+        # velocities = velocities[:self._traj_len]
 
         positions -= positions[0]
         positions += self._agent_pos + self._agent_vel * self._dt
-        self.current_trajectory = positions.copy()
+        self.current_trajectory[
+            self.traj_idx * self._traj_len:(self.traj_idx + 1) * self._traj_len
+        ] = positions[:self._traj_len].copy()
+        self.pred_current_trajectory = positions.copy()
+        self.traj_idx += 1
 
-        velocities[0] += self._agent_vel * self._dt
-        positions = positions * 0
-        distances = velocities * self._dt
-        positions[0] = self._agent_pos
-        positions += distances
-        positions = np.cumsum(positions, 0)
-        self.current_trajectory_vel = positions.copy()
+        # velocities[0] += self._agent_vel * self._dt
+        # positions = positions * 0
+        # distances = velocities * self._dt
+        # positions[0] = self._agent_pos
+        # positions += distances
+        # positions = np.cumsum(positions, 0)
+        # self.current_trajectory_vel = positions.copy()
+
+
+    def set_casc_trajectory(self, positions):
+        self.casc_trajectory = positions + self._agent_pos
+        self.current_trajectory = self.casc_trajectory[np.arange(
+            0, self._plan_traj * self._safety_traj, self._safety_traj
+        )]
 
 
     def set_des_position(self, position):
@@ -212,7 +235,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             vec = pos / np.linalg.norm(pos)
             norm = np.array([-vec[1], vec[0]])
             self.separating_planes[i] = np.concatenate((
-                self._crowd_poss[i] + vec * 4 * self.PHYSICAL_SPACE - norm * 50,
+                self._crowd_poss[i] + vec * 2 * self.PHYSICAL_SPACE - norm * 50,
                 norm * 100
             ))
 
@@ -301,9 +324,12 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._crowd_vels
         ) = self._start_env_vars()
         self._steps = 0
+        self.traj_idx = 0
+        self.exec_traj = [self._agent_pos]
         self._goal_reached = False
         self._is_collided = False
         self._current_reward = 0
+        self.traj_pos = []
         return self._get_obs().copy(), {}
 
 
@@ -349,6 +375,13 @@ class BaseCrowdNavigationEnv(gym.Env):
         member of the crowd between the agent and the goal (with some noise in its
         position as described above).
         """
+        global seed, flip
+        # if seed > 1:
+        #     if flip:
+        #         seed -= 1
+        #     flip = not flip
+        np.random.seed(seed)
+        seed += 1
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel:
             if self.one_way:
                 agent_pos = np.array([-self.W_BORDER + self.PHYSICAL_SPACE * 2, 0])

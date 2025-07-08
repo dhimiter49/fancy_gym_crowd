@@ -3,9 +3,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 from gymnasium.core import ObsType
+import sys
+np. set_printoptions(threshold=sys.maxsize)
+
 
 from fancy_gym.envs.classic_control.crowd_navigation.crowd_navigation\
     import CrowdNavigationEnv
+
+
+COLLISION = 0
+ALREADY_BREAKING = 0
+COL_VEL_SUM = 0
+COL_AGENT_VEL_SUM = 0
 
 
 class CrowdNavigationInterEnv(CrowdNavigationEnv):
@@ -609,6 +618,21 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         self.update_state(action)
 
         self._is_collided = self._check_collisions()
+        if np.any(self._is_collided):
+            global COLLISION
+            global ALREADY_BREAKING
+            global COL_VEL_SUM
+            COLLISION += 1
+            the_two_vels = self._crowd_vels[np.where(self._is_collided)[0]]
+            for vel in the_two_vels:
+                if np.all(vel == 0):
+                    ALREADY_BREAKING += 1.0
+            COL_VEL_SUM += np.sum(np.linalg.norm(
+                the_two_vels[0] - the_two_vels[1], axis=-1
+            ))
+            print("Num col", COLLISION)
+            print("Col vel", COL_VEL_SUM / COLLISION)
+            print("Breaking", ALREADY_BREAKING)
         self._current_reward, info = self._get_reward(action)
         if np.any(self._goal_reached):
             idx_goal_reached = np.where(self._goal_reached == 1)[0]

@@ -152,10 +152,20 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
 
             # Trajectory
+            self.trajectory_line_exec, = ax.plot(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1],
+                "k",
+            )
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],
                 self.current_trajectory[:, 1],
-                "k",
+                "y",
+            )
+            self.pred_trajectory_line, = ax.plot(
+                self.pred_current_trajectory[:, 0],
+                self.pred_current_trajectory[:, 1],
+                "m",
             )
             self.trajectory_line_vel, = ax.plot(
                 self.current_trajectory_vel[:, 0],
@@ -194,8 +204,18 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         )
         self.space_agent.center = self._agent_pos
         self.trajectory_line.set_data(
-            self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+            self.current_trajectory[:self.traj_idx * self._traj_len, 0],
+            self.current_trajectory[:self.traj_idx * self._traj_len, 1]
         )
+        self.pred_trajectory_line.set_data(
+            self.pred_current_trajectory[:, 0],
+            self.pred_current_trajectory[:, 1]
+        )
+        if len(self.exec_traj) > 0:
+            self.trajectory_line_exec.set_data(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1]
+            )
         self.trajectory_line_vel.set_data(
             self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
         )
@@ -209,6 +229,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
+        self.exec_traj.append(self._agent_pos)
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         self._current_reward, info = self._get_reward(action)

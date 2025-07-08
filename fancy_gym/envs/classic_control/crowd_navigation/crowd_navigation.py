@@ -10,6 +10,12 @@ from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
 from fancy_gym.envs.classic_control.crowd_navigation.utils import REPLAN_MOVING
 
 
+NUM_COL = 0
+COLS = 0
+COL_VEL_SUM = 0
+COL_AGENT_VEL_SUM = 0
+
+
 class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     """
     Crowd with linear movement. For each member of the crowd a goal position is sampled.
@@ -64,6 +70,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             dt=dt,
         )
 
+        self._old_action = None
         self.seq_obs = sequence_obs
         self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
@@ -197,6 +204,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
     ) -> Tuple[ObsType, Dict[str, Any]]:
         if self.lidar:
             self._last_frames *= 0
+        self._old_action = None
+        self.traj_idx = 0
         return super().reset(seed=seed, options=options)
 
 
@@ -596,13 +605,34 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
 
             # Goal
-            self.goal_point, = ax.plot(self._goal_pos[0], self._goal_pos[1], 'gx')
+            self.goal_point, = ax.plot(
+                self._goal_pos[0], self._goal_pos[1], 'gx', markersize=10
+            )
 
             # Trajectory
+            self.trajectory_line_exec, = ax.plot(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1],
+                "k",
+            )
+            # self.casc_trajectory_line = []
+            # for i in range(self._plan_traj):
+            #     self.casc_trajectory_line.append(
+            #         ax.plot(
+            #             self.casc_trajectory[:, 0],
+            #             self.casc_trajectory[:, 1],
+            #             color=((1, 0.8, 0.05, 1 - 0.1 * i))
+            #         )[0]
+            #     )
             self.trajectory_line, = ax.plot(
                 self.current_trajectory[:, 0],
                 self.current_trajectory[:, 1],
-                "k",
+                "y",
+            )
+            self.pred_trajectory_line, = ax.plot(
+                self.pred_current_trajectory[:, 0],
+                self.pred_current_trajectory[:, 1],
+                "m",
             )
             self.trajectory_line_vel, = ax.plot(
                 self.current_trajectory_vel[:, 0],
@@ -667,8 +697,18 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     dx=distance * np.cos(angle), dy=distance * np.sin(angle)
                 )
         self.trajectory_line.set_data(
-            self.current_trajectory[:, 0], self.current_trajectory[:, 1]
+            self.current_trajectory[:self.traj_idx * self._traj_len, 0],
+            self.current_trajectory[:self.traj_idx * self._traj_len, 1]
         )
+        self.pred_trajectory_line.set_data(
+            self.pred_current_trajectory[:, 0],
+            self.pred_current_trajectory[:, 1]
+        )
+        if len(self.exec_traj) > 0:
+            self.trajectory_line_exec.set_data(
+                np.array(self.exec_traj)[:, 0],
+                np.array(self.exec_traj)[:, 1]
+            )
         self.trajectory_line_vel.set_data(
             self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
         )
@@ -677,6 +717,20 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 x=self.separating_planes[i][0], y=self.separating_planes[i][1],
                 dx=self.separating_planes[i][2], dy=self.separating_planes[i][3]
             )
+        # for i, casc_traj in enumerate(self.casc_trajectory_line):
+        #     casc_traj.set_color(color=((0, 0, 0, 0)))
+        # for i, casc_traj in enumerate(self.casc_trajectory_line):
+        #     curr_idx = i * self._safety_traj
+        #     casc_traj.set_data(
+        #         self.casc_trajectory[curr_idx:curr_idx + self._safety_traj, 0],
+        #         self.casc_trajectory[curr_idx:curr_idx + self._safety_traj, 1],
+        #     )
+        #     for j in range(i):
+        #         self.casc_trajectory_line[j].set_color(color=((0, 0, 0, 0)))
+        #     casc_traj.set_color(color="r")
+        #     self.fig.canvas.draw()
+        #     self.fig.canvas.flush_events()
+
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
@@ -703,11 +757,47 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         A single step with action in angular velocity space
         """
         self.update_state(action)
+        self._old_action = action
         self._last_crowd_poss = self._crowd_poss.copy()
         self.update_crowd()
+        self.exec_traj.append(self._agent_pos)
 
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
+        if self._is_collided:
+            if self.supersample_col:
+                over_sample_by = self._dt / 0.01
+                agent_poss = self._last_agent_pos + np.einsum(
+                    "i,j->ij",
+                    np.arange(0, int(over_sample_by) + 1),
+                    self._agent_pos - self._last_agent_pos
+                ) / over_sample_by
+                crowd_poss = self._last_crowd_poss + np.einsum(
+                    "i,kj->ikj",
+                    np.arange(0, int(over_sample_by) + 1),
+                    self._crowd_poss - self._last_crowd_poss
+                ) / over_sample_by
+                agent_poss = np.expand_dims(agent_poss, axis=1)
+                col_vec = np.linalg.norm(agent_poss - crowd_poss, axis=-1) <\
+                    [self.PHYSICAL_SPACE * 2] * self.n_crowd
+                col_idx = list(set(list(np.where(col_vec > 0)[-1])))
+            else:
+                col_vec = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <\
+                    [self.PHYSICAL_SPACE * 2] * self.n_crowd
+                col_idx = np.where(col_vec > 0)[0]
+            global NUM_COL
+            global COL_VEL_SUM
+            global COL_AGENT_VEL_SUM
+            global COLS
+            COLS += len(col_idx)
+            COL_VEL_SUM += np.sum(np.linalg.norm(
+                self._agent_vel - self._crowd_vels[col_idx], axis=-1
+            ))
+            COL_AGENT_VEL_SUM += np.linalg.norm(self._agent_vel)
+            NUM_COL += 1
+            print("Num col", NUM_COL)
+            print("Col vel", COL_VEL_SUM / COLS)
+            print("Col agent vel", COL_AGENT_VEL_SUM / COLS)
         self._current_reward, info = self._get_reward(action)
         if self.intrinsic_rew:
             rew, new_info = self._get_intrinsic_reward()
@@ -715,7 +805,19 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             info.update(new_info)
 
         self._steps += 1
+        self._traj_index += 1
         terminated = self._terminate(info)
         truncated = False
 
         return self._get_obs().copy(), self._current_reward, terminated, truncated, info
+
+
+    def stats(self):
+        global NUM_COL
+        global COL_VEL_SUM
+        global COL_AGENT_VEL_SUM
+        global COLS
+        if COLS > 0:
+            print("Num cols", NUM_COL)
+            print("Average collision velocity:", COL_VEL_SUM / COLS)
+            print("Average agent speed:", COL_AGENT_VEL_SUM / COLS)
