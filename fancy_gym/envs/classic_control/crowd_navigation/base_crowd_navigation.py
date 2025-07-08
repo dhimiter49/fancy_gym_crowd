@@ -44,12 +44,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.HEIGHT = height
         self.W_BORDER = self.WIDTH / 2
         self.H_BORDER = self.HEIGHT / 2
-        self.AGENT_MAX_VEL = 3.0
-        self.CROWD_MAX_VEL = 2.5
+        self.AGENT_MAX_VEL = 1.0
+        self.CROWD_MAX_VEL = 1.5
         self.PHYSICAL_SPACE = 0.4
         self.PERSONAL_SPACE = 1.4
         self.SOCIAL_SPACE = 1.9
-        self.MAX_ACC = 1.5
+        self.MAX_ACC = 10.0
         self.MAX_STOPPING_TIME = self.AGENT_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_TIME_CROWD = self.CROWD_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\

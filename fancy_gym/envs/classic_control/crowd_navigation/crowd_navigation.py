@@ -67,7 +67,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.seq_obs = sequence_obs
         self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
-        self.lidar_max = lidar_max if lidar_max > 0.0 else None
+        self.lidar_max = lidar_max if lidar_max > 0.0 else np.inf
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
             self.lidar_vel = lidar_vel

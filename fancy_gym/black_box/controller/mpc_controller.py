@@ -130,8 +130,8 @@ class MPCController(BaseController):
             b_v_ = np.repeat(self.polygon_vel_lines[:, 1], self.N)
 
             self.vel_mat_constraint = ((M_v_ @ self.mat_vel_acc).T * sgn_vel).T
-            self.vel_vec_constraint = lambda agent_vel, idxs: sgn_vel[idxs] *\
-                (b_v_[idxs] - M_v_[idxs] @ np.repeat(agent_vel, self.N))
+            self.vel_vec_constraint = lambda agent_vel, _: sgn_vel *\
+                (b_v_ - M_v_ @ np.repeat(agent_vel, self.N))
 
             M_a_ = np.vstack([
                 np.eye(self.N) * -line[0] for line in self.polygon_acc_lines
@@ -200,10 +200,12 @@ class MPCController(BaseController):
 
 
     def const_acc_vel(self, const_M, const_b, agent_vel):
-        idxs = self.relevant_vel_idxs(agent_vel)
+        idxs = None
+        if 2 * self.MAX_ACC <= self.MAX_VEL:
+            idxs = self.relevant_vel_idxs(agent_vel)
         if not self.velocity_control:
-            const_M.append(self.vel_mat_constraint[idxs])
-            const_b.append(self.vel_vec_constraint(agent_vel, idxs))
+            const_M.append(self.vel_mat_constraint)
+            const_b.append(self.vel_vec_constraint(agent_vel, None))
             const_M.append(self.acc_mat_constraint)
             const_b.append(self.acc_vec_constraint)
         else:

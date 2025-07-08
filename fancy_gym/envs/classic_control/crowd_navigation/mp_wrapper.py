@@ -126,11 +126,11 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
         },
         'controller_kwargs': {
             'controller_type': 'mpc',
-            'mat_vc_pos_vel': gen_mat_vc_pos_vel(21, 0.1),
-            'mat_vc_acc_vel': gen_mat_vc_acc_vel(21, 0.1),
-            'max_acc': 1.5,
-            'max_vel': 3.0,
-            'horizon': 21,  # 2 sec to stop (1 extra step is current step)
+            'mat_vc_pos_vel': gen_mat_vc_pos_vel(10, 0.1),
+            'mat_vc_acc_vel': gen_mat_vc_acc_vel(10, 0.1),
+            'max_acc': 10.0,
+            'max_vel': 1.0,
+            'horizon': 10,  # 2 sec to stop (1 extra step is current step)
             'dt': 0.1,
             'velocity_control': True,
             'min_dist_crowd': 0.81001,  # personal space of the members of the crowd
