@@ -209,8 +209,8 @@ class MPCController(BaseController):
             const_M.append(self.acc_mat_constraint)
             const_b.append(self.acc_vec_constraint)
         else:
-            const_M.append(self.vel_mat_constraint[idxs])
-            const_b.append(self.vel_vec_constraint[idxs])
+            const_M.append(self.vel_mat_constraint[idxs].squeeze())
+            const_b.append(self.vel_vec_constraint[idxs].squeeze())
             const_M.append(self.acc_mat_constraint)
             agent_vel_ = np.zeros(2 * (self.N))
             agent_vel_[0], agent_vel_[self.N] = agent_vel
