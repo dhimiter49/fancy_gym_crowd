@@ -278,6 +278,7 @@ register(
         "velocity_control": True,
         "lidar_vel": True,
         "lidar_max": 5,
+        "intrinsic_rew": True,
     }
 )
 
