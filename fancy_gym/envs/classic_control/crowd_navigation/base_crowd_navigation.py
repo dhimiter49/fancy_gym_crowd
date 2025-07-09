@@ -150,7 +150,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._goal_reached = False
         self._is_collided = False
         self.check_goal_reached = lambda: (
-            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
+            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE / 4 and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
         self.traj_idx = 0
