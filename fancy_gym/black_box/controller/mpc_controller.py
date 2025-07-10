@@ -314,10 +314,13 @@ class MPCController(BaseController):
             M_ca = np.hstack([
                 np.eye(self.N_crowd) * vec[:, 0], np.eye(self.N_crowd) * vec[:, 1]
             ])
+            dist_to_keep = self.min_dist_crowd
+            if isinstance(self.min_dist_crowd, float):
+                dist_to_keep = [self.min_dist_crowd] * self.N_crowd
             v_cb = M_ca @ (
                 -poss.flatten("F") + self.vec_pos_vel_crowd *
                 np.repeat(agent_vel, self.N_crowd)
-            ) - np.array([self.min_dist_crowd] * self.N_crowd)
+            ) - np.array(dist_to_keep)
             M_cac = -M_ca @ self.mat_pos_control_crowd
             const_M.append(M_cac)
             const_b.append(v_cb)
