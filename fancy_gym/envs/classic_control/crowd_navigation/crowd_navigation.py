@@ -75,7 +75,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.seq_obs = sequence_obs
         self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
-        self.lidar_max = lidar_max if lidar_max > 0.0 else None
+        self.lidar_max = lidar_max if lidar_max > 0.0 else np.inf
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
             self.lidar_vel = lidar_vel
@@ -249,7 +249,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         Check how far the current position after the action is relative to the desired
         position proposed by the ProDMP.
         """
-        Ri = -np.linalg.norm(self._agent_pos - self.desired_position)
+        Ri = -5 * np.linalg.norm(self._agent_pos - self.desired_position)
         return Ri, dict(intrinsic=Ri)
 
 

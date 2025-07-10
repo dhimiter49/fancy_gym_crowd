@@ -50,12 +50,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.HEIGHT = height
         self.W_BORDER = self.WIDTH / 2
         self.H_BORDER = self.HEIGHT / 2
-        self.AGENT_MAX_VEL = 3.0
-        self.CROWD_MAX_VEL = 2.5
+        self.AGENT_MAX_VEL = 1.0
+        self.CROWD_MAX_VEL = 1.5
         self.PHYSICAL_SPACE = 0.4
         self.PERSONAL_SPACE = 1.4
         self.SOCIAL_SPACE = 1.9
-        self.MAX_ACC = 1.5
+        self.MAX_ACC = 10.0
         self.MAX_STOPPING_TIME = self.AGENT_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_TIME_CROWD = self.CROWD_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\
@@ -65,7 +65,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             self.MAX_STOPPING_TIME_CROWD ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
         if type(self).__name__ == "CrowdNavigationEnv":
-            self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 1.1
+            self.MIN_CROWD_DIST = 2 * self.CROWD_MAX_VEL
+            # self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 1.1
         else:
             self.MIN_CROWD_DIST = self.PERSONAL_SPACE + self.PHYSICAL_SPACE
 
@@ -149,7 +150,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._goal_reached = False
         self._is_collided = False
         self.check_goal_reached = lambda: (
-            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE and
+            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE / 4 and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
         self.traj_idx = 0

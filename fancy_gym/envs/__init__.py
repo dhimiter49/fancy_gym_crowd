@@ -267,7 +267,7 @@ register(
     id='fancy/CrowdNavigationConstLiDARVel-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd_Vel,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
         "width": 20,
@@ -277,6 +277,8 @@ register(
         "lidar_rays": 40,
         "velocity_control": True,
         "lidar_vel": True,
+        "lidar_max": 5,
+        "intrinsic_rew": True,
     }
 )
 
