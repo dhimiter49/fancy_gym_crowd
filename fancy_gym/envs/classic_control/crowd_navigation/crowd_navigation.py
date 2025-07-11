@@ -503,8 +503,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             # Fix direction
             direction = (goal - crowd_poss[i]) / dist
             vels = np.outer(vels, direction).reshape(-1, 2)
-            crowd_vels.append(vels)
-            next_crowd_vels[i] = vels[0]
+            crowd_vels.append(np.concatenate([np.zeros((1, 2)), vels]))
+            next_crowd_vels[i] = np.zeros(2)
 
         return crowd_goal_poss, crowd_vels, next_crowd_vels
 
