@@ -1,3 +1,4 @@
+from typing import Union
 from fancy_gym.black_box.controller.base_controller import BaseController
 from qpsolvers import solve_qp
 from scipy import sparse
@@ -45,25 +46,29 @@ class MPCController(BaseController):
     :param dt : time step
     :param min_dist_crowd : if zero ignore crowd, if given constrain distance to crowd
     :param min_dist_wall: minimum distance to the wall
+    :param velocity_control: use velocity to control agent or not
+    :param uncertainty: uncertainty type, '' no uncertainty, 'dir' velocity direction,
+        'vel' for speed and direction
     """
 
     def __init__(
         self,
         max_acc: float,
         max_vel: float,
-        mat_pos_acc: np.ndarray = None,
-        mat_pos_vel: np.ndarray = None,
-        mat_vel_acc: np.ndarray = None,
-        mat_vc_pos_vel: np.ndarray = None,
-        mat_vc_acc_vel: np.ndarray = None,
+        mat_pos_acc: Union[np.ndarray, None] = None,
+        mat_pos_vel: Union[np.ndarray, None] = None,
+        mat_vel_acc: Union[np.ndarray, None] = None,
+        mat_vc_pos_vel: Union[np.ndarray, None] = None,
+        mat_vc_acc_vel: Union[np.ndarray, None] = None,
         horizon: int = 20,
-        horizon_crowd_pred: int = None,
+        horizon_crowd_pred: Union[int, None] = None,
         horizon_tries: int = 0,
-        replan_steps: int = None,
+        replan_steps: Union[int, None] = None,
         dt: float = 0.1,
-        min_dist_crowd: float = 0.0,
+        min_dist_crowd: Union[list[float], float] = 0.0,
         min_dist_wall: float = 0.4,
         velocity_control: float = False,
+        uncertainty: str = '',
     ):
         self.N = horizon
         self.horizon_tries = horizon_tries
@@ -71,9 +76,9 @@ class MPCController(BaseController):
         self.N_crowd = self.N if horizon_crowd_pred is None else horizon_crowd_pred
         self.replan = replan_steps if replan_steps is not None else self.N
         self.MAX_STOPPING_TIME = max_vel / max_acc
-        self.MAX_STOPPING_DIST = 2 * (
-            max_vel * self.MAX_STOPPING_TIME - 0.5 * max_acc * self.MAX_STOPPING_TIME ** 2
-        )
+        self.MAX_VEL = max_vel
+        self.MAX_ACC = max_acc
+        self.MAX_STOPPING_DIST = 2 * self.MAX_VEL
         self.dt = dt
         self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc
@@ -85,12 +90,14 @@ class MPCController(BaseController):
             self.mat_pos_control = self.mat_vc_pos_vel
             self.vec_pos_vel = self.vec_pos_vel_crowd = 0.5 * self.dt
         else:
+            assert isinstance(self.vec_pos_vel, np.ndarray)
             self.mat_pos_control = self.mat_pos_acc
             self.vec_pos_vel_crowd = np.concatenate([
                 self.vec_pos_vel[:self.N_crowd],
                 self.vec_pos_vel[self.N: self.N + self.N_crowd]
             ])
 
+        assert isinstance(self.mat_pos_control, np.ndarray)
         self.mat_pos_control_crowd = np.concatenate([
             self.mat_pos_control[:self.N_crowd],
             self.mat_pos_control[self.N: self.N + self.N_crowd]
@@ -100,15 +107,28 @@ class MPCController(BaseController):
         self.polygon_vel_lines = gen_polygon(max_vel, self.lin_sides)
         self.min_dist_crowd = min_dist_crowd
         self.min_dist_wall = min_dist_wall
+        if uncertainty == "dist":
+            if isinstance(min_dist_crowd, list):
+                self.min_dist_crowd = np.expand_dims(
+                    self.min_dist_crowd, -1
+                ).repeat(self.N_crowd, -1)
+            else:
+                self.min_dist_crowd = self.min_dist_crowd * np.ones(self.N_crowd)
+            self.min_dist_crowd += self.MAX_ACC * self.dt ** 2 *\
+                np.arange(1, self.N_crowd + 1)
 
         if self.velocity_control:
+            assert isinstance(self.mat_vc_pos_vel, np.ndarray)
             self.opt_M = self.mat_vc_pos_vel.T @ self.mat_vc_pos_vel +\
                 1.0 * np.eye(2 * (self.N - 1))
         else:
+            assert isinstance(self.mat_pos_acc, np.ndarray)
+            assert isinstance(self.mat_vel_acc, np.ndarray)
             self.opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
                 2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
                 0.2 * np.eye(2 * self.N)
         self.opt_M = sparse.csr_matrix(self.opt_M)
+        self.uncertainty = uncertainty
 
         if not self.velocity_control:
             M_v_ = np.vstack([
@@ -122,6 +142,7 @@ class MPCController(BaseController):
             sgn_vel = np.repeat(sgn_vel, self.N)
             b_v_ = np.repeat(self.polygon_vel_lines[:, 1], self.N)
 
+            assert isinstance(self.mat_vel_acc, np.ndarray)
             self.vel_mat_constraint = ((M_v_ @ self.mat_vel_acc).T * sgn_vel).T
             self.vel_vec_constraint = lambda agent_vel, idxs: sgn_vel[idxs] *\
                 (b_v_[idxs] - M_v_[idxs] @ np.repeat(agent_vel, self.N))
@@ -165,6 +186,7 @@ class MPCController(BaseController):
             sgn_acc = np.repeat(sgn_acc, self.N)
             bv_a_ = np.repeat(self.polygon_acc_lines[:, 1], self.N)
 
+            assert isinstance(self.mat_vc_acc_vel, np.ndarray)
             self.acc_mat_constraint = ((MV_a_ @ self.mat_vc_acc_vel).T * sgn_acc).T
             self.acc_vec_constraint = lambda agent_vel: sgn_acc *\
                 (bv_a_ + MV_a_ @ agent_vel / self.dt)
@@ -193,15 +215,20 @@ class MPCController(BaseController):
 
 
     def const_acc_vel(self, const_M, const_b, agent_vel):
-        idxs = self.relevant_vel_idxs(agent_vel)
+        idxs = None
+        if 2 * self.MAX_ACC <= self.MAX_VEL:
+            idxs = self.relevant_vel_idxs(agent_vel)
         if not self.velocity_control:
+            assert callable(self.vel_vec_constraint)
             const_M.append(self.vel_mat_constraint[idxs])
             const_b.append(self.vel_vec_constraint(agent_vel, idxs))
             const_M.append(self.acc_mat_constraint)
             const_b.append(self.acc_vec_constraint)
         else:
-            const_M.append(self.vel_mat_constraint[idxs])
-            const_b.append(self.vel_vec_constraint[idxs])
+            assert isinstance(self.vel_vec_constraint, np.ndarray)
+            assert callable(self.acc_vec_constraint)
+            const_M.append(self.vel_mat_constraint[idxs].squeeze())
+            const_b.append(self.vel_vec_constraint[idxs].squeeze())
             const_M.append(self.acc_mat_constraint)
             agent_vel_ = np.zeros(2 * (self.N))
             agent_vel_[0], agent_vel_[self.N] = agent_vel
@@ -214,14 +241,52 @@ class MPCController(BaseController):
         each member. The formula P_i = p_0 + i * v * dt, where for point i in horizon the
         position will be p_0 + i * v * dt.
 
+        Uncertainty handling by copying positions and generating new plausible velocities
+        depending on the direction and speed uncertainty.
+
         Args:
-            crowd_poss (numpy.ndarray): an array of size (n_crowd, 2) with the current
+            crowd_poss (numpy.ndarray): an array of size (#crowd, 2) with the current
                 positions of each member
-            crowd_vels (numpy.ndarray): an array of size (n_crowd, 2) with the current
+            crowd_vels (numpy.ndarray): an array of size (#crowd, 2) with the current
                 velocities of each member
         Return:
             (numpy.ndarray): predicted positions of the crowd throughout the horizon
         """
+        num_crowd = crowd_poss.shape[0]
+        new_crowd_vels = []
+        if self.uncertainty in ["dir", "vel"]:
+            alphas = np.pi - 5 * np.pi / 6 * (
+                np.linalg.norm(crowd_vels, axis=-1) / self.MAX_VEL
+            )
+            n_trajs = np.where(alphas > np.pi / 2, 5, 3)  # 3 traj if less then 90, else 5
+            n_trajs = n_trajs.reshape(num_crowd)
+            angles = alphas * (1 / (n_trajs - 1))
+            all_dir_crowd_vels = np.repeat(crowd_vels, n_trajs, axis=0)
+            all_dir_angles = np.repeat(angles, n_trajs, axis=0)
+
+            # start from current angle (0) then remove alpha (-1) then add alpha (1)
+            # then for five remove twice alpha (-2) and add twice alpha (2)
+            mult_angles = np.array([0, -1, 1, -2, 2])
+            all_dir_angles *= np.concatenate([mult_angles[:i] for i in n_trajs])
+            dir_matrix = np.stack([
+                np.cos(all_dir_angles), -np.sin(all_dir_angles),
+                np.sin(all_dir_angles), np.cos(all_dir_angles)
+            ], axis=-1).reshape(len(all_dir_crowd_vels), 2, 2)
+
+            new_crowd_vels = np.einsum('ijk,ij->ij', dir_matrix, all_dir_crowd_vels)
+            crowd_poss = np.repeat(crowd_poss, n_trajs, axis=0)
+            crowd_vels = new_crowd_vels
+
+        if self.uncertainty == "vel":
+            crowd_poss = np.repeat(crowd_poss, 3, axis=0)
+            new_crowd_vels = np.repeat(crowd_vels, 3, axis=0)
+            uncertainty = np.stack([
+                np.array([0, self.MAX_ACC, self.MAX_ACC]) / np.sqrt(2) *
+                self.dt * np.array([1, 1, -1]),
+            ] * len(crowd_vels)).reshape(-1, 1)
+            new_crowd_vels += uncertainty
+            crowd_vels = new_crowd_vels
+
         return np.stack([crowd_poss] * self.N_crowd) + np.einsum(
             'ijk,i->ijk',
             np.stack([crowd_vels] * self.N_crowd, 0) * self.dt,
@@ -242,17 +307,20 @@ class MPCController(BaseController):
             zero_idx = np.where(np.linalg.norm(poss, axis=-1) == 0)[0]
             poss[zero_idx] += 1e-8
             vec = -(poss.T / np.linalg.norm(poss, axis=-1)).T
-            angle = np.arccos(np.clip(np.dot(-vec, agent_vel), -1, 1)) > np.pi / 4
-            if np.all(dist > self.MAX_STOPPING_DIST) or\
-               (np.all(dist > self.MAX_STOPPING_DIST / 2) and np.all(angle)):
+            angle = np.arccos(np.clip(np.dot(-vec, agent_vel), -1, 1)) > np.pi / 2
+            if np.all(dist > self.MAX_STOPPING_DIST * 2) or\
+               (np.all(dist > self.MAX_STOPPING_DIST) and np.all(angle)):
                 continue
             M_ca = np.hstack([
                 np.eye(self.N_crowd) * vec[:, 0], np.eye(self.N_crowd) * vec[:, 1]
             ])
+            dist_to_keep = self.min_dist_crowd
+            if isinstance(self.min_dist_crowd, float):
+                dist_to_keep = [self.min_dist_crowd] * self.N_crowd
             v_cb = M_ca @ (
                 -poss.flatten("F") + self.vec_pos_vel_crowd *
                 np.repeat(agent_vel, self.N_crowd)
-            ) - np.array([self.min_dist_crowd] * self.N_crowd)
+            ) - np.array(dist_to_keep)
             M_cac = -M_ca @ self.mat_pos_control_crowd
             const_M.append(M_cac)
             const_b.append(v_cb)
@@ -300,6 +368,7 @@ class MPCController(BaseController):
             reference_vel = -np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
 
         if self.velocity_control:
+            assert isinstance(self.mat_vc_pos_vel, np.ndarray)
             reference_vel = np.append(
                 reference_vel[:self.N - 1], reference_vel[self.N:2 * self.N - 1]
             )
@@ -310,6 +379,8 @@ class MPCController(BaseController):
             reference_vel[self.N + self.replan:] *= 0
             opt_V = vec.T @ self.mat_vc_pos_vel + 1.0 * reference_vel.T
         else:
+            assert isinstance(self.mat_pos_acc, np.ndarray)
+            assert isinstance(self.mat_vel_acc, np.ndarray)
             vec = reference_pos + self.vec_pos_vel * np.repeat(curr_vel, self.N)
             vec[self.replan:self.N] *= 0
             vec[self.N + self.replan:] *= 0
@@ -322,7 +393,8 @@ class MPCController(BaseController):
         const_b = []
 
         # constrain distance relative to the crowd
-        if self.min_dist_crowd > 0:
+        if (isinstance(self.min_dist_crowd, float) and self.min_dist_crowd > 0) or\
+           (isinstance(self.min_dist_crowd, np.ndarray)):
             self.const_crowd(const_M, const_b, crowd, curr_pos, curr_vel)
         crowd_const_dim = len(const_M)
 
@@ -341,6 +413,7 @@ class MPCController(BaseController):
         if not self.velocity_control:
             # constrain safety by ensuring a braking trajectory through a terminal const
             # self.N - 1 and 2 * self.N - 1 repreent the last velocity of the horizon
+            assert isinstance(self.mat_vel_acc, np.ndarray)
             term_const_M = self.mat_vel_acc[[self.N - 1, 2 * self.N - 1], :]
             term_const_b = -curr_vel
 

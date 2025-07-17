@@ -5,7 +5,9 @@ from gymnasium.core import ObsType
 
 from fancy_gym.envs.classic_control.crowd_navigation.base_crowd_navigation\
     import BaseCrowdNavigationEnv
-from fancy_gym.envs.classic_control.crowd_navigation.utils import replan_close
+from fancy_gym.envs.classic_control.crowd_navigation.utils import (
+    replan_close, REPLAN_NO_CROWD
+)
 
 
 class NavigationEnv(BaseCrowdNavigationEnv):
@@ -24,6 +26,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         self.MAX_EPISODE_STEPS = 60
         self.seq_obs = sequence_obs
         self.polar = polar
+        self.replan = REPLAN_NO_CROWD
         super().__init__(
             0,
             width,
