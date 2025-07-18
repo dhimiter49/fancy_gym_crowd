@@ -69,6 +69,8 @@ class MPCController(BaseController):
         min_dist_wall: float = 0.4,
         velocity_control: float = False,
         uncertainty: str = '',
+        stability_coeff: float = 1.0,
+        vel_coeff: float = 2.0,
     ):
         self.N = horizon
         self.horizon_tries = horizon_tries
@@ -120,13 +122,13 @@ class MPCController(BaseController):
         if self.velocity_control:
             assert isinstance(self.mat_vc_pos_vel, np.ndarray)
             self.opt_M = self.mat_vc_pos_vel.T @ self.mat_vc_pos_vel +\
-                1.0 * np.eye(2 * (self.N - 1))
+                stability_coeff * np.eye(2 * (self.N - 1))
         else:
             assert isinstance(self.mat_pos_acc, np.ndarray)
             assert isinstance(self.mat_vel_acc, np.ndarray)
             self.opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
-                2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
-                0.2 * np.eye(2 * self.N)
+                vel_coeff * self.mat_vel_acc.T @ self.mat_vel_acc +\
+                stability_coeff * np.eye(2 * self.N)
         self.opt_M = sparse.csr_matrix(self.opt_M)
         self.uncertainty = uncertainty
 
