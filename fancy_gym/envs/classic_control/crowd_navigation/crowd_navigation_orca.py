@@ -57,8 +57,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             lidar_vel=lidar_vel,
             n_frames=n_frames,
         )
-        self.neighbor_dist = self.PHYSICAL_SPACE * 6 + 0.1
-        self.safety_space = self.PHYSICAL_SPACE / 2
+        self.neighbor_dist = np.max(self.PHYSICAL_SPACE[1:]) * 6. + 0.1
+        self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
         self.time_horizon = self.MAX_STOPPING_TIME * 8
         self.time_horizon_obst = self.MAX_STOPPING_TIME
         self._start_sim()
@@ -80,20 +80,20 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             self.neighbor_dist, max_neighbors, self.time_horizon, self.time_horizon_obst
         )
         self.sim = rvo2.PyRVOSimulator(
-            self._dt, *params, self.PHYSICAL_SPACE, self.CROWD_MAX_VEL
+            self._dt, *params, self.PHYSICAL_SPACE[0], self.CROWD_MAX_VEL
         )
         self.sim.addAgent(
             tuple(self._agent_pos),
             *params,
-            self.PHYSICAL_SPACE + self.safety_space,
+            self.PHYSICAL_SPACE[0] + self.safety_space,
             self.AGENT_MAX_VEL,
             tuple(self._agent_vel)
         )
-        for pos, vel in zip(self._crowd_poss, self._crowd_vels):
+        for i, (pos, vel) in enumerate(zip(self._crowd_poss, self._crowd_vels)):
             self.sim.addAgent(
                 tuple(pos),
                 *params,
-                self.PHYSICAL_SPACE + self.safety_space,
+                self.PHYSICAL_SPACE[i] + self.safety_space,
                 self.CROWD_MAX_VEL,
                 tuple(vel)
             )
@@ -151,13 +151,13 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         crowd_pref_vels = self._crowd_goal_poss - self._crowd_poss
         crowd_pref_vels[
-            np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE
+            np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE[1:]
         ] = 0
         crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
 
         # update crowd goals
         crowd_goal_complete = np.logical_and(
-            crowd_pref_vels_speed < self.PHYSICAL_SPACE,
+            crowd_pref_vels_speed < self.PHYSICAL_SPACE[1:],
             np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
         )
         if len(crowd_goal_complete) > 0:

@@ -88,12 +88,12 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         else:
             # Walls, only one of the walls is closer (irrelevant which)
             dist_walls = np.array([
-                max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
-                max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
+                max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE[0]),
+                max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE[0]),
             ])
             Rw = np.sum(
-                (1 - np.exp(self.Cc / dist_walls)) *
-                (dist_walls < self.PHYSICAL_SPACE * 2)
+                (1 - np.exp(self.Ccw / dist_walls)) *
+                (dist_walls < self.PHYSICAL_SPACE[0] * 2)
             )
 
         return Rg + Rw, dict(goal=Rg, wall=Rw)
@@ -139,13 +139,13 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             self.vel_agent = ax.arrow(
                 self._agent_pos[0], self._agent_pos[1],
                 self._agent_vel[0], self._agent_vel[1],
-                head_width=self.PERSONAL_SPACE / 4,
+                head_width=self.PERSONAL_SPACE[0] / 4,
                 overhang=1,
                 head_length=0.2,
                 ec="g"
             )
             self.space_agent = plt.Circle(
-                self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
+                self._agent_pos, self.PHYSICAL_SPACE[0], color="g", alpha=0.5
             )
             ax.add_patch(self.space_agent)
 
@@ -170,7 +170,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
             ax.set_aspect(1.0)
 
             # Walls penalization
-            border_penalization = self.PHYSICAL_SPACE * 2
+            border_penalization = self.PHYSICAL_SPACE[0] * 2
             ax.add_patch(plt.Rectangle(
                 (
                     -self.W_BORDER + border_penalization,

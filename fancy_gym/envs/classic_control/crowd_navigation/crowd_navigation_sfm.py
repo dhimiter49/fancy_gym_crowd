@@ -91,7 +91,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         # Handle crowd members that reached the goal, a new goal will be generated
         crowd_goal_complete = np.logical_and(
             np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
-            self.PHYSICAL_SPACE,
+            self.PHYSICAL_SPACE[1:],
             np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
         )
 
