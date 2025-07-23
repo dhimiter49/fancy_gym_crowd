@@ -453,10 +453,10 @@ class BaseCrowdNavigationEnv(gym.Env):
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
-                        [-self.W_BORDER + self.PHYSICAL_SPACE[0] * 1.2,
-                         -self.H_BORDER + self.PHYSICAL_SPACE[0] * 1.2],
-                        [self.W_BORDER - self.PHYSICAL_SPACE[0] * 1.2,
-                         self.H_BORDER - self.PHYSICAL_SPACE[0] * 1.2]
+                        [-self.W_BORDER + self.PHYSICAL_SPACE[i] * 1.2,
+                         -self.H_BORDER + self.PHYSICAL_SPACE[i] * 1.2],
+                        [self.W_BORDER - self.PHYSICAL_SPACE[i] * 1.2,
+                         self.H_BORDER - self.PHYSICAL_SPACE[i] * 1.2]
                     )
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:

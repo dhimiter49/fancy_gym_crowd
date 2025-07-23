@@ -309,7 +309,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                 self._crowd_vels,
                 crowd_vels.reshape(self.n_crowd, -1),
                 dist_walls.reshape(self.n_crowd, -1),
-                self.PHYSICAL_SPACE[1:].reshape(self.n_crowd, -1)
+                self.ALL_CROWD_PHYSICAL_SPACES.reshape(self.n_crowd, -1)
             ))
             array_member_obs = np.array([np.concatenate(x) for x in zip_member_obs])
 
@@ -318,6 +318,13 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
 
     def _start_env_vars(self):
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
+        self.ALL_CROWD_PHYSICAL_SPACES = np.add.outer(
+            self.PHYSICAL_SPACE[1:], self.PHYSICAL_SPACE[1:]
+            # remove crowd distances to itself
+        )[~np.eye(self.n_crowd, dtype=bool)].reshape(self.n_crowd, self.n_crowd - 1)
+        self.ALL_CROWD_SOC_PHY_SPACES = np.add.outer(
+            self.PHYSICAL_SPACE[1:], self.SOCIAL_SPACE[1:]
+        )[~np.eye(self.n_crowd, dtype=bool)].reshape(self.n_crowd, self.n_crowd - 1)
         next_crowd_vels = np.zeros(crowd_poss.shape)
 
         self._crowd_goal_poss = self._gen_crowd_goal(crowd_poss)
