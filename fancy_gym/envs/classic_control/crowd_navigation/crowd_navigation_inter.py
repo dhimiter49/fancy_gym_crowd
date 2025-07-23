@@ -282,6 +282,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                         rel_crowd_poss,
                         crowd_vels
                     ], axis=-1).reshape(self.n_crowd, -1),
+                    self.PHYSICAL_SPACE[1:]
                 ))
                 array_member_obs = np.array([np.concatenate(x) for x in zip_member_obs])
                 return np.concatenate([array_member_obs]).astype(np.float32).flatten()
@@ -298,7 +299,8 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                 rel_crowd_poss.reshape(self.n_crowd, -1),
                 self._crowd_vels,
                 crowd_vels.reshape(self.n_crowd, -1),
-                dist_walls.reshape(self.n_crowd, -1)
+                dist_walls.reshape(self.n_crowd, -1),
+                self.PHYSICAL_SPACE[1:].reshape(self.n_crowd, -1)
             ))
             array_member_obs = np.array([np.concatenate(x) for x in zip_member_obs])
 

@@ -137,52 +137,121 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 ])
         elif self.seq_obs:
             if self.polar:
-                max_dist = np.linalg.norm([self.W_BORDER, self.H_BORDER])
-                state_bound_min = np.hstack([
-                    [-max_dist, -np.pi, 0] * (2 + self.n_crowd),
-                ])
-                state_bound_max = np.hstack([
-                    [max_dist, np.pi, self.AGENT_MAX_VEL] * (2 + self.n_crowd)
-                ])
+                if self.var_radius:
+                    max_dist = np.linalg.norm([self.W_BORDER, self.H_BORDER])
+                    state_bound_min = np.hstack([
+                        [-max_dist, -np.pi, 0, self.MIN_RADIUS] * (2 + self.n_crowd),
+                    ])
+                    state_bound_max = np.hstack([
+                        [max_dist, np.pi, self.AGENT_MAX_VEL, self.MAX_RADIUS] *
+                        (2 + self.n_crowd)
+                    ])
+                else:
+                    max_dist = np.linalg.norm([self.W_BORDER, self.H_BORDER])
+                    state_bound_min = np.hstack([
+                        [-max_dist, -np.pi, 0] * (2 + self.n_crowd),
+                    ])
+                    state_bound_max = np.hstack([
+                        [max_dist, np.pi, self.AGENT_MAX_VEL] * (2 + self.n_crowd)
+                    ])
             else:
-                state_bound_min = np.hstack([
-                    [
-                        -self.W_BORDER,
-                        -self.H_BORDER,
-                        -self.AGENT_MAX_VEL,
-                        -self.AGENT_MAX_VEL
-                    ],
-                    [-self.WIDTH, -self.HEIGHT, -self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-                    [
-                        -self.WIDTH,
-                        -self.HEIGHT,
-                        -self.CROWD_MAX_VEL,
-                        -self.CROWD_MAX_VEL
-                    ] * self.n_crowd,
-                ])
-                state_bound_max = np.hstack([
-                    [
-                        self.W_BORDER,
-                        self.H_BORDER,
-                        self.AGENT_MAX_VEL,
-                        self.AGENT_MAX_VEL
-                    ],
-                    [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                    [self.WIDTH, self.HEIGHT, self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] *
-                    self.n_crowd,
-                ])
+                if self.var_radius:
+                    state_bound_min = np.hstack([
+                        [
+                            -self.W_BORDER,
+                            -self.H_BORDER,
+                            -self.AGENT_MAX_VEL,
+                            -self.AGENT_MAX_VEL,
+                            self.MIN_RADIUS
+                        ],
+                        [
+                            -self.WIDTH,
+                            -self.HEIGHT,
+                            -self.AGENT_MAX_VEL,
+                            -self.AGENT_MAX_VEL,
+                            0
+                        ],
+                        [
+                            -self.WIDTH,
+                            -self.HEIGHT,
+                            -self.CROWD_MAX_VEL,
+                            -self.CROWD_MAX_VEL,
+                            self.MIN_RADIUS
+                        ] * self.n_crowd,
+                    ])
+                    state_bound_max = np.hstack([
+                        [
+                            self.W_BORDER,
+                            self.H_BORDER,
+                            self.AGENT_MAX_VEL,
+                            self.AGENT_MAX_VEL,
+                            self.MAX_RADIUS
+                        ],
+                        [
+                            self.WIDTH,
+                            self.HEIGHT,
+                            self.AGENT_MAX_VEL,
+                            self.AGENT_MAX_VEL,
+                            0
+                        ],
+                        [
+                            self.WIDTH,
+                            self.HEIGHT,
+                            self.CROWD_MAX_VEL,
+                            self.CROWD_MAX_VEL,
+                            self.MAX_RADIUS
+                        ] * self.n_crowd,
+                    ])
+                else:
+                    state_bound_min = np.hstack([
+                        [
+                            -self.W_BORDER,
+                            -self.H_BORDER,
+                            -self.AGENT_MAX_VEL,
+                            -self.AGENT_MAX_VEL
+                        ],
+                        [
+                            -self.WIDTH,
+                            -self.HEIGHT,
+                            -self.AGENT_MAX_VEL,
+                            -self.AGENT_MAX_VEL
+                        ],
+                        [
+                            -self.WIDTH,
+                            -self.HEIGHT,
+                            -self.CROWD_MAX_VEL,
+                            -self.CROWD_MAX_VEL
+                        ] * self.n_crowd,
+                    ])
+                    state_bound_max = np.hstack([
+                        [
+                            self.W_BORDER,
+                            self.H_BORDER,
+                            self.AGENT_MAX_VEL,
+                            self.AGENT_MAX_VEL
+                        ],
+                        [self.WIDTH, self.HEIGHT, self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                        [
+                            self.WIDTH,
+                            self.HEIGHT,
+                            self.CROWD_MAX_VEL,
+                            self.CROWD_MAX_VEL
+                        ] * self.n_crowd,
+                    ])
         else:
             state_bound_min = np.hstack([
                 [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
                 [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
                 [-self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] * self.n_crowd,
                 [0] * 4,  # four directions
+                [self.MIN_RADIUS] * (self.n_crowd + 1)
             ])
             state_bound_max = np.hstack([
                 [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
                 [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
                 [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
                 np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
+                [self.MAX_RADIUS] * (self.n_crowd + 1),
             ])
         if hasattr(self, 'INTER_CROWD'):
             self.n_crowd += 1
@@ -381,30 +450,63 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         -1.0, 1.0
                     ))
                 crowd_vel_rel_norm = np.dot(self._crowd_vels, orient)
-                return np.concatenate([
-                    [np.concatenate([
-                        self.c2p(self._agent_pos), [np.linalg.norm(self._agent_vel)]
-                    ])],
-                    [np.concatenate([
-                        [np.linalg.norm(rel_goal_pos), goal_angle_rel_orient],
-                        [0]
-                    ])],
-                    np.concatenate([
-                        np.linalg.norm(rel_crowd_pos, axis=-1).reshape(-1, 1),
-                        crowd_angle_rel_orient.reshape(-1, 1),
-                        crowd_vel_rel_norm.reshape(-1, 1)
-                    ], axis=-1),
-                ]).astype(np.float32).flatten()
+                if self.var_radius:
+                    return np.concatenate([
+                        [np.concatenate([
+                            self.c2p(self._agent_pos), [np.linalg.norm(self._agent_vel)],
+                            [self.PHYSICAL_SPACE[0]]
+                        ])],
+                        [np.concatenate([
+                            [np.linalg.norm(rel_goal_pos), goal_angle_rel_orient],
+                            [0, 0],
+                        ])],
+                        np.concatenate([
+                            np.linalg.norm(rel_crowd_pos, axis=-1).reshape(-1, 1),
+                            crowd_angle_rel_orient.reshape(-1, 1),
+                            crowd_vel_rel_norm.reshape(-1, 1),
+                            self.PHYSICAL_SPACE[1:].reshape(-1, 1)
+                        ], axis=-1),
+                    ]).astype(np.float32).flatten()
+                else:
+                    return np.concatenate([
+                        [np.concatenate([
+                            self.c2p(self._agent_pos), [np.linalg.norm(self._agent_vel)]
+                        ])],
+                        [np.concatenate([
+                            [np.linalg.norm(rel_goal_pos), goal_angle_rel_orient],
+                            [0]
+                        ])],
+                        np.concatenate([
+                            np.linalg.norm(rel_crowd_pos, axis=-1).reshape(-1, 1),
+                            crowd_angle_rel_orient.reshape(-1, 1),
+                            crowd_vel_rel_norm.reshape(-1, 1)
+                        ], axis=-1),
+                    ]).astype(np.float32).flatten()
             else:
-                return np.concatenate([
-                    [np.concatenate([self._agent_pos, self._agent_vel])],
-                    [np.concatenate([
-                        self._goal_pos - self._agent_pos, self._agent_vel * 0
-                    ])],
-                    np.concatenate([
-                        self._crowd_poss - self._agent_pos, self._crowd_vels
-                    ], axis=-1)
-                ]).astype(np.float32).flatten()
+                if self.var_radius:
+                    return np.concatenate([
+                        [np.concatenate([
+                            self._agent_pos, self._agent_vel, [self.PHYSICAL_SPACE[0]]
+                        ])],
+                        [np.concatenate([
+                            self._goal_pos - self._agent_pos, self._agent_vel * 0, [0]
+                        ])],
+                        np.concatenate([
+                            self._crowd_poss - self._agent_pos,
+                            self._crowd_vels,
+                            self.PHYSICAL_SPACE[1:].reshape(-1, 1)
+                        ], axis=-1)
+                    ]).astype(np.float32).flatten()
+                else:
+                    return np.concatenate([
+                        [np.concatenate([self._agent_pos, self._agent_vel])],
+                        [np.concatenate([
+                            self._goal_pos - self._agent_pos, self._agent_vel * 0
+                        ])],
+                        np.concatenate([
+                            self._crowd_poss - self._agent_pos, self._crowd_vels
+                        ], axis=-1)
+                    ]).astype(np.float32).flatten()
         else:
             rel_crowd_poss = self._crowd_poss - self._agent_pos
             rel_crowd_poss = self.c2p(rel_crowd_poss) if self.polar else rel_crowd_poss
@@ -412,13 +514,23 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 [self.W_BORDER - self._agent_pos[0], self.W_BORDER + self._agent_pos[0]],
                 [self.H_BORDER - self._agent_pos[1], self.H_BORDER + self._agent_pos[1]]
             ])
-            return np.concatenate([
-                [rel_goal_pos],
-                rel_crowd_poss,
-                [agent_vel],
-                self._crowd_vels,
-                dist_walls
-            ]).astype(np.float32).flatten()
+            if self.var_radius:
+                return np.concatenate([
+                    rel_goal_pos,
+                    rel_crowd_poss.flatten(),
+                    agent_vel,
+                    self._crowd_vels.flatten(),
+                    dist_walls.flatten(),
+                    self.PHYSICAL_SPACE
+                ]).astype(np.float32).flatten()
+            else:
+                return np.concatenate([
+                    [rel_goal_pos],
+                    rel_crowd_poss,
+                    [agent_vel],
+                    self._crowd_vels,
+                    dist_walls
+                ]).astype(np.float32).flatten()
 
 
     def _start_env_vars(self):
