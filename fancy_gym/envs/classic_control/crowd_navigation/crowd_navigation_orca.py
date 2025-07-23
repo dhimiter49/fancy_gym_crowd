@@ -39,6 +39,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         time_frame: int = 0,
         lidar_vel: bool = False,
         n_frames: int = 4,
+        lidar_max: float = 0.0,
+        intrinsic_rew: bool = False,
     ):
         super().__init__(
             n_crowd,
@@ -56,6 +58,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             time_frame=time_frame,
             lidar_vel=lidar_vel,
             n_frames=n_frames,
+            lidar_max=lidar_max,
+            intrinsic_rew=intrinsic_rew,
         )
         self.neighbor_dist = np.max(self.PHYSICAL_SPACE[1:]) * 6. + 0.1
         self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
