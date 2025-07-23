@@ -34,6 +34,8 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         time_frame: int = 0,
         lidar_vel: bool = False,
         n_frames: int = 4,
+        lidar_max: float = 0.0,
+        intrinsic_rew: bool = False,
     ):
         super().__init__(
             n_crowd,
@@ -51,6 +53,8 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             time_frame=time_frame,
             lidar_vel=lidar_vel,
             n_frames=n_frames,
+            lidar_max=lidar_max,
+            intrinsic_rew=intrinsic_rew,
         )
         self.initial_speed = self.CROWD_MAX_VEL
         self.v0 = 10
@@ -91,7 +95,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         # Handle crowd members that reached the goal, a new goal will be generated
         crowd_goal_complete = np.logical_and(
             np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
-            self.PHYSICAL_SPACE,
+            self.PHYSICAL_SPACE[1:],
             np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
         )
 
