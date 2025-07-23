@@ -296,7 +296,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             dist_walls = np.array(dist_walls)
             physical_spaces = np.concatenate([
                 [np.concatenate([
-                    [self.PHYSICAL_SPACE[i]], np.delete(self.PHYSICAL_SPACE, i)
+                    [self.PHYSICAL_SPACE[1:][i]], np.delete(self.PHYSICAL_SPACE[1:], i)
                 ]) for i in range(self.n_crowd)]
             ])
             zip_member_obs = list(zip(
