@@ -40,6 +40,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         self._dt = dt
         self.n_crowd = n_crowd
+        self.var_radius = var_radius
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -48,8 +49,14 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.AGENT_MAX_VEL = 1.0
         self.CROWD_MAX_VEL = 1.5
         # 0 -> agent radius, and then other members of the crowd
-        # self.PHYSICAL_SPACE = np.random.uniform(0.3, 1., self.n_crowd + 1)
-        self.PHYSICAL_SPACE = np.array([0.4] * (self.n_crowd + 1))
+        self.MIN_RADIUS = 0.2
+        self.MAX_RADIUS = 1.
+        if self.var_radius:
+            self.PHYSICAL_SPACE = np.random.uniform(
+                self.MIN_RADIUS, self.MAX_RADIUS, self.n_crowd + 1
+            )
+        else:
+            self.PHYSICAL_SPACE = np.array([0.4] * (self.n_crowd + 1))
         self.PERSONAL_SPACE = self.PHYSICAL_SPACE + 1.
         self.SOCIAL_SPACE = self.PHYSICAL_SPACE + 1.5
         self.MAX_ACC = 10.0
@@ -68,13 +75,11 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
         self.COLLISION_REWARD = -10
-        self.Cc = (self.PHYSICAL_SPACE[0] * self.PHYSICAL_SPACE[1:]) *\
+        self.Cc = (self.MIN_RADIUS + self.MAX_RADIUS) *\
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
-        # collision with wall
-        self.Ccw = 2 * self.PHYSICAL_SPACE[0] *\
-            np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
-        self.Cg = -25 * (1 - np.exp(self.Ccw / self.SOCIAL_SPACE[0])) /\
-            np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
+        self.Cg = -25 * (1 - np.exp(
+            self.Cc / (self.MIN_RADIUS + self.MAX_RADIUS + 1.5) / 2
+        )) / np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
         self.Tc = -self.COLLISION_REWARD
         self.Cc *= 2
 
@@ -357,6 +362,16 @@ class BaseCrowdNavigationEnv(gym.Env):
         member of the crowd between the agent and the goal (with some noise in its
         position as described above).
         """
+        if self.var_radius:
+            self.PHYSICAL_SPACE = np.random.uniform(
+                self.MIN_RADIUS, self.MAX_RADIUS, self.n_crowd + 1
+            )
+            self.PERSONAL_SPACE = self.PHYSICAL_SPACE + 1.
+            self.SOCIAL_SPACE = self.PHYSICAL_SPACE + 1.5
+            self.MIN_SPAWN_DIST = np.max([
+                2 * self.CROWD_MAX_VEL,
+                float(np.max(self.PERSONAL_SPACE + self.PHYSICAL_SPACE))
+            ])
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel:
             if self.one_way:
                 agent_pos = np.array([-self.W_BORDER + self.PHYSICAL_SPACE[0] * 2, 0])
@@ -416,8 +431,8 @@ class BaseCrowdNavigationEnv(gym.Env):
                         crowd_poss[:i] - sampled_pos, axis=-1
                     ) < self.PERSONAL_SPACE[:i] + self.PERSONAL_SPACE[i]) == 0
                 if (np.linalg.norm(sampled_pos - agent_pos) > self.MIN_SPAWN_DIST and
-                        np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE[i] and
-                        no_crowd_collision):
+                    np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE[i] and
+                   no_crowd_collision):
                     crowd_poss[i] = sampled_pos
                     break
 

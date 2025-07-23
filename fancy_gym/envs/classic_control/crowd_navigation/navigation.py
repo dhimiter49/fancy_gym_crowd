@@ -92,7 +92,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
                 max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE[0]),
             ])
             Rw = np.sum(
-                (1 - np.exp(self.Ccw / dist_walls)) *
+                (1 - np.exp(self.Cc / dist_walls)) *
                 (dist_walls < self.PHYSICAL_SPACE[0] * 2)
             )
 
@@ -187,6 +187,8 @@ class NavigationEnv(BaseCrowdNavigationEnv):
 
         if self._steps == 1:
             self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
+            if self.var_radius:
+                self.space_agent.radius = self.PHYSICAL_SPACE[0]
 
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],

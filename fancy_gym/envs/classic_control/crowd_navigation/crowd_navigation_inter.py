@@ -77,11 +77,6 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         self.ALL_CROWD_SOC_PHY_SPACES = np.add.outer(
             self.PHYSICAL_SPACE[1:], self.SOCIAL_SPACE[1:]
         )[~np.eye(self.n_crowd, dtype=bool)].reshape(self.n_crowd, self.n_crowd - 1)
-        self.Cc = np.add.outer(
-            self.Cc, self.Cc
-        )[~np.eye(self.n_crowd, dtype=bool)].reshape(self.n_crowd, self.n_crowd - 1)
-        self.Ccw = 2 * self.PHYSICAL_SPACE[1:] *\
-            np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
 
         self.seq_obs = sequence_obs
         self.lidar = lidar_rays != 0
@@ -145,7 +140,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         dist_crowd = np.linalg.norm(rel_crowd_poss, axis=-1)
         Rc = Rc.astype(np.float32)
         Rc[idx_no_collision] = np.sum(
-            (1 - np.exp(self.Cc[idx_no_collision] / dist_crowd[idx_no_collision])) *
+            (1 - np.exp(self.Cc / dist_crowd[idx_no_collision])) *
             (dist_crowd[idx_no_collision] <
              self.ALL_CROWD_SOC_PHY_SPACES[idx_no_collision]),
             axis=-1
@@ -169,9 +164,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         Rw = np.sum(
             np.einsum(
                 'ij,i->ij',
-                (1 - np.exp(
-                    np.repeat(self.Ccw, 2).reshape(self.n_crowd, 2) / dist_walls
-                )),
+                (1 - np.exp(self.Cc / dist_walls)),
                 np.sum((
                     dist_walls <
                     np.repeat(self.PHYSICAL_SPACE[1:] * 2, 2).reshape(self.n_crowd, 2)
@@ -472,6 +465,12 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             fontsize=11,
             fontweight='bold'
         )
+        if self._steps == 1 and self.var_radius:
+            for i in range(self.n_crowd):
+                self.ScS_crowd[i].radius = self.SOCIAL_SPACE[i + 1]
+                self.PrS_crowd[i].radius = self.PERSONAL_SPACE[i + 1]
+                self.PhS_crowd[i].radius = self.PHYSICAL_SPACE[i + 1]
+
         for i, member in enumerate(self._crowd_poss):
             self.ScS_crowd[i].center = member
             self.PrS_crowd[i].center = member

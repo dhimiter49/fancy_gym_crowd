@@ -139,7 +139,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE[0]),
         ])
         Rw = np.sum(
-            (1 - np.exp(self.Ccw / dist_walls)) *
+            (1 - np.exp(self.Cc / dist_walls)) *
             (dist_walls < self.PHYSICAL_SPACE[0] * 2)
         )
 
@@ -335,6 +335,12 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 self.ScS_crowd[i].center = member
                 self.PrS_crowd[i].center = member
                 self.PhS_crowd[i].center = member
+                if self.var_radius:
+                    self.ScS_crowd[i].radius = self.SOCIAL_SPACE[i + 1]
+                    self.PrS_crowd[i].radius = self.PERSONAL_SPACE[i + 1]
+                    self.PhS_crowd[i].radius = self.PHYSICAL_SPACE[i + 1]
+            if self.var_radius:
+                self.space_agent.radius = self.PHYSICAL_SPACE[0]
 
 
         self.vel_agent.set_data(
