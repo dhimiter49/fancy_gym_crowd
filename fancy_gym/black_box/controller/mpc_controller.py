@@ -196,6 +196,18 @@ class MPCController(BaseController):
         self.last_braking_traj = np.zeros((self.N, 2))
 
 
+    def set_uncertainty(self, uncertainty):
+        if uncertainty == "dist":
+            if isinstance(self.min_dist_crowd, list):
+                self.min_dist_crowd = np.expand_dims(
+                    self.min_dist_crowd, -1
+                ).repeat(self.N_crowd, -1)
+            else:
+                self.min_dist_crowd = self.min_dist_crowd * np.ones(self.N_crowd)
+            self.min_dist_crowd += self.MAX_ACC * self.dt ** 2 *\
+                np.arange(1, self.N_crowd + 1)
+
+
     def flush(self):
         """
         Flush state which consists only of the lastr braking trajectory.
