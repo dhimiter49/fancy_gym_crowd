@@ -438,8 +438,8 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         if "Inter" not in type(self).__name__:
             # Shuffle crowd positions so interceptor is at random position
-            indxs = np.arange(self.n_crowd)
-            np.random.shuffle(indxs)
+            idxs = np.arange(self.n_crowd)
+            np.random.shuffle(idxs)
             crowd_poss = crowd_poss[idxs]
             self.PHYSICAL_SPACE[1:] = self.PHYSICAL_SPACE[:1][idxs]
 
