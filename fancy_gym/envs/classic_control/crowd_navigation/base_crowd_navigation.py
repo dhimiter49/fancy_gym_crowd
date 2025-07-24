@@ -29,6 +29,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         velocity_control: bool = False,
         dt: float = 0.1,
         continuous_collision: bool = True,
+        var_radius: bool = False,
     ):
         self.non_polar_action = False
         calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
