@@ -442,7 +442,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             idxs = np.arange(self.n_crowd)
             np.random.shuffle(idxs)
             crowd_poss = crowd_poss[idxs]
-            self.PHYSICAL_SPACE[1:] = self.PHYSICAL_SPACE[:1][idxs]
+            self.PHYSICAL_SPACE[1:] = self.PHYSICAL_SPACE[1:][idxs]
 
         return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
 
