@@ -303,19 +303,28 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
                     [self.H_BORDER - member[1], self.H_BORDER + member[1]]
                 ]))
             dist_walls = np.array(dist_walls)
-            physical_spaces = np.concatenate([
-                [np.concatenate([
-                    [self.PHYSICAL_SPACE[1:][i]], np.delete(self.PHYSICAL_SPACE[1:], i)
-                ]) for i in range(self.n_crowd)]
-            ])
-            zip_member_obs = list(zip(
-                rel_goal_poss.reshape(self.n_crowd, -1),
-                rel_crowd_poss.reshape(self.n_crowd, -1),
-                self._crowd_vels,
-                crowd_vels.reshape(self.n_crowd, -1),
-                dist_walls.reshape(self.n_crowd, -1),
-                physical_spaces.reshape(self.n_crowd, -1)
-            ))
+            if self.var_radius:
+                physical_spaces = np.concatenate([
+                    [np.concatenate([
+                        [self.PHYSICAL_SPACE[1:][i]], np.delete(self.PHYSICAL_SPACE[1:], i)
+                    ]) for i in range(self.n_crowd)]
+                ])
+                zip_member_obs = list(zip(
+                    rel_goal_poss.reshape(self.n_crowd, -1),
+                    rel_crowd_poss.reshape(self.n_crowd, -1),
+                    self._crowd_vels,
+                    crowd_vels.reshape(self.n_crowd, -1),
+                    dist_walls.reshape(self.n_crowd, -1),
+                    physical_spaces.reshape(self.n_crowd, -1)
+                ))
+            else:
+                zip_member_obs = list(zip(
+                    rel_goal_poss.reshape(self.n_crowd, -1),
+                    rel_crowd_poss.reshape(self.n_crowd, -1),
+                    self._crowd_vels,
+                    crowd_vels.reshape(self.n_crowd, -1),
+                    dist_walls.reshape(self.n_crowd, -1),
+                ))
             array_member_obs = np.array([np.concatenate(x) for x in zip_member_obs])
 
             return np.concatenate([array_member_obs]).astype(np.float32).flatten()
