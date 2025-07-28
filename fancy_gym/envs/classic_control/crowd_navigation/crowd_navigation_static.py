@@ -266,12 +266,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 self._agent_pos, self.PHYSICAL_SPACE[0], color="g", alpha=0.5
             )
             ax.add_patch(self.space_agent)
-            self.traj_agent = []
-            for i in range(100):
-                self.traj_agent.append(plt.Circle(
-                    np.array([0, 0]), self.PHYSICAL_SPACE, color="g", alpha=0.0
-                ))
-                ax.add_patch(self.traj_agent[-1])
 
             # Social space, Personal space, Physical space, Crowd goal positions
             self.ScS_crowd = []
@@ -371,14 +365,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             dx=self._agent_vel[0], dy=self._agent_vel[1]
         )
         self.space_agent.center = self._agent_pos
-        if self.traj_pos == []:
-            for i in range(len(self.traj_agent)):
-                self.traj_agent[i].center = np.array([0, 0])
-                self.traj_agent[i].set_alpha(0.0)
-        traj_steps = len(self.traj_pos)
-        for i, pos in enumerate(self.traj_pos):
-            self.traj_agent[i].center = pos
-            self.traj_agent[i].set_alpha(0.1 + 0.2 * i / traj_steps)
 
         self.space_agent.center = self._agent_pos
         if self.lidar:
