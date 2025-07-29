@@ -832,6 +832,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
+        # if self._is_collided:
+        #     self.collision_metrics()
         self._current_reward, info = self._get_reward(action)
         if self.intrinsic_rew:
             rew, new_info = self._get_intrinsic_reward()
@@ -843,6 +845,70 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         truncated = False
 
         return self._get_obs().copy(), self._current_reward, terminated, truncated, info
+
+
+    def collision_metrics(self):
+        if len(self.idx_colliding_agents) >= 1:
+            self.num_col += len(self.idx_colliding_agents)
+            self.col_vel_sum += np.sum(np.linalg.norm(
+                self._agent_vel - self._crowd_vels[self.idx_colliding_agents], axis=-1
+            ))
+            self.col_agent_vel_sum += np.linalg.norm(self._agent_vel)
+            self.num_env_col += 1
+            print("Num col", self.num_env_col)
+            print("Col vel", self.col_vel_sum / self.num_col)
+            print("Col agent vel", self.col_agent_vel_sum / self.num_col)
+
+            # Find intersection, first find maximum intersection distance between circles
+            # Then find the intersection area
+            #   Visual representation of collision intersection
+            #   c0 x------(--|--)------x c1
+            #       <--------d-------->
+            #       <---a--->
+            #                 <---b--->
+            #
+            idx_colliding_agent = self.idx_colliding_agents[0]
+            col_poss = np.stack([self._agent_pos, self._crowd_poss[idx_colliding_agent]])
+            col_vels = np.stack([self._agent_vel, self._crowd_vels[idx_colliding_agent]])
+            max_time = (self.PHYSICAL_SPACE[0] * 3) / np.linalg.norm(col_vels[1])
+            sample_dt = 0.01
+            max_time_steps = int(max_time // sample_dt)
+            propagate_col_agents = np.repeat(
+                np.expand_dims(col_poss, axis=0), max_time_steps, axis=0
+            ) + np.einsum(
+                "ijk,i->ijk",
+                np.repeat(
+                    np.expand_dims(col_vels, axis=0), max_time_steps, axis=0
+                ),
+                np.arange(max_time_steps) * sample_dt
+            )
+            d = np.min(np.linalg.norm(
+                propagate_col_agents[:, 0] - propagate_col_agents[:, 1], axis=-1
+            ))
+            r_0 = self.PHYSICAL_SPACE[0]
+            r_1 = self.PHYSICAL_SPACE[1 + idx_colliding_agent]
+            a = (r_0**2 - r_1**2 + d**2) / (2 * d)
+            h = np.sqrt(r_0**2 - a**2)
+            alpha = np.arccos(a / r_0)
+            arch_area = r_0**2 * alpha
+            triangle_area = h * a
+            c_0_intersection_area = arch_area - triangle_area
+            if r_0 == r_1:
+                c_1_intersection_area = c_0_intersection_area
+            else:
+                b = np.sqrt(r_1**2 - h**2)
+                beta = np.arccos(b / r_1)
+                arch_area = r_1**2 * beta
+                triangle_area = h * b
+                c_1_intersection_area = arch_area - triangle_area
+            intersection_area = c_0_intersection_area + c_1_intersection_area
+            print("Col max intersection area: ", intersection_area)
+            print(
+                "Col max intersection area rel to agent size:",
+                round(intersection_area / (np.pi * r_0 ** 2) * 100, 2),
+                "%"
+            )
+
 
 
     def freezing_agent(self):

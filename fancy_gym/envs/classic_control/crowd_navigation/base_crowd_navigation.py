@@ -161,10 +161,16 @@ class BaseCrowdNavigationEnv(gym.Env):
         )
         self.exec_traj = []
         self.exec_actions = []
+        self.idx_colliding_agents = []
         self.desired_position = np.empty(2)  # desired position when using ProDMP
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.n_crowd, 4))
+
+        self.num_env_col = 0  # at leat one collision in environment
+        self.num_col = 0  # every collision in the environment
+        self.col_vel_sum = 0.
+        self.col_agent_vel_sum = 0.
 
 
     def hard_set_vars(self, vars):
@@ -517,6 +523,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         """
         # Crowd
         if self.n_crowd > 0:
+            agent_poss = self._agent_pos.copy()
+            crowd_poss = self._crowd_poss.copy()
             if self.supersample_col:
                 over_sample_by = self._dt / 0.01
                 agent_poss = self._last_agent_pos + np.einsum(
@@ -530,13 +538,14 @@ class BaseCrowdNavigationEnv(gym.Env):
                     self._crowd_poss - self._last_crowd_poss
                 ) / over_sample_by
                 agent_poss = np.expand_dims(agent_poss, axis=1)
-                if np.sum(np.linalg.norm(agent_poss - crowd_poss, axis=-1) <
-                   self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:]):
-                    return True
-            else:
-                if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
-                   self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:]):
-                    return True
+            self.idx_colliding_agents = np.where((
+                np.linalg.norm(
+                    agent_poss - crowd_poss, axis=-1
+                ) < (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:])
+            ) > 0)[-1]
+            self.idx_colliding_agents = list(set(list(self.idx_colliding_agents)))
+            if len(self.idx_colliding_agents) > 0:
+                return True
         # Walls
         if np.sum(np.abs(self._agent_pos) >
            np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE[0]):
