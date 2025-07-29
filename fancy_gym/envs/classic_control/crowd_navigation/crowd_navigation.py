@@ -955,10 +955,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 triangle_area = h * b
                 c_1_intersection_area = arch_area - triangle_area
             intersection_area = c_0_intersection_area + c_1_intersection_area
-            print("Col max intersection area: ", intersection_area)
+            self.col_inters_sum += intersection_area
             print(
-                "Col max intersection area rel to agent size:",
-                round(intersection_area / (np.pi * r_0 ** 2) * 100, 2),
+                "Col avg max intersection area: ", self.col_inters_sum / self.num_env_col
+            )
+            print(
+                "Col avg, max intersection area rel to agent size:",
+                round(
+                    (self.col_inters_sum / self.num_env_col) / (np.pi * r_0 ** 2) * 100,
+                    2
+                ),
                 "%"
             )
 
