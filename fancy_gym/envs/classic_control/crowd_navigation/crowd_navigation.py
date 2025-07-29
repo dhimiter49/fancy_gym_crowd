@@ -905,11 +905,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 ) / over_sample_by
                 agent_poss = np.expand_dims(agent_poss, axis=1)
                 col_vec = np.linalg.norm(agent_poss - crowd_poss, axis=-1) <\
-                   (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:])
+                    (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:])
                 col_idx = list(set(list(np.where(col_vec > 0)[-1])))
             else:
                 col_vec = np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <\
-                   (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:])
+                    (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:])
                 col_idx = np.where(col_vec > 0)[0]
             global NUM_COL
             global COL_VEL_SUM
