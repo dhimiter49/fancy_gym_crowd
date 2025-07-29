@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import socialforce
 
 from fancy_gym.envs.classic_control.crowd_navigation.crowd_navigation\
@@ -57,8 +58,18 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             intrinsic_rew=intrinsic_rew,
         )
         self.initial_speed = self.CROWD_MAX_VEL
-        self.v0 = 10
-        self.sigma = 0.6
+        self.ped_ped = socialforce.potentials.PedPedPotential(
+            v0=5, sigma=1.
+        )
+        self.ped_space = socialforce.potentials.PedSpacePotential(
+            [], r=self.PHYSICAL_SPACE[0] * 2
+        )
+        self.ped_ped.delta_t_step = 0.1
+        self.sim = socialforce.Simulator(
+            ped_space=self.ped_space,
+            ped_ped=self.ped_ped,
+            # delta_t=0.1,
+        )
 
 
     def _start_env_vars(self):
@@ -103,24 +114,45 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
                 self._crowd_poss[crowd_goal_complete]
             )
+        agent_pref_vel = self._goal_pos - self._agent_pos
+        agent_pref_vel /= np.linalg.norm(agent_pref_vel) * self.AGENT_MAX_VEL
+        agent_pref_acc = (agent_pref_vel - self._agent_vel) / self._dt
+        agent_pref_acc_norm = np.linalg.norm(agent_pref_acc)
+        if agent_pref_acc_norm > self.MAX_ACC:
+            agent_pref_vel = self._agent_vel + agent_pref_acc / agent_pref_acc_norm *\
+                self.MAX_ACC * self._dt
 
-        sf_state = np.concatenate([
-            [np.concatenate([self._agent_pos, self._agent_vel, self._goal_pos])],
-            np.concatenate(
-                [self._crowd_poss, self._crowd_vels, self._crowd_goal_poss], axis=-1
+        crowd_pref_vels = self._crowd_goal_poss - self._crowd_poss
+        crowd_pref_vels = np.einsum(
+            "ij,i->ij",
+            crowd_pref_vels,
+            1 / np.linalg.norm(crowd_pref_vels, axis=-1)
+        ) * self.CROWD_MAX_VEL
+        crowd_pref_accs = (crowd_pref_vels - self._crowd_vels) / self._dt
+        crowd_pref_accs_norm = np.linalg.norm(crowd_pref_accs, axis=-1)
+        idxs_acc_too_high = np.where(crowd_pref_accs_norm > self.MAX_ACC)[0]
+        if len(idxs_acc_too_high) > 0:
+            crowd_pref_vels[idxs_acc_too_high] = self._crowd_vels[idxs_acc_too_high] +\
+                np.einsum(
+                    'ij,i->ij',
+                    crowd_pref_accs[idxs_acc_too_high],
+                    1 / crowd_pref_accs_norm[idxs_acc_too_high] * self.MAX_ACC * self._dt
             )
+        sf_state = np.concatenate([
+            [np.concatenate([
+                self._agent_pos,
+                agent_pref_vel,
+                self._goal_pos
+            ])],
+            np.concatenate([
+                self._crowd_poss,
+                crowd_pref_vels,
+                self._crowd_goal_poss
+            ], axis=-1)
         ])
-        sim = socialforce.Simulator(
-            sf_state,
-            delta_t=self._dt,
-            initial_speed=self.initial_speed,
-            v0=self.v0,
-            tau=1.8,
-            sigma=self.sigma
-        )
-        sim.step()
-        actions = sim.state[1:, 2:4]
+        new_state = self.sim(torch.from_numpy(sf_state))
+        actions = new_state[1:, 2:4].detach().numpy()
 
-        self._crowd_vels = actions
+        self._crowd_vels = actions.copy()
         self._crowd_poss += self._crowd_vels * self._dt
         return actions

@@ -71,8 +71,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 7,
-        "width": 16,
-        "height": 16,
+        "width": 14,
+        "height": 14,
         "interceptor_percentage": 2,
     }
 )
@@ -84,8 +84,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 6,
-        "width": 16,
-        "height": 16,
+        "width": 14,
+        "height": 14,
         "interceptor_percentage": 2,
     }
 )
@@ -97,8 +97,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 6,
-        "width": 16,
-        "height": 16,
+        "width": 14,
+        "height": 14,
         "velocity_control": True,
         "interceptor_percentage": 2,
     }
@@ -111,8 +111,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 6,
-        "width": 16,
-        "height": 16,
+        "width": 14,
+        "height": 14,
         "velocity_control": True,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
@@ -129,8 +129,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 6,
-        "width": 18,
-        "height": 18,
+        "width": 14,
+        "height": 14,
         "interceptor_percentage": 2,
     }
 )
@@ -142,8 +142,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 6,
-        "width": 18,
-        "height": 18,
+        "width": 14,
+        "height": 14,
         "velocity_control": True,
         "interceptor_percentage": 2,
     }
@@ -156,8 +156,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 6,
-        "width": 18,
-        "height": 18,
+        "width": 14,
+        "height": 14,
         "velocity_control": True,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
@@ -387,8 +387,8 @@ register(
     max_episode_steps=100,
     kwargs={
         "n_crowd": 8,
-        "width": 18,
-        "height": 18,
+        "width": 16,
+        "height": 16,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
     }
@@ -400,9 +400,9 @@ register(
     mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=100,
     kwargs={
-        "n_crowd": 7,
-        "width": 18,
-        "height": 18,
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
         "interceptor_percentage": 2,
         "velocity_control": True,
     }
@@ -414,9 +414,9 @@ register(
     mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=140,
     kwargs={
-        "n_crowd": 7,
-        "width": 18,
-        "height": 18,
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
         "velocity_control": True,

@@ -170,6 +170,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
+        self.exec_actions = []
         self.desired_position = np.empty(2)  # desired position when using ProDMP
         self.current_trajectory_vel = np.zeros((100, 2))
         self._traj_index = 0
@@ -340,6 +341,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._steps = 0
         self.traj_idx = 0
         self.exec_traj = [self._agent_pos]
+        self.exec_actions = []
         self._goal_reached = False
         self._is_collided = False
         self._current_reward = 0
