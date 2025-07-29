@@ -884,8 +884,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
-        # if self._is_collided:
-        #     self.collision_metrics()
+        if self._is_collided:
+            self.collision_metrics()
         self._current_reward, info = self._get_reward(action)
         if self.intrinsic_rew:
             rew, new_info = self._get_intrinsic_reward()
