@@ -159,6 +159,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             self.PHYSICAL_SPACE[0] / 2 and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
+        self.exec_traj = []
+        self.exec_actions = []
         self.desired_position = np.empty(2)  # desired position when using ProDMP
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
@@ -315,6 +317,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._crowd_vels
         ) = self._start_env_vars()
         self._steps = 0
+        self.exec_traj = [self._agent_pos]
+        self.exec_actions = []
         self._goal_reached = False
         self._is_collided = False
         self._current_reward = 0

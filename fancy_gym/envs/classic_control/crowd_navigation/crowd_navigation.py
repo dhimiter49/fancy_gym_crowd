@@ -843,3 +843,33 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         truncated = False
 
         return self._get_obs().copy(), self._current_reward, terminated, truncated, info
+
+
+    def freezing_agent(self):
+        num_last_steps = max(int(1. // self._dt), 5)
+        if len(self.exec_traj) < num_last_steps:
+            return False, dict(freezing=False, oscillating=False, far_from_goal=False)
+
+        exec_traj = np.array(self.exec_traj)
+        exec_actions = np.array(self.exec_actions)
+        # Check if robot is frozen and not moving
+        freezing = np.all(np.linalg.norm(exec_actions[-num_last_steps:], axis=-1) < 0.1)
+
+        # Oscillating
+        oscillating = np.all(
+            np.linalg.norm(
+                exec_traj[-num_last_steps] - exec_traj[-num_last_steps + 1:], axis=-1
+            ) < self.PHYSICAL_SPACE[0]
+        )
+
+        # Getting further from goal
+        far_from_goal = np.linalg.norm(
+            self._goal_pos - exec_traj[-num_last_steps]
+        ) < np.linalg.norm(
+            self.goal_pos - exec_traj[-1]
+        )
+        return freezing or oscillating or far_from_goal,\
+            dict(freezing=freezing, oscillating=oscillating, far_from_goal=far_from_goal)
+
+    def ttg(self):
+        return self._steps * self._dt
