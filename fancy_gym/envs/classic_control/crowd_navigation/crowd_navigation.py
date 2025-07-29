@@ -868,8 +868,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         ) < np.linalg.norm(
             self.goal_pos - exec_traj[-1]
         )
-        return freezing or oscillating or far_from_goal,\
+        return freezing or oscillating or far_from_goal, \
             dict(freezing=freezing, oscillating=oscillating, far_from_goal=far_from_goal)
+
 
     def ttg(self):
         return self._steps * self._dt
