@@ -171,6 +171,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.num_col = 0  # every collision in the environment
         self.col_vel_sum = 0.
         self.col_agent_vel_sum = 0.
+        self.col_inters_sum = 0.
 
 
     def hard_set_vars(self, vars):
