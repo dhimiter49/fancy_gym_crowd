@@ -74,13 +74,13 @@ class MPCController(BaseController):
     ):
         self.N = horizon
         self.horizon_tries = horizon_tries
-        self.short_hor_only_crowd = True
+        self.short_hor_only_crowd = False
         self.N_crowd = self.N if horizon_crowd_pred is None else horizon_crowd_pred
         self.replan = replan_steps if replan_steps is not None else self.N
         self.MAX_STOPPING_TIME = max_vel / max_acc
         self.MAX_VEL = max_vel
         self.MAX_ACC = max_acc
-        self.MAX_STOPPING_DIST = 2 * self.MAX_VEL
+        self.MAX_STOPPING_DIST = 3  # arbitrary, depending on env
         self.dt = dt
         self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc

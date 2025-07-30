@@ -916,7 +916,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             )
 
 
-
     def freezing_agent(self):
         num_last_steps = max(int(1. // self._dt), 5)
         if len(self.exec_traj) < num_last_steps:
@@ -940,7 +939,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         ) < np.linalg.norm(
             self.goal_pos - exec_traj[-1]
         )
-        return freezing or oscillating or far_from_goal, \
+        frp = freezing or oscillating or far_from_goal
+        if frp and not self.froze_last:
+            self.froze_last = True
+            self.freezing_instances += 1
+            # print("Freezing instances:", self.freezing_instances)
+        else:
+            self.froze_last = False
+        return frp, \
             dict(freezing=freezing, oscillating=oscillating, far_from_goal=far_from_goal)
 
 
