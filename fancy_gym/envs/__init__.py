@@ -384,7 +384,7 @@ register(
     id='fancy/CrowdNavigationLiDAR-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 8,
         "width": 16,
@@ -398,7 +398,7 @@ register(
     id='fancy/CrowdNavigationVel-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd_Vel,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 8,
         "width": 16,
