@@ -182,6 +182,9 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.col_vel_sum = 0.
         self.col_agent_vel_sum = 0.
         self.col_inters_sum = 0.
+        self.all_ttg = []
+        self.froze_last = False
+        self.freezing_instances = 0
 
 
     def hard_set_vars(self, vars):
@@ -353,6 +356,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._is_collided = False
         self._current_reward = 0
         self.traj_pos = []
+        self.froze_last = False
         return self._get_obs().copy(), {}
 
 
