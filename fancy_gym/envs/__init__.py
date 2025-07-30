@@ -81,7 +81,7 @@ register(
     id='fancy/CrowdNavigationORCA-v0',
     entry_point=CrowdNavigationORCAEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
         "width": 14,
@@ -94,7 +94,7 @@ register(
     id='fancy/CrowdNavigationORCAVel-v0',
     entry_point=CrowdNavigationORCAEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
         "width": 14,
@@ -108,7 +108,7 @@ register(
     id='fancy/CrowdNavigationORCALiDARVel-v0',
     entry_point=CrowdNavigationORCAEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
         "width": 14,
@@ -126,7 +126,7 @@ register(
     id='fancy/CrowdNavigationSFM-v0',
     entry_point=CrowdNavigationSFMEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
         "width": 14,
@@ -139,7 +139,7 @@ register(
     id='fancy/CrowdNavigationSFMVel-v0',
     entry_point=CrowdNavigationSFMEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
         "width": 14,
@@ -153,7 +153,7 @@ register(
     id='fancy/CrowdNavigationSFMLiDARVel-v0',
     entry_point=CrowdNavigationSFMEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
         "width": 14,
