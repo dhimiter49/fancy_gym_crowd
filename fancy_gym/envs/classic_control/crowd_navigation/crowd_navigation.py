@@ -1003,11 +1003,20 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def stats(self):
-        global NUM_COL
-        global COL_VEL_SUM
-        global COL_AGENT_VEL_SUM
-        global COLS
-        if COLS > 0:
-            print("Num cols", NUM_COL)
-            print("Average collision velocity:", COL_VEL_SUM / COLS)
-            print("Average agent speed:", COL_AGENT_VEL_SUM / COLS)
+        print("Num col", self.num_env_col)
+        print("Col vel", self.col_vel_sum / self.num_col)
+        print("Col agent vel", self.col_agent_vel_sum / self.num_col)
+        print(
+            "Col avg max intersection area: ", self.col_inters_sum / self.num_env_col
+        )
+        print(
+            "Col avg, max intersection area rel to agent size:",
+            round(
+                (self.col_inters_sum / self.num_env_col) /
+                (np.pi * self.PHYSICAL_SPACE[0] ** 2) * 100,
+                2
+            ),
+            "%"
+        )
+        print("Freezing instances:", self.freezing_instances)
+        print("Avg ttg:", np.mean(self.all_ttg))
