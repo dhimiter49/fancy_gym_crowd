@@ -908,6 +908,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ))
             self.col_agent_vel_sum += np.linalg.norm(self._agent_vel)
             self.num_env_col += 1
+            print("Seed", self.current_seed)
             print("Num col", self.num_env_col)
             print("Col vel", self.col_vel_sum / self.num_col)
             print("Col agent vel", self.col_agent_vel_sum / self.num_col)
