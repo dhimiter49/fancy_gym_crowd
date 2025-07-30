@@ -1002,7 +1002,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def ttg(self):
-        return self._steps * self._dt
+        self.all_ttg.append(self._steps * self._dt)
+        # print("Avg ttg:", np.mean(self.all_ttg))
 
 
     def stats(self):
@@ -1023,3 +1024,4 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         )
         print("Freezing instances:", self.freezing_instances)
         print("Avg ttg:", np.mean(self.all_ttg))
+        print("Success instances:", len(self.all_ttg))
