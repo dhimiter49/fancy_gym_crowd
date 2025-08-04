@@ -61,6 +61,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
         )
+        self.Ci = -1.
         self.neighbor_dist = np.inf
         self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
         self.time_horizon = 5.

@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Optional, Any, Dict
+from typing import Union, Tuple, Optional, Any, Dict, Callable
 import inspect
 
 import gymnasium as gym
@@ -30,6 +30,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         dt: float = 0.1,
         continuous_collision: bool = True,
         var_radius: bool = False,
+        curriculum: Callable = lambda _: 4,
     ):
         self.non_polar_action = False
         calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
@@ -42,6 +43,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._dt = dt
         self.n_crowd = n_crowd
         self.var_radius = var_radius
+        self.curriculum = curriculum
+        self._reset_steps = 0
+        self.max_n_crowd = self.n_crowd
+        self.n_crowd = self.curriculum(self._reset_steps)
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -54,10 +59,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.MAX_RADIUS = 1.
         if self.var_radius:
             self.PHYSICAL_SPACE = np.random.uniform(
-                self.MIN_RADIUS, self.MAX_RADIUS, self.n_crowd + 1
+                self.MIN_RADIUS, self.MAX_RADIUS, self.max_n_crowd + 1
             )
         else:
-            self.PHYSICAL_SPACE = np.array([0.4] * (self.n_crowd + 1))
+            self.PHYSICAL_SPACE = np.array([0.4] * (self.max_n_crowd + 1))
         self.PERSONAL_SPACE = self.PHYSICAL_SPACE + 1.
         self.SOCIAL_SPACE = self.PHYSICAL_SPACE + 1.5
         self.MAX_ACC = 10.0
@@ -81,6 +86,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.Cg = -self.COLLISION_REWARD / (self.AGENT_MAX_VEL * self._dt) ** 2 /\
             self.MAX_EPISODE_STEPS
         self.Tc = -self.COLLISION_REWARD
+        self.Ci = -5.
         self.Cc *= 2
 
         self.allow_collision = allow_collision
@@ -132,13 +138,13 @@ class BaseCrowdNavigationEnv(gym.Env):
                 )
 
         state_bound_min = np.hstack([
-            [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
-            [0] * (self.n_crowd + 1),
+            [-self.WIDTH, -self.HEIGHT] * (self.max_n_crowd + 1),
+            [0] * (self.max_n_crowd + 1),
         ])
         state_bound_max = np.hstack([
-            [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
+            [self.WIDTH, self.HEIGHT] * (self.max_n_crowd + 1),
             [self.AGENT_MAX_VEL],
-            [self.CROWD_MAX_VEL] * (self.n_crowd)
+            [self.CROWD_MAX_VEL] * (self.max_n_crowd)
         ])
 
         self.observation_space = spaces.Box(
@@ -164,7 +170,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.desired_position = np.empty(2)  # desired position when using ProDMP
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
-        self.separating_planes = np.zeros((self.n_crowd, 4))
+        self.separating_planes = np.zeros((self.max_n_crowd, 4))
 
         self.num_env_col = 0  # at leat one collision in environment
         self.num_col = 0  # every collision in the environment
@@ -318,6 +324,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
         super(BaseCrowdNavigationEnv, self).reset(seed=seed, options=options)
+        self.n_crowd = self.curriculum(self._reset_steps)
         (
             self._agent_pos,
             self._agent_vel,
@@ -325,6 +332,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._crowd_poss,
             self._crowd_vels
         ) = self._start_env_vars()
+        self._reset_steps += 1
         self._steps = 0
         self.exec_traj = [self._agent_pos]
         self.exec_actions = []
@@ -456,7 +464,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             idxs = np.arange(self.n_crowd)
             np.random.shuffle(idxs)
             crowd_poss = crowd_poss[idxs]
-            self.PHYSICAL_SPACE[1:] = self.PHYSICAL_SPACE[1:][idxs]
+            self.PHYSICAL_SPACE[1:1 + self.n_crowd] =\
+                self.PHYSICAL_SPACE[1:1 + self.n_crowd][idxs]
 
         return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
 
@@ -545,7 +554,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             self.idx_colliding_agents = np.where((
                 np.linalg.norm(
                     agent_poss - crowd_poss, axis=-1
-                ) < (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:])
+                ) < (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:1 + self.n_crowd])
             ) > 0)[-1]
             self.idx_colliding_agents = list(set(list(self.idx_colliding_agents)))
             if len(self.idx_colliding_agents) > 0:

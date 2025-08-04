@@ -408,6 +408,7 @@ register(
     }
 )
 
+add_agent_every = 10000
 register(
     id='fancy/CrowdNavigationLiDARVel-v0',
     entry_point=CrowdNavigationEnv,
@@ -423,6 +424,7 @@ register(
         "lidar_vel": True,
         "lidar_max": 5,
         "intrinsic_rew": True,
+        "curriculum": lambda step: min(1 + int(step / add_agent_every), 8)
     }
 )
 

@@ -57,6 +57,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
         )
+        self.Ci = -1.
         self.initial_speed = self.CROWD_MAX_VEL
         self.ped_ped = socialforce.potentials.PedPedPotential(
             v0=5, sigma=1.
