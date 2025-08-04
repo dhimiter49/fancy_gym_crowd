@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Any, Dict
+from typing import Tuple, Optional, Any, Dict, Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as interp
@@ -41,6 +41,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
+        curriculum: Callable = lambda _: 4,
     ):
         super().__init__(
             n_crowd,
@@ -60,6 +61,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             n_frames=n_frames,
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
+            curriculum=curriculum,
         )
         self.Ci = -1.
         self.neighbor_dist = np.inf
@@ -156,13 +158,14 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         crowd_pref_vels = self._crowd_goal_poss - self._crowd_poss
         crowd_pref_vels[
-            np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE[1:]
+            np.linalg.norm(crowd_pref_vels, axis=-1) <
+            self.PHYSICAL_SPACE[1:1 + self.n_crowd]
         ] = 0
         crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
 
         # update crowd goals
         crowd_goal_complete = np.logical_and(
-            crowd_pref_vels_speed < self.PHYSICAL_SPACE[1:],
+            crowd_pref_vels_speed < self.PHYSICAL_SPACE[1:1 + self.n_crowd],
             np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
         )
         if len(crowd_goal_complete) > 0:

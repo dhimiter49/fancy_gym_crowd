@@ -1,3 +1,4 @@
+from typing import Callable
 import numpy as np
 import torch
 import socialforce
@@ -37,6 +38,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
+        curriculum: Callable = lambda _: 4,
     ):
         super().__init__(
             n_crowd,
@@ -56,6 +58,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             n_frames=n_frames,
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
+            curriculum=curriculum,
         )
         self.Ci = -1.
         self.initial_speed = self.CROWD_MAX_VEL
@@ -107,7 +110,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         # Handle crowd members that reached the goal, a new goal will be generated
         crowd_goal_complete = np.logical_and(
             np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
-            self.PHYSICAL_SPACE[1:],
+            self.PHYSICAL_SPACE[1:1 + self.n_crowd],
             np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
         )
 

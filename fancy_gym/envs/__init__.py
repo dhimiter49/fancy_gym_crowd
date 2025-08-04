@@ -63,7 +63,8 @@ register(
         "n_links": 2,
     }
 )
-
+# Crowd Navigation
+add_agent_every = 10000  # curriculum learning, add agent every number of episodes
 register(
     id='fancy/CrowdNavigation-v0',
     entry_point=CrowdNavigationEnv,
@@ -408,7 +409,6 @@ register(
     }
 )
 
-add_agent_every = 10000
 register(
     id='fancy/CrowdNavigationLiDARVel-v0',
     entry_point=CrowdNavigationEnv,

@@ -43,7 +43,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         lidar_vel: bool = False,
         n_frames: int = 4,
         intrinsic_rew: bool = False,
-        curriculum: Callable= lambda _: 4,
+        curriculum: Callable = lambda _: 4,
     ):
         assert time_frame == 0 or not lidar_vel
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
