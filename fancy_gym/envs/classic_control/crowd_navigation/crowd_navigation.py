@@ -276,7 +276,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         else:
             # Goal distance
             dg_old = np.linalg.norm(self._last_agent_pos - self._goal_pos)
-            Rg = self.Cg * (dg_old - dg)
+            dg_diff = dg_old - dg
+            Rg = self.Cg * np.sign(dg_diff) * dg_diff ** 2
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD

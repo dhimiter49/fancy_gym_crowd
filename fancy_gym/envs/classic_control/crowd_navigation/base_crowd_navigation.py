@@ -78,9 +78,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.COLLISION_REWARD = -10
         self.Cc = (self.MIN_RADIUS + self.MAX_RADIUS) *\
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
-        self.Cg = -25 * (1 - np.exp(
-            self.Cc / (self.MIN_RADIUS + self.MAX_RADIUS + 1.5) / 2
-        )) / np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
+        self.Cg = -self.COLLISION_REWARD / (self.AGENT_MAX_VEL * self._dt) ** 2 /\
+            self.MAX_EPISODE_STEPS
         self.Tc = -self.COLLISION_REWARD
         self.Cc *= 2
 
