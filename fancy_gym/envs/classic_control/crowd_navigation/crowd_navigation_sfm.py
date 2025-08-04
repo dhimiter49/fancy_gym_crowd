@@ -1,3 +1,4 @@
+from typing import Callable
 import numpy as np
 import torch
 import socialforce
@@ -37,6 +38,8 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
+        curriculum: Callable = lambda _: 4,
+        one_goal: bool = False,
     ):
         super().__init__(
             n_crowd,
@@ -56,7 +59,10 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             n_frames=n_frames,
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
+            curriculum=curriculum,
+            one_goal=one_goal,
         )
+        self.Ci = -1.
         self.initial_speed = self.CROWD_MAX_VEL
         self.ped_ped = socialforce.potentials.PedPedPotential(
             v0=5, sigma=1.
@@ -104,16 +110,17 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
     def update_crowd(self):
         # Handle crowd members that reached the goal, a new goal will be generated
-        crowd_goal_complete = np.logical_and(
-            np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
-            self.PHYSICAL_SPACE[1:],
-            np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
-        )
-
-        if len(crowd_goal_complete) > 0:
-            self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
-                self._crowd_poss[crowd_goal_complete]
+        if not self.one_goal:
+            crowd_goal_complete = np.logical_and(
+                np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
+                self.PHYSICAL_SPACE[1:1 + self.n_crowd],
+                np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
             )
+
+            if len(crowd_goal_complete) > 0:
+                self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
+                    self._crowd_poss[crowd_goal_complete]
+                )
         agent_pref_vel = self._goal_pos - self._agent_pos
         agent_pref_vel /= np.linalg.norm(agent_pref_vel) * self.AGENT_MAX_VEL
         agent_pref_acc = (agent_pref_vel - self._agent_vel) / self._dt

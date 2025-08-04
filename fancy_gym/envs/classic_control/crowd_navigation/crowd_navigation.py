@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Any, Dict
+from typing import Tuple, Optional, Any, Dict, Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as interp
@@ -43,6 +43,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         lidar_vel: bool = False,
         n_frames: int = 4,
         intrinsic_rew: bool = False,
+        curriculum: Callable = lambda _: 4,
+        one_goal: bool = False,
     ):
         assert time_frame == 0 or not lidar_vel
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
@@ -54,6 +56,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.one_way = one_way
         self.polar = polar
         self.replan = REPLAN_MOVING
+        self.one_goal = one_goal
         super().__init__(
             n_crowd,
             width,
@@ -63,6 +66,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             discrete_action=discrete_action,
             velocity_control=velocity_control,
             dt=dt,
+            curriculum=curriculum,
         )
 
         self._old_action = None
@@ -280,7 +284,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         else:
             # Goal distance
             dg_old = np.linalg.norm(self._last_agent_pos - self._goal_pos)
-            Rg = self.Cg * (dg_old - dg)
+            dg_diff = dg_old - dg
+            Rg = self.Cg * np.sign(dg_diff) * dg_diff ** 2
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD
@@ -292,7 +297,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             )
             Rc = np.sum(
                 (1 - np.exp(self.Cc / dist_crowd)) *
-                (dist_crowd < self.SOCIAL_SPACE[1:] + self.PHYSICAL_SPACE[0])
+                (dist_crowd < self.SOCIAL_SPACE[1:1 + self.n_crowd] +
+                    self.PHYSICAL_SPACE[0])
             )
 
         # Walls, only one of the walls is closer (irrelevant which)
@@ -314,7 +320,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         Check how far the current position after the action is relative to the desired
         position proposed by the ProDMP.
         """
-        Ri = -5 * np.linalg.norm(self._agent_pos - self.desired_position)
+        Ri = self.Ci * np.linalg.norm(self._agent_pos - self.desired_position)
         return Ri, dict(intrinsic=Ri)
 
 
@@ -349,7 +355,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     np.outer(y_crowd_rel, self.RAY_COS)
                 )
                 all_rays_physical_space = np.repeat(
-                    self.PHYSICAL_SPACE[1:],
+                    self.PHYSICAL_SPACE[1:1 + self.n_crowd],
                     orthog_dist.shape[-1]
                 ).reshape(orthog_dist.shape)
                 intersections_mask = orthog_dist <= all_rays_physical_space
@@ -468,7 +474,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                             np.linalg.norm(rel_crowd_pos, axis=-1).reshape(-1, 1),
                             crowd_angle_rel_orient.reshape(-1, 1),
                             crowd_vel_rel_norm.reshape(-1, 1),
-                            self.PHYSICAL_SPACE[1:].reshape(-1, 1)
+                            self.PHYSICAL_SPACE[1:1 + self.n_crowd].reshape(-1, 1)
                         ], axis=-1),
                     ]).astype(np.float32).flatten()
                 else:
@@ -498,7 +504,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         np.concatenate([
                             self._crowd_poss - self._agent_pos,
                             self._crowd_vels,
-                            self.PHYSICAL_SPACE[1:].reshape(-1, 1)
+                            self.PHYSICAL_SPACE[1:1 + self.n_crowd].reshape(-1, 1)
                         ], axis=-1)
                     ]).astype(np.float32).flatten()
                 else:
@@ -665,10 +671,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 ec="g"
             )
             self.vel_crowd = []
-            for i in range(self.n_crowd):
+            for i in range(self.max_n_crowd):
+                if i < self.n_crowd:
+                    x, y = self._crowd_poss[i][0], self._crowd_poss[i][1]
+                    dx, dy = self._crowd_vels[i][0], self._crowd_vels[i][1]
+                else:
+                    x, y, dx, dy = 100, 100, 1, 1
                 self.vel_crowd.append(ax.arrow(
-                    self._crowd_poss[i][0], self._crowd_poss[i][1],
-                    self._crowd_vels[i][0], self._crowd_vels[i][1],
+                    x, y, dx, dy,
                     head_width=self.PERSONAL_SPACE[i + 1] / 4,
                     overhang=1,
                     head_length=0.2,
@@ -676,10 +686,14 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 ))
 
             self.sep_planes = []
-            for i in range(self.n_crowd):
+            for i in range(self.max_n_crowd):
+                if i < self.n_crowd:
+                    x, y = self.separating_planes[i][0], self.separating_planes[i][1],
+                    dx, dy = self.separating_planes[i][2], self.separating_planes[i][3],
+                else:
+                    x, y, dx, dy = 100, 100, 1, 1
                 self.sep_planes.append(ax.arrow(
-                    self.separating_planes[i][0], self.separating_planes[i][1],
-                    self.separating_planes[i][2], self.separating_planes[i][3],
+                    x, y, dx, dy,
                     head_width=0.0,
                     ec="r"
                 ))
@@ -695,12 +709,12 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.PrS_crowd = []
             self.PhS_crowd = []
             self.crowd_goal_points = []
-            for pos, soc, per, phy in zip(
-                self._crowd_poss,
-                self.SOCIAL_SPACE[1:],
-                self.PERSONAL_SPACE[1:],
-                self.PHYSICAL_SPACE[1:]
-            ):
+            assert self.max_n_crowd == len(self.SOCIAL_SPACE) - 1
+            assert self.n_crowd == len(self._crowd_poss)
+            for i, (soc, per, phy) in enumerate(zip(
+                self.SOCIAL_SPACE[1:], self.PERSONAL_SPACE[1:], self.PHYSICAL_SPACE[1:]
+            )):
+                pos = self._crowd_poss[i] if i < self.n_crowd else np.array([-100, -100])
                 self.ScS_crowd.append(
                     plt.Circle(pos, soc, color="r", fill=False, linestyle="--")
                 )
@@ -714,7 +728,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 )
                 ax.add_patch(self.PhS_crowd[-1])
             if not self.const_vel:
-                for g in self._crowd_goal_poss:
+                for i in range(self.max_n_crowd):
+                    if i < self.n_crowd:
+                        g = self._crowd_goal_poss[i]
+                    else:
+                        g = np.array([100, 100])
                     self.crowd_goal_points.append(ax.plot(g[0], g[1], 'yx')[0])
 
             # Goal
@@ -862,9 +880,12 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             for i in range(self.n_crowd):
                 self._planned_crowd_vels[i] = np.delete(self._planned_crowd_vels[i], 0, 0)
                 if len(self._planned_crowd_vels[i]) == 0:
-                    self._crowd_goal_poss[i], self._planned_crowd_vels[i], _ = \
-                        self._gen_crowd_goal_and_plan(self._crowd_poss[i])
-                    self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
+                    if not self.one_goal:
+                        self._crowd_goal_poss[i], self._planned_crowd_vels[i], _ = \
+                            self._gen_crowd_goal_and_plan(self._crowd_poss[i])
+                        self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
+                    else:
+                        self._planned_crowd_vels[i] = np.zeros((100, 2))
                 self._crowd_vels[i] = self._planned_crowd_vels[i][0]
 
 
