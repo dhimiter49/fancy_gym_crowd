@@ -44,6 +44,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         n_frames: int = 4,
         intrinsic_rew: bool = False,
         curriculum: Callable = lambda _: 4,
+        one_goal: bool = False,
     ):
         assert time_frame == 0 or not lidar_vel
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
@@ -54,6 +55,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.one_way = one_way
         self.polar = polar
         self.replan = REPLAN_MOVING
+        self.one_goal = one_goal
         super().__init__(
             n_crowd,
             width,
@@ -828,9 +830,12 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             for i in range(self.n_crowd):
                 self._planned_crowd_vels[i] = np.delete(self._planned_crowd_vels[i], 0, 0)
                 if len(self._planned_crowd_vels[i]) == 0:
-                    self._crowd_goal_poss[i], self._planned_crowd_vels[i], _ = \
-                        self._gen_crowd_goal_and_plan(self._crowd_poss[i])
-                    self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
+                    if not self.one_goal:
+                        self._crowd_goal_poss[i], self._planned_crowd_vels[i], _ = \
+                            self._gen_crowd_goal_and_plan(self._crowd_poss[i])
+                        self._planned_crowd_vels[i] = self._planned_crowd_vels[i][0]
+                    else:
+                        self._planned_crowd_vels[i] = np.zeros((100, 2))
                 self._crowd_vels[i] = self._planned_crowd_vels[i][0]
 
 
