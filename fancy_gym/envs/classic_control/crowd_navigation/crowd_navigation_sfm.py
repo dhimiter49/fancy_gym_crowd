@@ -38,7 +38,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
-        curriculum: Callable = lambda _: 4,
+        curriculum: Callable = lambda _: 8,
         one_goal: bool = False,
     ):
         super().__init__(
