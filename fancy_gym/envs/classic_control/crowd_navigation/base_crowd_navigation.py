@@ -1,8 +1,10 @@
 from typing import Union, Tuple, Optional, Any, Dict, Callable
+import os
 import inspect
 
 import gymnasium as gym
 import numpy as np
+import pickle
 from gymnasium import spaces
 from gymnasium.core import ObsType
 
@@ -31,6 +33,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         continuous_collision: bool = True,
         var_radius: bool = False,
         curriculum: Callable = lambda _: 4,
+        test_case: str = "test_cases/2_agents_500_cases.p",
     ):
         self.non_polar_action = False
         calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
@@ -47,6 +50,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
         self.n_crowd = self.curriculum(self._reset_steps)
+        self.run_test_case = test_case != ""
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -94,13 +98,28 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.rot_mat = lambda deg: np.array([
             [np.cos(deg), -np.sin(deg)], [np.sin(deg), np.cos(deg)]
         ])
-        (
-            self._agent_pos,
-            self._agent_vel,
-            self._goal_pos,
-            self._crowd_poss,
-            self._crowd_vels
-        ) = self._start_env_vars()
+        if self.run_test_case:
+            self._test_case_idx = 0
+            current_dir = __file__.split('/')[:-1]
+            with open("/".join(current_dir) + "/" + test_case, "rb") as f:
+                self._test_case_array = np.array(pickle.load(f, encoding="latin1"))
+            self.n_crowd = self.max_n_crowd = self._test_case_array.shape[1] - 1
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._read_test_case()
+        else:
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._start_env_vars()
+
 
 
         self.discrete_action = discrete_action
@@ -325,13 +344,23 @@ class BaseCrowdNavigationEnv(gym.Env):
     ) -> Tuple[ObsType, Dict[str, Any]]:
         super(BaseCrowdNavigationEnv, self).reset(seed=seed, options=options)
         self.n_crowd = self.curriculum(self._reset_steps)
-        (
-            self._agent_pos,
-            self._agent_vel,
-            self._goal_pos,
-            self._crowd_poss,
-            self._crowd_vels
-        ) = self._start_env_vars()
+        if self.run_test_case:
+            self._test_case_idx += 1
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._read_test_case()
+        else:
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._start_env_vars()
         self._reset_steps += 1
         self._steps = 0
         self.exec_traj = [self._agent_pos]
@@ -341,6 +370,13 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._current_reward = 0
         self.froze_last = False
         return self._get_obs().copy(), {}
+
+
+    def _read_test_case(self):
+        agent_pos = self._test_case_array[self._test_case_idx, 1, :2]
+        goal_pos = self._test_case_array[self._test_case_idx, 0, 2:4]
+        crowd_poss = self._test_case_array[self._test_case_idx, 1:, :2]
+        return agent_pos, 0 * agent_pos, goal_pos, crowd_poss, 0 * crowd_poss
 
 
     def _start_env_vars(self):
