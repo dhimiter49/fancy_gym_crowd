@@ -316,7 +316,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         Check how far the current position after the action is relative to the desired
         position proposed by the ProDMP.
         """
-        Ri = self.Ci * np.linalg.norm(self._agent_pos - self.desired_position)
+        Ri = 0
+        if self.desired_position is not None:
+            Ri = self.Ci * np.linalg.norm(self._agent_pos - self.desired_position)
         return Ri, dict(intrinsic=Ri)
 
 

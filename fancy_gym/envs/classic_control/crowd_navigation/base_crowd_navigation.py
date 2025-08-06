@@ -33,7 +33,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         continuous_collision: bool = True,
         var_radius: bool = False,
         curriculum: Callable = lambda _: 4,
-        test_case: str = "test_cases/2_agents_500_cases.p",
+        test_case: str = "",
     ):
         self.non_polar_action = False
         calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
@@ -184,7 +184,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.exec_traj = []
         self.exec_actions = []
         self.idx_colliding_agents = []
-        self.desired_position = np.empty(2)  # desired position when using ProDMP
+        self.desired_position = None
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.max_n_crowd, 4))
