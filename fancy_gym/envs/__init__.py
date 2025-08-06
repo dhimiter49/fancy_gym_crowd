@@ -64,7 +64,6 @@ register(
     }
 )
 # Crowd Navigation
-add_agent_every = 10000  # curriculum learning, add agent every number of episodes
 register(
     id='fancy/CrowdNavigation-v0',
     entry_point=CrowdNavigationEnv,
@@ -424,7 +423,6 @@ register(
         "lidar_vel": True,
         "lidar_max": 5,
         "intrinsic_rew": True,
-        "curriculum": lambda step: min(1 + int(step / add_agent_every), 8)
     }
 )
 
