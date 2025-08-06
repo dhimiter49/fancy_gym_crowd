@@ -110,7 +110,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
     def update_crowd(self):
         # Handle crowd members that reached the goal, a new goal will be generated
-        if not self.one_goal:
+        if not self.one_goal and not self.run_test_case:
             crowd_goal_complete = np.logical_and(
                 np.linalg.norm(self._crowd_goal_poss - self._crowd_poss, axis=-1) <
                 self.PHYSICAL_SPACE[1:1 + self.n_crowd],

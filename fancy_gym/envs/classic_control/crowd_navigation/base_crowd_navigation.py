@@ -49,8 +49,13 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.curriculum = curriculum
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
-        self.n_crowd = self.curriculum(self._reset_steps)
         self.run_test_case = test_case != ""
+        if self.run_test_case:
+            self._test_case_idx = -1  # -1 is not executed it is just test run
+            current_dir = __file__.split('/')[:-1]
+            with open("/".join(current_dir) + "/" + test_case, "rb") as f:
+                self._test_case_array = np.array(pickle.load(f, encoding="latin1"))
+            self.n_crowd = self.max_n_crowd = self._test_case_array.shape[1] - 1
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -99,11 +104,6 @@ class BaseCrowdNavigationEnv(gym.Env):
             [np.cos(deg), -np.sin(deg)], [np.sin(deg), np.cos(deg)]
         ])
         if self.run_test_case:
-            self._test_case_idx = 0
-            current_dir = __file__.split('/')[:-1]
-            with open("/".join(current_dir) + "/" + test_case, "rb") as f:
-                self._test_case_array = np.array(pickle.load(f, encoding="latin1"))
-            self.n_crowd = self.max_n_crowd = self._test_case_array.shape[1] - 1
             (
                 self._agent_pos,
                 self._agent_vel,
@@ -119,8 +119,6 @@ class BaseCrowdNavigationEnv(gym.Env):
                 self._crowd_poss,
                 self._crowd_vels
             ) = self._start_env_vars()
-
-
 
         self.discrete_action = discrete_action
         self.velocity_control = velocity_control
@@ -343,7 +341,6 @@ class BaseCrowdNavigationEnv(gym.Env):
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
         super(BaseCrowdNavigationEnv, self).reset(seed=seed, options=options)
-        self.n_crowd = self.curriculum(self._reset_steps)
         if self.run_test_case:
             self._test_case_idx += 1
             (
@@ -373,7 +370,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def _read_test_case(self):
-        agent_pos = self._test_case_array[self._test_case_idx, 1, :2]
+        agent_pos = self._test_case_array[self._test_case_idx, 0, :2]
         goal_pos = self._test_case_array[self._test_case_idx, 0, 2:4]
         crowd_poss = self._test_case_array[self._test_case_idx, 1:, :2]
         return agent_pos, 0 * agent_pos, goal_pos, crowd_poss, 0 * crowd_poss

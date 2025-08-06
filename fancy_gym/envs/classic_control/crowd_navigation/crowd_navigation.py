@@ -540,7 +540,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _read_test_case(self):
-        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
+        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._read_test_case()
         crowd_goal_poss = self._test_case_array[self._test_case_idx, 1:, 2:4]
         next_crowd_vels = np.zeros(crowd_poss.shape)
 
