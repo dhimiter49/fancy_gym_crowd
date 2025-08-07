@@ -41,7 +41,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
-        curriculum: Callable = lambda _: 8,
+        curriculum: Callable = lambda _: 4,
         one_goal: bool = False,
     ):
         super().__init__(
