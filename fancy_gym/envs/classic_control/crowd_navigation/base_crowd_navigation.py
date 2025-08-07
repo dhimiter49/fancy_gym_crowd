@@ -10,6 +10,7 @@ from gymnasium.core import ObsType
 seed = 0
 flip = True
 
+
 class BaseCrowdNavigationEnv(gym.Env):
     """
     Base class crowd navigation. Units are defined to reflect plausible values in the real
