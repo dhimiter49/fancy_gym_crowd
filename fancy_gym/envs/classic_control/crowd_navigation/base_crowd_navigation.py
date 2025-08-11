@@ -167,7 +167,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.exec_traj = []
         self.exec_actions = []
         self.idx_colliding_agents = []
-        self.desired_position = np.empty(2)  # desired position when using ProDMP
+        self.desired_position = None  # desired position when using ProDMP
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.max_n_crowd, 4))
