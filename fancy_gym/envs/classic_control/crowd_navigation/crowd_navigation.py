@@ -869,6 +869,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def collision_metrics(self):
+        self.num_env_col += 1
+        print("Seed", self.current_seed)
+        print("Num col", self.num_env_col)
         if len(self.idx_colliding_agents) >= 1:
             self.num_col += len(self.idx_colliding_agents)
             self.col_vel_sum += np.sum(np.linalg.norm(
@@ -876,7 +879,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ))
             self.col_agent_vel_sum += np.linalg.norm(self._agent_vel)
             self.num_env_col += 1
-            print("Num col", self.num_env_col)
             print("Col vel", self.col_vel_sum / self.num_col)
             print("Col agent vel", self.col_agent_vel_sum / self.num_col)
 
@@ -889,25 +891,39 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             #                 <---b--->
             #
             idx_colliding_agent = self.idx_colliding_agents[0]
-            col_poss = np.stack([self._agent_pos, self._crowd_poss[idx_colliding_agent]])
-            col_vels = np.stack([self._agent_vel, self._crowd_vels[idx_colliding_agent]])
-            max_time = (self.PHYSICAL_SPACE[0] * 3) / np.linalg.norm(col_vels[1])
-            sample_dt = 0.01
-            max_time_steps = int(max_time // sample_dt)
-            propagate_col_agents = np.repeat(
-                np.expand_dims(col_poss, axis=0), max_time_steps, axis=0
-            ) + np.einsum(
-                "ijk,i->ijk",
-                np.repeat(
-                    np.expand_dims(col_vels, axis=0), max_time_steps, axis=0
-                ),
-                np.arange(max_time_steps) * sample_dt
-            )
-            d = np.min(np.linalg.norm(
-                propagate_col_agents[:, 0] - propagate_col_agents[:, 1], axis=-1
-            ))
             r_0 = self.PHYSICAL_SPACE[0]
             r_1 = self.PHYSICAL_SPACE[1 + idx_colliding_agent]
+            if np.linalg.norm(self._agent_pos - self._crowd_poss[idx_colliding_agent]) >\
+                (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[idx_colliding_agent + 1]):
+                # closest point already reached between the agent and crowd
+                # assume maximum intersection for simplicitly
+                d = np.sqrt(
+                    (r_0 + r_1)**2 - ((
+                        self.CROWD_MAX_VEL - (self.CROWD_MAX_VEL - self.AGENT_MAX_VEL) / 2
+                    ) * self._dt)**2
+                )
+            else:
+                col_poss = np.stack([
+                    self._agent_pos, self._crowd_poss[idx_colliding_agent]
+                ])
+                col_vels = np.stack([
+                    self._agent_vel, self._crowd_vels[idx_colliding_agent]
+                ])
+                max_time = (self.PHYSICAL_SPACE[0] * 3) / np.linalg.norm(col_vels[1])
+                sample_dt = 0.01
+                max_time_steps = int(max_time // sample_dt) * 2
+                propagate_col_agents = np.repeat(
+                    np.expand_dims(col_poss, axis=0), max_time_steps, axis=0
+                ) + np.einsum(
+                    "ijk,i->ijk",
+                    np.repeat(
+                        np.expand_dims(col_vels, axis=0), max_time_steps, axis=0
+                    ),
+                    np.arange(-max_time_steps // 2, max_time_steps // 2) * sample_dt
+                )
+                d = np.min(np.linalg.norm(
+                    propagate_col_agents[:, 0] - propagate_col_agents[:, 1], axis=-1
+                ))
             a = (r_0**2 - r_1**2 + d**2) / (2 * d)
             h = np.sqrt(r_0**2 - a**2)
             alpha = np.arccos(a / r_0)
