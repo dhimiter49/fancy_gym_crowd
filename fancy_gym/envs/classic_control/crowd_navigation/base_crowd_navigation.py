@@ -90,7 +90,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.COLLISION_REWARD = -10
         self.Cc = (self.MIN_RADIUS + self.MAX_RADIUS) *\
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
-        self.Cg = -self.COLLISION_REWARD / 2 / (self.AGENT_MAX_VEL * self._dt) ** 2 /\
+        self.Cg = -self.COLLISION_REWARD / (self.AGENT_MAX_VEL * self._dt) ** 2 /\
             self.MAX_EPISODE_STEPS
         self.Tc = -self.COLLISION_REWARD
         self.Ci = -20. if hasattr(self, "const_vel") and self.const_vel else -5.
@@ -178,7 +178,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.exec_traj = []
         self.exec_actions = []
         self.idx_colliding_agents = []
-        self.desired_position = np.empty(2)  # desired position when using ProDMP
+        self.desired_position = None  # desired position when using ProDMP
         self.current_trajectory_vel = np.zeros((100, 2))
         self._traj_index = 0
         self.separating_planes = np.zeros((self.max_n_crowd, 4))
