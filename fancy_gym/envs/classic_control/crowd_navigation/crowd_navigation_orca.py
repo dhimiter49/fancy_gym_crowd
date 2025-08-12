@@ -21,6 +21,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         time_frame: time from which to sample and stack the last frames of obs
         lidar_vel: use a velocity representation for each direction of the lidar
         n_frames: number of frames to stack for lidar, irrelevant if lidar_vel
+        avoid_agent_parameter: 1 to avoid completely, lower to increase safety distance
+            higher values to avoid the agent less
     """
     def __init__(
         self,
@@ -41,6 +43,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
+        avoid_agent_parameter: float = 1.,
         one_goal: bool = False,
     ):
         super().__init__(
@@ -63,11 +66,13 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             intrinsic_rew=intrinsic_rew,
             one_goal=one_goal,
         )
+        assert avoid_agent_parameter > 0
         self.Ci = -1.
         self.neighbor_dist = np.inf
         self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
         self.time_horizon = 5.
         self.time_horizon_obst = 5.
+        self.avoid_agent_parameter = avoid_agent_parameter
         self._start_sim()
 
 
@@ -92,7 +97,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         self.sim.addAgent(
             tuple(self._agent_pos),
             *params,
-            self.PHYSICAL_SPACE[0] + self.safety_space,
+            self.PHYSICAL_SPACE[0] / self.avoid_agent_parameter,
             self.AGENT_MAX_VEL,
             tuple(self._agent_vel)
         )
@@ -207,4 +212,3 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         self._crowd_vels = actions
         self._crowd_poss += self._crowd_vels * self._dt
-        return actions
