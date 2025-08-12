@@ -122,8 +122,9 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         if self._goal_reached:
             Rg = self.Tc
         else:
-            # Goal distance
-            Rg = -self.Cg * np.clip(dg, 1, np.inf) ** 2
+            dg_old = np.linalg.norm(self._last_agent_pos - self._goal_pos)
+            dg_diff = dg_old - dg
+            Rg = self.Cg * np.sign(dg_diff) * dg_diff ** 2
 
         if self._is_collided:
             Rc = self.COLLISION_REWARD
@@ -135,16 +136,17 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             )
             Rc = np.sum(
                 (1 - np.exp(self.Cc / dist_crowd)) *
-                (dist_crowd < [self.SOCIAL_SPACE + self.PHYSICAL_SPACE] * self.n_crowd)
+                (dist_crowd < self.SOCIAL_SPACE[1:] + self.PHYSICAL_SPACE[0])
             )
 
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
-            max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE),
-            max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE),
+            max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE[0]),
+            max(self.H_BORDER - abs(self._agent_pos[1]), self.PHYSICAL_SPACE[0]),
         ])
         Rw = np.sum(
-            (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHYSICAL_SPACE * 2)
+            (1 - np.exp(self.Cc / dist_walls)) *
+            (dist_walls < self.PHYSICAL_SPACE[0] * 2)
         )
 
         reward = Rg + Rc + Rw
@@ -174,11 +176,15 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             orthog_dist = np.abs(
                 np.outer(x_crowd_rel, self.RAY_SIN) - np.outer(y_crowd_rel, self.RAY_COS)
             )
-            intersections_mask = orthog_dist <= self.PHYSICAL_SPACE
+            all_rays_physical_space = np.repeat(
+                self.PHYSICAL_SPACE[1:],
+                orthog_dist.shape[-1]
+            ).reshape(orthog_dist.shape)
+            intersections_mask = orthog_dist <= all_rays_physical_space
             along_dist = np.outer(x_crowd_rel, self.RAY_COS) +\
                 np.outer(y_crowd_rel, self.RAY_SIN)
             orthog_to_intersect_dist = np.sqrt(np.maximum(
-                self.PHYSICAL_SPACE ** 2 - orthog_dist ** 2, 0
+                all_rays_physical_space ** 2 - orthog_dist ** 2, 0
             ))
             intersect_distances = np.where(
                 intersections_mask, along_dist - orthog_to_intersect_dist, np.inf
@@ -242,7 +248,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             self.vel_agent = ax.arrow(
                 self._agent_pos[0], self._agent_pos[1],
                 self._agent_vel[0], self._agent_vel[1],
-                head_width=self.PERSONAL_SPACE / 4,
+                head_width=self.PERSONAL_SPACE[0] / 4,
                 overhang=1,
                 head_length=0.2,
                 ec="g"
@@ -258,43 +264,31 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
             # Agent
             self.space_agent = plt.Circle(
-                self._agent_pos, self.PHYSICAL_SPACE, color="g", alpha=0.5
+                self._agent_pos, self.PHYSICAL_SPACE[0], color="g", alpha=0.5
             )
             ax.add_patch(self.space_agent)
-            self.traj_agent = []
-            for i in range(100):
-                self.traj_agent.append(plt.Circle(
-                    np.array([0, 0]), self.PHYSICAL_SPACE, color="g", alpha=0.0
-                ))
-                ax.add_patch(self.traj_agent[-1])
 
-            # Social space
+            # Social space, Personal space, Physical space, Crowd goal positions
             self.ScS_crowd = []
-            for m in self._crowd_poss:
+            self.PrS_crowd = []
+            self.PhS_crowd = []
+            self.crowd_goal_points = []
+            for pos, soc, per, phy in zip(
+                self._crowd_poss,
+                self.SOCIAL_SPACE[1:],
+                self.PERSONAL_SPACE[1:],
+                self.PHYSICAL_SPACE[1:]
+            ):
                 self.ScS_crowd.append(
-                    plt.Circle(
-                        m, self.SOCIAL_SPACE, color="r", fill=False, linestyle="--"
-                    )
+                    plt.Circle(pos, soc, color="r", fill=False, linestyle="--")
                 )
                 ax.add_patch(self.ScS_crowd[-1])
-
-            # Personal space
-            self.PrS_crowd = []
-            for m in self._crowd_poss:
                 self.PrS_crowd.append(
-                    plt.Circle(
-                        m, self.PERSONAL_SPACE, color="r", fill=False
-                    )
+                    plt.Circle(pos, per, color="r", fill=False)
                 )
                 ax.add_patch(self.PrS_crowd[-1])
-
-            # Physical space
-            self.PhS_crowd = []
-            for m in self._crowd_poss:
                 self.PhS_crowd.append(
-                    plt.Circle(
-                        m, self.PHYSICAL_SPACE, color="r", alpha=0.5
-                    )
+                    plt.Circle(pos, phy, color="r", alpha=0.5)
                 )
                 ax.add_patch(self.PhS_crowd[-1])
 
@@ -333,7 +327,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             ax.set_aspect(1.0)
 
             # Walls penalization
-            border_penalization = self.PHYSICAL_SPACE * 2
+            border_penalization = self.PHYSICAL_SPACE[0] * 2
             ax.add_patch(plt.Rectangle(
                 (
                     -self.W_BORDER + border_penalization,
@@ -359,6 +353,12 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 self.ScS_crowd[i].center = member
                 self.PrS_crowd[i].center = member
                 self.PhS_crowd[i].center = member
+                if self.var_radius:
+                    self.ScS_crowd[i].radius = self.SOCIAL_SPACE[i + 1]
+                    self.PrS_crowd[i].radius = self.PERSONAL_SPACE[i + 1]
+                    self.PhS_crowd[i].radius = self.PHYSICAL_SPACE[i + 1]
+            if self.var_radius:
+                self.space_agent.radius = self.PHYSICAL_SPACE[0]
 
 
         self.vel_agent.set_data(
@@ -366,14 +366,6 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             dx=self._agent_vel[0], dy=self._agent_vel[1]
         )
         self.space_agent.center = self._agent_pos
-        if self.traj_pos == []:
-            for i in range(len(self.traj_agent)):
-                self.traj_agent[i].center = np.array([0, 0])
-                self.traj_agent[i].set_alpha(0.0)
-        traj_steps = len(self.traj_pos)
-        for i, pos in enumerate(self.traj_pos):
-            self.traj_agent[i].center = pos
-            self.traj_agent[i].set_alpha(0.1 + 0.2 * i / traj_steps)
 
         self.space_agent.center = self._agent_pos
         if self.lidar:

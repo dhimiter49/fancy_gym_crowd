@@ -69,16 +69,18 @@ class MPCController(BaseController):
         min_dist_wall: float = 0.4,
         velocity_control: float = False,
         uncertainty: str = '',
+        stability_coeff: float = 1.0,
+        vel_coeff: float = 2.0,
     ):
         self.N = horizon
         self.horizon_tries = horizon_tries
-        self.short_hor_only_crowd = True
+        self.short_hor_only_crowd = False
         self.N_crowd = self.N if horizon_crowd_pred is None else horizon_crowd_pred
         self.replan = replan_steps if replan_steps is not None else self.N
         self.MAX_STOPPING_TIME = max_vel / max_acc
         self.MAX_VEL = max_vel
         self.MAX_ACC = max_acc
-        self.MAX_STOPPING_DIST = 2 * self.MAX_VEL
+        self.MAX_STOPPING_DIST = 3  # arbitrary, depending on env
         self.dt = dt
         self.velocity_control = velocity_control
         self.mat_pos_acc = mat_pos_acc
@@ -120,13 +122,13 @@ class MPCController(BaseController):
         if self.velocity_control:
             assert isinstance(self.mat_vc_pos_vel, np.ndarray)
             self.opt_M = self.mat_vc_pos_vel.T @ self.mat_vc_pos_vel +\
-                1.0 * np.eye(2 * (self.N - 1))
+                stability_coeff * np.eye(2 * (self.N - 1))
         else:
             assert isinstance(self.mat_pos_acc, np.ndarray)
             assert isinstance(self.mat_vel_acc, np.ndarray)
             self.opt_M = self.mat_pos_acc.T @ self.mat_pos_acc +\
-                2.0 * self.mat_vel_acc.T @ self.mat_vel_acc +\
-                0.2 * np.eye(2 * self.N)
+                vel_coeff * self.mat_vel_acc.T @ self.mat_vel_acc +\
+                stability_coeff * np.eye(2 * self.N)
         self.opt_M = sparse.csr_matrix(self.opt_M)
         self.uncertainty = uncertainty
 
@@ -192,6 +194,18 @@ class MPCController(BaseController):
                 (bv_a_ + MV_a_ @ agent_vel / self.dt)
 
         self.last_braking_traj = np.zeros((self.N, 2))
+
+
+    def set_uncertainty(self, uncertainty):
+        if uncertainty == "dist":
+            if isinstance(self.min_dist_crowd, list):
+                self.min_dist_crowd = np.expand_dims(
+                    self.min_dist_crowd, -1
+                ).repeat(self.N_crowd, -1)
+            else:
+                self.min_dist_crowd = self.min_dist_crowd * np.ones(self.N_crowd)
+            self.min_dist_crowd += self.MAX_ACC * self.dt ** 2 *\
+                np.arange(1, self.N_crowd + 1)
 
 
     def flush(self):

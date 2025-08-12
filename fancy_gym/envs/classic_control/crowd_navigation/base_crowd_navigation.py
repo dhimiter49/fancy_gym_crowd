@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Optional, Any, Dict
+from typing import Union, Tuple, Optional, Any, Dict, Callable
 import inspect
 
 import gymnasium as gym
@@ -9,6 +9,7 @@ from gymnasium.core import ObsType
 
 seed = 0
 flip = True
+
 
 class BaseCrowdNavigationEnv(gym.Env):
     """
@@ -32,6 +33,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         velocity_control: bool = False,
         dt: float = 0.1,
         continuous_collision: bool = True,
+        var_radius: bool = False,
+        curriculum: Callable = lambda _: 4,
     ):
         self.non_polar_action = False
         calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
@@ -45,6 +48,12 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._traj_len = self.replan
         self._safety_traj = 2
         self._plan_traj = 7
+        self.n_crowd = n_crowd
+        self.var_radius = var_radius
+        self.curriculum = curriculum
+        self._reset_steps = 0
+        self.max_n_crowd = self.n_crowd
+        self.n_crowd = self.curriculum(self._reset_steps)
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -52,9 +61,17 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.H_BORDER = self.HEIGHT / 2
         self.AGENT_MAX_VEL = 1.0
         self.CROWD_MAX_VEL = 1.5
-        self.PHYSICAL_SPACE = 0.4
-        self.PERSONAL_SPACE = 1.4
-        self.SOCIAL_SPACE = 1.9
+        # 0 -> agent radius, and then other members of the crowd
+        self.MIN_RADIUS = 0.2
+        self.MAX_RADIUS = 1.
+        if self.var_radius:
+            self.PHYSICAL_SPACE = np.random.uniform(
+                self.MIN_RADIUS, self.MAX_RADIUS, self.max_n_crowd + 1
+            )
+        else:
+            self.PHYSICAL_SPACE = np.array([0.4] * (self.max_n_crowd + 1))
+        self.PERSONAL_SPACE = self.PHYSICAL_SPACE + 1.
+        self.SOCIAL_SPACE = self.PHYSICAL_SPACE + 1.5
         self.MAX_ACC = 10.0
         self.MAX_STOPPING_TIME = self.AGENT_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_TIME_CROWD = self.CROWD_MAX_VEL / self.MAX_ACC
@@ -64,21 +81,21 @@ class BaseCrowdNavigationEnv(gym.Env):
             self.MAX_STOPPING_TIME_CROWD - 0.5 * self.MAX_ACC *\
             self.MAX_STOPPING_TIME_CROWD ** 2
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
-        if type(self).__name__ == "CrowdNavigationEnv":
-            self.MIN_CROWD_DIST = 2 * self.CROWD_MAX_VEL
-            # self.MIN_CROWD_DIST = self.MAX_STOPPING_DIST * 1.1
-        else:
-            self.MIN_CROWD_DIST = self.PERSONAL_SPACE + self.PHYSICAL_SPACE
+        self.MIN_SPAWN_DIST = np.max([
+            2 * self.CROWD_MAX_VEL,
+            float(np.max(self.PERSONAL_SPACE + self.PHYSICAL_SPACE))
+        ])
+
 
         self.COLLISION_REWARD = -10
-        self.Cc = 2 * self.PHYSICAL_SPACE * \
+        self.Cc = (self.MIN_RADIUS + self.MAX_RADIUS) *\
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
-        self.Cg = -(1 - np.exp(self.Cc / self.SOCIAL_SPACE)) /\
-            np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
+        self.Cg = -self.COLLISION_REWARD / (self.AGENT_MAX_VEL * self._dt) ** 2 /\
+            self.MAX_EPISODE_STEPS
         self.Tc = -self.COLLISION_REWARD
+        self.Ci = -20. if hasattr(self, "const_vel") and self.const_vel else -5.
         self.Cc *= 2
 
-        self.n_crowd = n_crowd
         self.allow_collision = allow_collision
         self.supersample_col = continuous_collision
         self.rot_mat = lambda deg: np.array([
@@ -128,13 +145,13 @@ class BaseCrowdNavigationEnv(gym.Env):
                 )
 
         state_bound_min = np.hstack([
-            [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
-            [0] * (self.n_crowd + 1),
+            [-self.WIDTH, -self.HEIGHT] * (self.max_n_crowd + 1),
+            [0] * (self.max_n_crowd + 1),
         ])
         state_bound_max = np.hstack([
-            [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
+            [self.WIDTH, self.HEIGHT] * (self.max_n_crowd + 1),
             [self.AGENT_MAX_VEL],
-            [self.CROWD_MAX_VEL] * (self.n_crowd)
+            [self.CROWD_MAX_VEL] * (self.max_n_crowd)
         ])
 
         self.observation_space = spaces.Box(
@@ -150,7 +167,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._goal_reached = False
         self._is_collided = False
         self.check_goal_reached = lambda: (
-            np.linalg.norm(self._agent_pos - self._goal_pos) < self.PHYSICAL_SPACE / 4 and
+            np.linalg.norm(self._agent_pos - self._goal_pos) <
+            self.PHYSICAL_SPACE[0] / 2 and
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
         self.traj_idx = 0
@@ -158,10 +176,21 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
-        self.desired_position = np.empty(2)  # desired position when using ProDMP
+        self.exec_actions = []
+        self.idx_colliding_agents = []
+        self.desired_position = None  # desired position when using ProDMP
         self.current_trajectory_vel = np.zeros((100, 2))
         self._traj_index = 0
-        self.separating_planes = np.zeros((self.n_crowd, 4))
+        self.separating_planes = np.zeros((self.max_n_crowd, 4))
+
+        self.num_env_col = 0  # at leat one collision in environment
+        self.num_col = 0  # every collision in the environment
+        self.col_vel_sum = 0.
+        self.col_agent_vel_sum = 0.
+        self.col_inters_sum = 0.
+        self.all_ttg = []
+        self.froze_last = False
+        self.freezing_instances = 0
 
 
     def hard_set_vars(self, vars):
@@ -236,7 +265,8 @@ class BaseCrowdNavigationEnv(gym.Env):
             vec = pos / np.linalg.norm(pos)
             norm = np.array([-vec[1], vec[0]])
             self.separating_planes[i] = np.concatenate((
-                self._crowd_poss[i] + vec * 2 * self.PHYSICAL_SPACE - norm * 50,
+                self._crowd_poss[i] + vec * 2 *
+                (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[i]) - norm * 50,
                 norm * 100
             ))
 
@@ -317,6 +347,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
         super(BaseCrowdNavigationEnv, self).reset(seed=seed, options=options)
+        self.n_crowd = self.curriculum(self._reset_steps)
         (
             self._agent_pos,
             self._agent_vel,
@@ -324,13 +355,16 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._crowd_poss,
             self._crowd_vels
         ) = self._start_env_vars()
+        self._reset_steps += 1
         self._steps = 0
         self.traj_idx = 0
         self.exec_traj = [self._agent_pos]
+        self.exec_actions = []
         self._goal_reached = False
         self._is_collided = False
         self._current_reward = 0
         self.traj_pos = []
+        self.froze_last = False
         return self._get_obs().copy(), {}
 
 
@@ -383,35 +417,45 @@ class BaseCrowdNavigationEnv(gym.Env):
         #     flip = not flip
         np.random.seed(seed)
         seed += 1
+        if self.var_radius:
+            self.PHYSICAL_SPACE = np.random.uniform(
+                self.MIN_RADIUS, self.MAX_RADIUS, self.n_crowd + 1
+            )
+            self.PERSONAL_SPACE = self.PHYSICAL_SPACE + 1.
+            self.SOCIAL_SPACE = self.PHYSICAL_SPACE + 1.5
+            self.MIN_SPAWN_DIST = np.max([
+                2 * self.CROWD_MAX_VEL,
+                float(np.max(self.PERSONAL_SPACE + self.PHYSICAL_SPACE))
+            ])
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel:
             if self.one_way:
-                agent_pos = np.array([-self.W_BORDER + self.PHYSICAL_SPACE * 2, 0])
+                agent_pos = np.array([-self.W_BORDER + self.PHYSICAL_SPACE[0] * 2, 0])
             else:
                 agent_pos = np.zeros(2)
         else:
             agent_pos = np.random.uniform(
-                [-self.W_BORDER + self.PHYSICAL_SPACE * 1.2,
-                 -self.H_BORDER + self.PHYSICAL_SPACE * 1.2],
-                [self.W_BORDER - self.PHYSICAL_SPACE * 1.2,
-                 self.H_BORDER - self.PHYSICAL_SPACE * 1.2]
+                [-self.W_BORDER + self.PHYSICAL_SPACE[0] * 1.2,
+                 -self.H_BORDER + self.PHYSICAL_SPACE[0] * 1.2],
+                [self.W_BORDER - self.PHYSICAL_SPACE[0] * 1.2,
+                 self.H_BORDER - self.PHYSICAL_SPACE[0] * 1.2]
             )
         agent_vel = np.zeros(2)
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel and\
             self.one_way:
             goal_pos = np.random.uniform(
                 [self.W_BORDER / 2,
-                 -self.H_BORDER + self.PHYSICAL_SPACE],
-                [self.W_BORDER - self.PHYSICAL_SPACE,
-                 self.H_BORDER - self.PHYSICAL_SPACE]
+                 -self.H_BORDER + self.PHYSICAL_SPACE[0]],
+                [self.W_BORDER - self.PHYSICAL_SPACE[0],
+                 self.H_BORDER - self.PHYSICAL_SPACE[0]]
             )
         else:
             goal_pos = agent_pos
-            while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE:
+            while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE[0]:
                 goal_pos = np.random.uniform(
-                    [-self.W_BORDER + self.PHYSICAL_SPACE,
-                     -self.H_BORDER + self.PHYSICAL_SPACE],
-                    [self.W_BORDER - self.PHYSICAL_SPACE,
-                     self.H_BORDER - self.PHYSICAL_SPACE]
+                    [-self.W_BORDER + self.PHYSICAL_SPACE[0],
+                     -self.H_BORDER + self.PHYSICAL_SPACE[0]],
+                    [self.W_BORDER - self.PHYSICAL_SPACE[0],
+                     self.H_BORDER - self.PHYSICAL_SPACE[0]]
                 )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
@@ -424,31 +468,36 @@ class BaseCrowdNavigationEnv(gym.Env):
                         np.arccos(direction[0] / np.linalg.norm(direction))
                     # start from a sample between [-0.5, 0.5] and scale to
                     # [-PHYSICAL_SPACE / 2, INTERCEPTOR_PERCENTAGE * PHYSICAL_SPACE / 2]
-                    rand = (np.random.rand(2) - 0.5) * self.PERSONAL_SPACE
+                    rand = (np.random.rand(2) - 0.5) * self.PERSONAL_SPACE[i]
                     rand[-1] *= self.INTERCEPTOR_PERCENTAGE
                     sampled_pos = (agent_pos + direction / 2) +\
                         self.rot_mat(rot_deg) @ rand
                     try_between = False
                 else:
                     sampled_pos = np.random.uniform(
-                        [-self.W_BORDER + self.PHYSICAL_SPACE * 1.2,
-                         -self.H_BORDER + self.PHYSICAL_SPACE * 1.2],
-                        [self.W_BORDER - self.PHYSICAL_SPACE * 1.2,
-                         self.H_BORDER - self.PHYSICAL_SPACE * 1.2]
+                        [-self.W_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2,
+                         -self.H_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2],
+                        [self.W_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2,
+                         self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
                     )
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
                         crowd_poss[:i] - sampled_pos, axis=-1
-                    ) < self.PERSONAL_SPACE * 2) == 0
-                if (np.linalg.norm(sampled_pos - agent_pos) > self.MIN_CROWD_DIST and
-                        np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE and
-                        no_crowd_collision):
+                    ) < self.PERSONAL_SPACE[:i] + self.PERSONAL_SPACE[i]) == 0
+                if (np.linalg.norm(sampled_pos - agent_pos) > self.MIN_SPAWN_DIST and
+                    np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE[i] and
+                   no_crowd_collision):
                     crowd_poss[i] = sampled_pos
                     break
 
-        # Shuffle crowd positions so interceptor is at random position
-        np.random.shuffle(crowd_poss)
+        if "Inter" not in type(self).__name__:
+            # Shuffle crowd positions so interceptor is at random position
+            idxs = np.arange(self.n_crowd)
+            np.random.shuffle(idxs)
+            crowd_poss = crowd_poss[idxs]
+            self.PHYSICAL_SPACE[1:1 + self.n_crowd] =\
+                self.PHYSICAL_SPACE[1:1 + self.n_crowd][idxs]
 
         return agent_pos, agent_vel, goal_pos, crowd_poss, np.zeros(crowd_poss.shape)
 
@@ -519,6 +568,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         """
         # Crowd
         if self.n_crowd > 0:
+            agent_poss = self._agent_pos.copy()
+            crowd_poss = self._crowd_poss.copy()
             if self.supersample_col:
                 over_sample_by = self._dt / 0.01
                 agent_poss = self._last_agent_pos + np.einsum(
@@ -532,16 +583,17 @@ class BaseCrowdNavigationEnv(gym.Env):
                     self._crowd_poss - self._last_crowd_poss
                 ) / over_sample_by
                 agent_poss = np.expand_dims(agent_poss, axis=1)
-                if np.sum(np.linalg.norm(agent_poss - crowd_poss, axis=-1) <
-                   [self.PHYSICAL_SPACE * 2] * self.n_crowd):
-                    return True
-            else:
-                if np.sum(np.linalg.norm(self._agent_pos - self._crowd_poss, axis=-1) <
-                   [self.PHYSICAL_SPACE * 2] * self.n_crowd):
-                    return True
+            self.idx_colliding_agents = np.where((
+                np.linalg.norm(
+                    agent_poss - crowd_poss, axis=-1
+                ) < (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[1:1 + self.n_crowd])
+            ) > 0)[-1]
+            self.idx_colliding_agents = list(set(list(self.idx_colliding_agents)))
+            if len(self.idx_colliding_agents) > 0:
+                return True
         # Walls
         if np.sum(np.abs(self._agent_pos) >
-           np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE):
+           np.array([self.W_BORDER, self.H_BORDER]) - self.PHYSICAL_SPACE[0]):
             return True
         return False
 

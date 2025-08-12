@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Any, Dict
+from typing import Tuple, Optional, Any, Dict, Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as interp
@@ -39,6 +39,10 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         time_frame: int = 0,
         lidar_vel: bool = False,
         n_frames: int = 4,
+        lidar_max: float = 0.0,
+        intrinsic_rew: bool = False,
+        curriculum: Callable = lambda _: 4,
+        one_goal: bool = False,
     ):
         super().__init__(
             n_crowd,
@@ -56,11 +60,16 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             time_frame=time_frame,
             lidar_vel=lidar_vel,
             n_frames=n_frames,
+            lidar_max=lidar_max,
+            intrinsic_rew=intrinsic_rew,
+            curriculum=curriculum,
+            one_goal=one_goal,
         )
-        self.neighbor_dist = self.PHYSICAL_SPACE * 6 + 0.1
-        self.safety_space = self.PHYSICAL_SPACE / 2
-        self.time_horizon = self.MAX_STOPPING_TIME * 8
-        self.time_horizon_obst = self.MAX_STOPPING_TIME
+        self.Ci = -1.
+        self.neighbor_dist = np.inf
+        self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
+        self.time_horizon = 5.
+        self.time_horizon_obst = 5.
         self._start_sim()
 
 
@@ -80,20 +89,20 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             self.neighbor_dist, max_neighbors, self.time_horizon, self.time_horizon_obst
         )
         self.sim = rvo2.PyRVOSimulator(
-            self._dt, *params, self.PHYSICAL_SPACE, self.CROWD_MAX_VEL
+            self._dt, *params, self.PHYSICAL_SPACE[0], self.CROWD_MAX_VEL
         )
         self.sim.addAgent(
             tuple(self._agent_pos),
             *params,
-            self.PHYSICAL_SPACE + self.safety_space,
+            self.PHYSICAL_SPACE[0] + self.safety_space,
             self.AGENT_MAX_VEL,
             tuple(self._agent_vel)
         )
-        for pos, vel in zip(self._crowd_poss, self._crowd_vels):
+        for i, (pos, vel) in enumerate(zip(self._crowd_poss, self._crowd_vels)):
             self.sim.addAgent(
                 tuple(pos),
                 *params,
-                self.PHYSICAL_SPACE + self.safety_space,
+                self.PHYSICAL_SPACE[i] + self.safety_space,
                 self.CROWD_MAX_VEL,
                 tuple(vel)
             )
@@ -151,21 +160,23 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         crowd_pref_vels = self._crowd_goal_poss - self._crowd_poss
         crowd_pref_vels[
-            np.linalg.norm(crowd_pref_vels, axis=-1) < self.PHYSICAL_SPACE
+            np.linalg.norm(crowd_pref_vels, axis=-1) <
+            self.PHYSICAL_SPACE[1:1 + self.n_crowd]
         ] = 0
         crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
 
         # update crowd goals
-        crowd_goal_complete = np.logical_and(
-            crowd_pref_vels_speed < self.PHYSICAL_SPACE,
-            np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
-        )
-        if len(crowd_goal_complete) > 0:
-            self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
-                self._crowd_poss[crowd_goal_complete]
+        if not self.one_goal:
+            crowd_goal_complete = np.logical_and(
+                crowd_pref_vels_speed < self.PHYSICAL_SPACE[1:1 + self.n_crowd],
+                np.linalg.norm(self._crowd_vels, axis=-1) < self.MAX_ACC * self._dt
             )
-            crowd_pref_vels = self._crowd_goal_poss - self._crowd_poss
-            crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
+            if len(crowd_goal_complete) > 0:
+                self._crowd_goal_poss[crowd_goal_complete] = self._gen_crowd_goal(
+                    self._crowd_poss[crowd_goal_complete]
+                )
+                crowd_pref_vels = self._crowd_goal_poss - self._crowd_poss
+                crowd_pref_vels_speed = np.linalg.norm(crowd_pref_vels, axis=-1)
 
         diff_vel = crowd_pref_vels - self._crowd_vels
         diff_speed = np.linalg.norm(diff_vel, axis=-1)

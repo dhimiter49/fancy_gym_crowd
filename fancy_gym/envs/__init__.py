@@ -63,16 +63,16 @@ register(
         "n_links": 2,
     }
 )
-
+# Crowd Navigation
 register(
     id='fancy/CrowdNavigation-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd,
     max_episode_steps=100,
     kwargs={
-        "n_crowd": 4,
-        "width": 18,
-        "height": 18,
+        "n_crowd": 7,
+        "width": 14,
+        "height": 14,
         "interceptor_percentage": 2,
     }
 )
@@ -81,11 +81,11 @@ register(
     id='fancy/CrowdNavigationORCA-v0',
     entry_point=CrowdNavigationORCAEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
-        "width": 18,
-        "height": 18,
+        "width": 14,
+        "height": 14,
         "interceptor_percentage": 2,
     }
 )
@@ -94,13 +94,31 @@ register(
     id='fancy/CrowdNavigationORCAVel-v0',
     entry_point=CrowdNavigationORCAEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
-        "width": 18,
-        "height": 18,
+        "width": 14,
+        "height": 14,
         "velocity_control": True,
         "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationORCALiDARVel-v0',
+    entry_point=CrowdNavigationORCAEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=140,
+    kwargs={
+        "n_crowd": 6,
+        "width": 14,
+        "height": 14,
+        "velocity_control": True,
+        "interceptor_percentage": 2,
+        "lidar_rays": 40,
+        "lidar_vel": True,
+        "lidar_max": 5,
+        "intrinsic_rew": True,
     }
 )
 
@@ -108,11 +126,11 @@ register(
     id='fancy/CrowdNavigationSFM-v0',
     entry_point=CrowdNavigationSFMEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
-        "width": 18,
-        "height": 18,
+        "width": 14,
+        "height": 14,
         "interceptor_percentage": 2,
     }
 )
@@ -121,13 +139,31 @@ register(
     id='fancy/CrowdNavigationSFMVel-v0',
     entry_point=CrowdNavigationSFMEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
-        "width": 18,
-        "height": 18,
+        "width": 14,
+        "height": 14,
         "velocity_control": True,
         "interceptor_percentage": 2,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationSFMLiDARVel-v0',
+    entry_point=CrowdNavigationSFMEnv,
+    mp_wrapper=MPWrapper_Crowd,
+    max_episode_steps=140,
+    kwargs={
+        "n_crowd": 6,
+        "width": 14,
+        "height": 14,
+        "velocity_control": True,
+        "interceptor_percentage": 2,
+        "lidar_rays": 40,
+        "lidar_vel": True,
+        "lidar_max": 5,
+        "intrinsic_rew": True,
     }
 )
 
@@ -348,11 +384,11 @@ register(
     id='fancy/CrowdNavigationLiDAR-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
         "n_crowd": 8,
-        "width": 18,
-        "height": 18,
+        "width": 16,
+        "height": 16,
         "interceptor_percentage": 2,
         "lidar_rays": 40,
     }
@@ -362,13 +398,31 @@ register(
     id='fancy/CrowdNavigationVel-v0',
     entry_point=CrowdNavigationEnv,
     mp_wrapper=MPWrapper_Crowd_Vel,
-    max_episode_steps=100,
+    max_episode_steps=140,
     kwargs={
-        "n_crowd": 4,
-        "width": 18,
-        "height": 18,
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
         "interceptor_percentage": 2,
         "velocity_control": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationLiDARVel-v0',
+    entry_point=CrowdNavigationEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=140,
+    kwargs={
+        "n_crowd": 8,
+        "width": 16,
+        "height": 16,
+        "interceptor_percentage": 2,
+        "lidar_rays": 40,
+        "velocity_control": True,
+        "lidar_vel": True,
+        "lidar_max": 5,
+        "intrinsic_rew": True,
     }
 )
 
