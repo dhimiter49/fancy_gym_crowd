@@ -30,7 +30,6 @@ class BaseCrowdNavigationEnv(gym.Env):
         dt: float = 0.1,
         continuous_collision: bool = True,
         var_radius: bool = False,
-        curriculum: Callable = lambda _: 4,
     ):
         self.non_polar_action = False
         calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
@@ -43,10 +42,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._dt = dt
         self.n_crowd = n_crowd
         self.var_radius = var_radius
-        self.curriculum = curriculum
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
-        self.n_crowd = self.curriculum(self._reset_steps)
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -324,7 +321,6 @@ class BaseCrowdNavigationEnv(gym.Env):
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
         super(BaseCrowdNavigationEnv, self).reset(seed=seed, options=options)
-        self.n_crowd = self.curriculum(self._reset_steps)
         (
             self._agent_pos,
             self._agent_vel,

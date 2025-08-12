@@ -43,7 +43,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         lidar_vel: bool = False,
         n_frames: int = 4,
         intrinsic_rew: bool = False,
-        curriculum: Callable = lambda _: 6,
         one_goal: bool = False,
     ):
         assert time_frame == 0 or not lidar_vel
@@ -65,7 +64,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             discrete_action=discrete_action,
             velocity_control=velocity_control,
             dt=dt,
-            curriculum=curriculum,
         )
 
         self.seq_obs = sequence_obs

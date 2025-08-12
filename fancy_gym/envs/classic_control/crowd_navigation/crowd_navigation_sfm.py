@@ -38,7 +38,6 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
-        curriculum: Callable = lambda _: 4,
         one_goal: bool = False,
     ):
         super().__init__(
@@ -59,7 +58,6 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             n_frames=n_frames,
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
-            curriculum=curriculum,
             one_goal=one_goal,
         )
         self.Ci = -1.
