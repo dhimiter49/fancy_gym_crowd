@@ -160,4 +160,3 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
         self._crowd_vels = actions.copy()
         self._crowd_poss += self._crowd_vels * self._dt
-        return actions
