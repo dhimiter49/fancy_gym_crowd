@@ -44,6 +44,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.var_radius = var_radius
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
+        self.current_seed = -1
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -381,6 +382,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         member of the crowd between the agent and the goal (with some noise in its
         position as described above).
         """
+        self.current_seed += 1
         if self.var_radius:
             self.PHYSICAL_SPACE = np.random.uniform(
                 self.MIN_RADIUS, self.MAX_RADIUS, self.n_crowd + 1
