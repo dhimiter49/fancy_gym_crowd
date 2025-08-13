@@ -932,7 +932,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self._agent_vel - self._crowd_vels[self.idx_colliding_agents], axis=-1
             ))
             self.col_agent_vel_sum += np.linalg.norm(self._agent_vel)
-            self.num_env_col += 1
             print("Col vel", self.col_vel_sum / self.num_col)
             print("Col agent vel", self.col_agent_vel_sum / self.num_col)
 
