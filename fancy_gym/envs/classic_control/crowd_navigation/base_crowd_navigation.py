@@ -7,8 +7,6 @@ from gymnasium import spaces
 from gymnasium.core import ObsType
 
 
-seed = 0
-flip = True
 
 
 class BaseCrowdNavigationEnv(gym.Env):
@@ -52,6 +50,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
         self.current_seed = -1
+        self.flip = True
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -407,13 +406,11 @@ class BaseCrowdNavigationEnv(gym.Env):
         member of the crowd between the agent and the goal (with some noise in its
         position as described above).
         """
-        global seed, flip
-        # if seed > 1:
-        #     if flip:
-        #         seed -= 1
-        #     flip = not flip
-        np.random.seed(seed)
-        seed += 1
+        # if self.current_seed > 1:
+        #     if self.flip:
+        #         self.current_seed -= 1
+        #     self.flip = not self.flip
+        np.random.seed(self.current_seed)
         self.current_seed += 1
         if self.var_radius:
             self.PHYSICAL_SPACE = np.random.uniform(
