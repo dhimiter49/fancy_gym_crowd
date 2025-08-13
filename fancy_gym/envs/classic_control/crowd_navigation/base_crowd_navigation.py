@@ -49,7 +49,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.var_radius = var_radius
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
-        self.current_seed = -1
+        self.current_seed = 0
         self.flip = True
 
         self.WIDTH = width

@@ -49,7 +49,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         # need to specify num of rays if there is a maximum distance to the lidar
         assert not lidar_max > 0.0 or lidar_rays > 0
-        self.current_seed = -1
         self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
         self.one_way = one_way
@@ -544,7 +543,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def _start_env_vars(self):
-        self.current_seed += 1
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
         next_crowd_vels = np.zeros(crowd_poss.shape)
 
