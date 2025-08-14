@@ -924,16 +924,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
     def collision_metrics(self):
         self.num_env_col += 1
-        print("Seed", self.current_seed)
-        print("Num col", self.num_env_col)
+        # print("Seed", self.current_seed)
+        # print("Num col", self.num_env_col)
         if len(self.idx_colliding_agents) >= 1:
             self.num_col += len(self.idx_colliding_agents)
             self.col_vel_sum += np.sum(np.linalg.norm(
                 self._agent_vel - self._crowd_vels[self.idx_colliding_agents], axis=-1
             ))
             self.col_agent_vel_sum += np.linalg.norm(self._agent_vel)
-            print("Col vel", self.col_vel_sum / self.num_col)
-            print("Col agent vel", self.col_agent_vel_sum / self.num_col)
+            # print("Col vel", self.col_vel_sum / self.num_col)
+            # print("Col agent vel", self.col_agent_vel_sum / self.num_col)
 
             # Find intersection, first find maximum intersection distance between circles
             # Then find the intersection area
@@ -993,17 +993,17 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 c_1_intersection_area = arch_area - triangle_area
             intersection_area = c_0_intersection_area + c_1_intersection_area
             self.col_inters_sum += intersection_area
-            print(
-                "Col avg max intersection area: ", self.col_inters_sum / self.num_env_col
-            )
-            print(
-                "Col avg, max intersection area rel to agent size:",
-                round(
-                    (self.col_inters_sum / self.num_env_col) / (np.pi * r_0 ** 2) * 100,
-                    2
-                ),
-                "%"
-            )
+            # print(
+            #     "Col avg max intersection area: ", self.col_inters_sum / self.num_env_col
+            # )
+            # print(
+            #     "Col avg, max intersection area rel to agent size:",
+            #     round(
+            #         (self.col_inters_sum / self.num_env_col) / (np.pi * r_0 ** 2) * 100,
+            #         2
+            #     ),
+            #     "%"
+            # )
 
 
     def freezing_agent(self):
@@ -1046,22 +1046,36 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def stats(self):
-        print("Num col", self.num_env_col)
-        if self.num_col > 0:
-            print("Col vel", self.col_vel_sum / self.num_col)
-            print("Col agent vel", self.col_agent_vel_sum / self.num_col)
-            print(
-                "Col avg max intersection area: ", self.col_inters_sum / self.num_env_col
-            )
-            print(
-                "Col avg, max intersection area rel to agent size:",
-                round(
-                    (self.col_inters_sum / self.num_env_col) /
-                    (np.pi * self.PHYSICAL_SPACE[0] ** 2) * 100,
-                    2
-                ),
-                "%"
-            )
-        print("Freezing instances:", self.freezing_instances)
-        print("Avg ttg:", np.mean(self.all_ttg))
-        print("Success instances:", len(self.all_ttg))
+        # print("Num col", self.num_env_col)
+        # if self.num_col > 0:
+        #     print("Col vel", self.col_vel_sum / self.num_col)
+        #     print("Col agent vel", self.col_agent_vel_sum / self.num_col)
+        #     print(
+        #         "Col avg max intersection area: ", self.col_inters_sum / self.num_env_col
+        #     )
+        #     print(
+        #         "Col avg, max intersection area rel to agent size:",
+        #         round(
+        #             (self.col_inters_sum / self.num_env_col) /
+        #             (np.pi * self.PHYSICAL_SPACE[0] ** 2) * 100,
+        #             2
+        #         ),
+        #         "%"
+        #     )
+        # print("Freezing instances:", self.freezing_instances)
+        # print("Avg ttg:", np.mean(self.all_ttg))
+        # print("Success instances:", len(self.all_ttg))
+        return (
+            self.num_env_col,
+            self.col_vel_sum / self.num_col,
+            self.col_agent_vel_sum / self.num_col,
+            self.col_inters_sum / self.num_env_col,
+            round(
+                (self.col_inters_sum / self.num_env_col) /
+                (np.pi * self.PHYSICAL_SPACE[0] ** 2) * 100,
+                2
+            ),
+            self.freezing_instances,
+            np.mean(self.all_ttg),
+            len(self.all_ttg)
+        )
