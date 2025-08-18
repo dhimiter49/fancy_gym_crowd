@@ -1,8 +1,5 @@
-from typing import Tuple, Optional, Any, Dict, Callable
-import matplotlib.pyplot as plt
+from typing import Tuple, Optional, Any, Dict
 import numpy as np
-import scipy.interpolate as interp
-from gymnasium import spaces
 from gymnasium.core import ObsType
 import rvo2
 
@@ -21,6 +18,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         time_frame: time from which to sample and stack the last frames of obs
         lidar_vel: use a velocity representation for each direction of the lidar
         n_frames: number of frames to stack for lidar, irrelevant if lidar_vel
+        avoid_agent_parameter: 1 to avoid completely, lower to increase safety distance
+            higher values to avoid the agent less
     """
     def __init__(
         self,
@@ -41,7 +40,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
-        curriculum: Callable = lambda _: 8,
+        avoid_agent_parameter: float = 1.,
         one_goal: bool = False,
     ):
         super().__init__(
@@ -62,14 +61,15 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             n_frames=n_frames,
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
-            curriculum=curriculum,
             one_goal=one_goal,
         )
+        assert avoid_agent_parameter > 0
         self.Ci = -1.
         self.neighbor_dist = np.inf
         self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
         self.time_horizon = 5.
         self.time_horizon_obst = 5.
+        self.avoid_agent_parameter = avoid_agent_parameter
         self._start_sim()
 
 
@@ -94,7 +94,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         self.sim.addAgent(
             tuple(self._agent_pos),
             *params,
-            self.PHYSICAL_SPACE[0] + self.safety_space,
+            self.PHYSICAL_SPACE[0] / self.avoid_agent_parameter,
             self.AGENT_MAX_VEL,
             tuple(self._agent_vel)
         )
@@ -109,6 +109,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
 
     def _start_env_vars(self):
+        self.current_seed += 1
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super(
             CrowdNavigationEnv, self
         )._start_env_vars()
@@ -153,7 +154,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         # Set the preferred velocity to be a vector of unit magnitude (speed) in the
         # direction of the goal.
-        velocity = np.array(self._goal_pos - self._agent_vel)
+        velocity = np.array(self._goal_pos - self._agent_pos)
         speed = np.linalg.norm(velocity)
         pref_vel = velocity / speed if speed > 1 else velocity
         self.sim.setAgentPrefVelocity(0, tuple(pref_vel))
@@ -209,4 +210,3 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         self._crowd_vels = actions
         self._crowd_poss += self._crowd_vels * self._dt
-        return actions

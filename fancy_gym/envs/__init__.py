@@ -64,7 +64,6 @@ register(
     }
 )
 # Crowd Navigation
-add_agent_every = 10000  # curriculum learning, add agent every number of episodes
 register(
     id='fancy/CrowdNavigation-v0',
     entry_point=CrowdNavigationEnv,
@@ -94,7 +93,7 @@ register(
 register(
     id='fancy/CrowdNavigationORCAVel-v0',
     entry_point=CrowdNavigationORCAEnv,
-    mp_wrapper=MPWrapper_Crowd,
+    mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
@@ -108,7 +107,7 @@ register(
 register(
     id='fancy/CrowdNavigationORCALiDARVel-v0',
     entry_point=CrowdNavigationORCAEnv,
-    mp_wrapper=MPWrapper_Crowd,
+    mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
@@ -139,7 +138,7 @@ register(
 register(
     id='fancy/CrowdNavigationSFMVel-v0',
     entry_point=CrowdNavigationSFMEnv,
-    mp_wrapper=MPWrapper_Crowd,
+    mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
@@ -153,7 +152,7 @@ register(
 register(
     id='fancy/CrowdNavigationSFMLiDARVel-v0',
     entry_point=CrowdNavigationSFMEnv,
-    mp_wrapper=MPWrapper_Crowd,
+    mp_wrapper=MPWrapper_Crowd_Vel,
     max_episode_steps=140,
     kwargs={
         "n_crowd": 6,
@@ -424,7 +423,6 @@ register(
         "lidar_vel": True,
         "lidar_max": 5,
         "intrinsic_rew": True,
-        "curriculum": lambda step: min(1 + int(step / add_agent_every), 8)
     }
 )
 

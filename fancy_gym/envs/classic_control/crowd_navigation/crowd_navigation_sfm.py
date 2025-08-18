@@ -1,4 +1,3 @@
-from typing import Callable
 import numpy as np
 import torch
 import socialforce
@@ -38,7 +37,6 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
-        curriculum: Callable = lambda _: 8,
         one_goal: bool = False,
     ):
         super().__init__(
@@ -59,7 +57,6 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             n_frames=n_frames,
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
-            curriculum=curriculum,
             one_goal=one_goal,
         )
         self.Ci = -1.
@@ -79,6 +76,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
 
     def _start_env_vars(self):
+        self.current_seed += 1
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super(
             CrowdNavigationEnv, self
         )._start_env_vars()
@@ -162,4 +160,3 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
         self._crowd_vels = actions.copy()
         self._crowd_poss += self._crowd_vels * self._dt
-        return actions

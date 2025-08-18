@@ -1,5 +1,4 @@
-from typing import Union, Tuple, Optional, Any, Dict, Callable
-import os
+from typing import Union, Tuple, Optional, Any, Dict
 import inspect
 
 import gymnasium as gym
@@ -32,7 +31,6 @@ class BaseCrowdNavigationEnv(gym.Env):
         dt: float = 0.1,
         continuous_collision: bool = True,
         var_radius: bool = False,
-        curriculum: Callable = lambda _: 4,
         test_case: str = "",
     ):
         self.non_polar_action = False
@@ -46,7 +44,6 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._dt = dt
         self.n_crowd = n_crowd
         self.var_radius = var_radius
-        self.curriculum = curriculum
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
         self.run_test_case = test_case != ""
@@ -56,6 +53,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             with open("/".join(current_dir) + "/" + test_case, "rb") as f:
                 self._test_case_array = np.array(pickle.load(f, encoding="latin1"))
             self.n_crowd = self.max_n_crowd = self._test_case_array.shape[1] - 1
+        self.current_seed = -1
 
         self.WIDTH = width
         self.HEIGHT = height
@@ -418,6 +416,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         member of the crowd between the agent and the goal (with some noise in its
         position as described above).
         """
+        self.current_seed += 1
         if self.var_radius:
             self.PHYSICAL_SPACE = np.random.uniform(
                 self.MIN_RADIUS, self.MAX_RADIUS, self.n_crowd + 1
