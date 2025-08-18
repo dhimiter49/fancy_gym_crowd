@@ -1,8 +1,5 @@
-from typing import Tuple, Optional, Any, Dict, Callable
-import matplotlib.pyplot as plt
+from typing import Tuple, Optional, Any, Dict
 import numpy as np
-import scipy.interpolate as interp
-from gymnasium import spaces
 from gymnasium.core import ObsType
 import rvo2
 

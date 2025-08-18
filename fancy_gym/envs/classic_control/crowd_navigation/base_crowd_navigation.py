@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Optional, Any, Dict, Callable
+from typing import Union, Tuple, Optional, Any, Dict
 import inspect
 
 import gymnasium as gym

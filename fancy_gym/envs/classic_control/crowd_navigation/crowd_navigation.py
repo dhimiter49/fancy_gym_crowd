@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Any, Dict, Callable
+from typing import Tuple, Optional, Any, Dict
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate as interp
@@ -384,7 +384,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 else:
                     self._last_frames[:-1] = self._last_frames[1:]
                     self._last_frames[-1] = ray_distances
-            elif self.lidar_vel:
+            elif self.n_crowd > 0 and self.lidar_vel:
                 ray_velocities = np.zeros(ray_distances.shape)
                 if self.n_crowd > 0:
                     vel_along_all_dir_all_crowd = np.einsum(
