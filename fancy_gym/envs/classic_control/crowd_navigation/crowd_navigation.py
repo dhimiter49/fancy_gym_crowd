@@ -962,7 +962,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 col_vels = np.stack([
                     self._agent_vel, self._crowd_vels[idx_colliding_agent]
                 ])
-                max_time = (self.PHYSICAL_SPACE[0] * 3) / np.linalg.norm(col_vels[1])
+                max_time = 5.  # in case that collision velocity is almost zero
+                if np.linalg.norm(col_vels[1]) > 1e-4:
+                    max_time = (self.PHYSICAL_SPACE[0] * 3) / np.linalg.norm(col_vels[1])
                 sample_dt = 0.01
                 max_time_steps = int(max_time // sample_dt) * 2
                 propagate_col_agents = np.repeat(
