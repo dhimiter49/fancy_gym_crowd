@@ -157,7 +157,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
         # Set the preferred velocity to be a vector of unit magnitude (speed) in the
         # direction of the goal.
-        velocity = np.array(self._goal_pos - self._agent_vel)
+        velocity = np.array(self._goal_pos - self._agent_pos)
         speed = np.linalg.norm(velocity)
         pref_vel = velocity / speed if speed > 1 else velocity
         self.sim.setAgentPrefVelocity(0, tuple(pref_vel))
