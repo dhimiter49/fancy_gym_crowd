@@ -53,6 +53,9 @@ class BaseCrowdNavigationEnv(gym.Env):
             with open("/".join(current_dir) + "/" + test_case, "rb") as f:
                 self._test_case_array = np.array(pickle.load(f, encoding="latin1"))
             self.n_crowd = self.max_n_crowd = self._test_case_array.shape[1] - 1
+            if "Inter" in type(self).__name__:
+                self.n_crowd += 1
+                self.max_n_crowd += 1
         self.current_seed = -1
 
         self.WIDTH = width
@@ -368,9 +371,14 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def _read_test_case(self):
-        agent_pos = self._test_case_array[self._test_case_idx, 0, :2]
-        goal_pos = self._test_case_array[self._test_case_idx, 0, 2:4]
-        crowd_poss = self._test_case_array[self._test_case_idx, 1:, :2]
+        if "Inter" not in type(self).__name__:
+            agent_pos = self._test_case_array[self._test_case_idx, 0, :2]
+            goal_pos = self._test_case_array[self._test_case_idx, 0, 2:4]
+            crowd_poss = self._test_case_array[self._test_case_idx, 1:, :2]
+        else:
+            agent_pos = np.zeros(2)
+            goal_pos = np.zeros(2)
+            crowd_poss = self._test_case_array[self._test_case_idx, 0:, :2]
         return agent_pos, 0 * agent_pos, goal_pos, crowd_poss, 0 * crowd_poss
 
 

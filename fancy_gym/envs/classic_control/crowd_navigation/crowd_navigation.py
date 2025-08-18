@@ -541,7 +541,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
     def _read_test_case(self):
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._read_test_case()
-        crowd_goal_poss = self._test_case_array[self._test_case_idx, 1:, 2:4]
+        if "Inter" not in type(self).__name__:
+            crowd_goal_poss = self._test_case_array[self._test_case_idx, 1:, 2:4]
+        else:
+            crowd_goal_poss = self._test_case_array[self._test_case_idx, 0:, 2:4]
         next_crowd_vels = np.zeros(crowd_poss.shape)
 
         if self.const_vel:
@@ -610,7 +613,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         if len(crowd_poss.shape) == 1:
             crowd_poss = np.array([crowd_poss])
         if self.run_test_case:
-            crowd_goal_poss = self._test_case_array[self._test_case_idx, 1:, 2:4]
+            if "Inter" not in type(self).__name__:
+                crowd_goal_poss = self._test_case_array[self._test_case_idx, 1:, 2:4]
+            else:
+                crowd_goal_poss = self._test_case_array[self._test_case_idx, 0:, 2:4]
         else:
             crowd_goal_poss = np.random.uniform(
                 [-self.W_BORDER, -self.H_BORDER],
