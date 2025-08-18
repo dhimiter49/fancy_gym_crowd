@@ -989,4 +989,4 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def ttg(self):
-        return self._steps * self._dt
+        self.all_ttg.append(self._steps * self._dt)
