@@ -8,8 +8,6 @@ from gymnasium import spaces
 from gymnasium.core import ObsType
 
 
-
-
 class BaseCrowdNavigationEnv(gym.Env):
     """
     Base class crowd navigation. Units are defined to reflect plausible values in the real
@@ -395,6 +393,10 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def _read_test_case(self):
+        # if self._test_case_idx > 1:
+        #     if self.flip:
+        #         self._test_case_idx -= 1
+        #     self.flip = not self.flip
         if "Inter" not in type(self).__name__:
             agent_pos = self._test_case_array[self._test_case_idx, 0, :2]
             goal_pos = self._test_case_array[self._test_case_idx, 0, 2:4]
