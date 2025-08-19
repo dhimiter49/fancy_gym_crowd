@@ -76,7 +76,6 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
 
 
     def _start_env_vars(self):
-        self.current_seed += 1
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super(
             CrowdNavigationEnv, self
         )._start_env_vars()
