@@ -1099,6 +1099,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         # print("Freezing instances:", self.freezing_instances)
         # print("Avg ttg:", np.mean(self.all_ttg))
         # print("Success instances:", len(self.all_ttg))
+        if self.num_col == 0:
+            return (
+                0, 0, 0, 0, 0,
+                self.freezing_instances,
+                np.mean(self.all_ttg),
+                len(self.all_ttg)
+            )
         return (
             self.num_env_col,
             self.col_vel_sum / self.num_col,

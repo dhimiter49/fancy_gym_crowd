@@ -124,7 +124,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 self._crowd_poss,
                 self._crowd_vels
             ) = self._start_env_vars()
-
+        self._last_crowd_poss = self._crowd_poss
         self.discrete_action = discrete_action
         self.velocity_control = velocity_control
         if self.velocity_control:
