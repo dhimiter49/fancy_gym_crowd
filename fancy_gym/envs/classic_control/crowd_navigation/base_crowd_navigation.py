@@ -219,6 +219,18 @@ class BaseCrowdNavigationEnv(gym.Env):
             setattr(self, key, vars[key])
 
 
+    def set_num_crowd(self, n_crowd: int):
+        self.n_crowd = n_crowd
+        self.max_n_crowd = n_crowd
+
+
+    def set_wxh(self, width: float, height: float):
+        self.WIDTH = width
+        self.HEIGHT = height
+        self.W_BORDER = width / 2
+        self.H_BORDER = height / 2
+
+
     def set_trajectory(self, positions, velocities=None):
         self._traj_index = 0
         positions = positions[:]
