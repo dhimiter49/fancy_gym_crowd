@@ -925,6 +925,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         A single step with action in angular velocity space
         """
+        self.exec_actions.append(action)
         self.update_state(action)
         self._old_action = action
         self._last_crowd_poss = self._crowd_poss.copy()
@@ -958,9 +959,10 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         # print("Num col", self.num_env_col)
         if len(self.idx_colliding_agents) >= 1:
             self.num_col += len(self.idx_colliding_agents)
-            self.col_vel_sum += np.sum(np.linalg.norm(
+            col_speed = np.sum(np.linalg.norm(
                 self._agent_vel - self._crowd_vels[self.idx_colliding_agents], axis=-1
             ))
+            self.col_vel_sum += col_speed
             self.col_agent_vel_sum += np.linalg.norm(self._agent_vel)
             # print("Col vel", self.col_vel_sum / self.num_col)
             # print("Col agent vel", self.col_agent_vel_sum / self.num_col)
@@ -1025,6 +1027,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 c_1_intersection_area = arch_area - triangle_area
             intersection_area = c_0_intersection_area + c_1_intersection_area
             self.col_inters_sum += intersection_area
+            intersection_area_percent = intersection_area / (np.pi * r_0 ** 2)
+            self.col_severity_index += intersection_area_percent * col_speed /\
+                (self.AGENT_MAX_VEL + self.CROWD_MAX_VEL)
             # print(
             #     "Col avg max intersection area: ",
             #     self.col_inters_sum / self.num_env_col
@@ -1101,7 +1106,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         # print("Success instances:", len(self.all_ttg))
         if self.num_col == 0:
             return (
-                0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0,
                 self.freezing_instances,
                 np.mean(self.all_ttg),
                 len(self.all_ttg)
@@ -1116,6 +1121,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 (np.pi * self.PHYSICAL_SPACE[0] ** 2) * 100,
                 2
             ),
+            self.col_severity_index / self.num_env_col,
             self.freezing_instances,
             np.mean(self.all_ttg),
             len(self.all_ttg)

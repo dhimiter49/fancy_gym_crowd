@@ -203,6 +203,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.col_vel_sum = 0.
         self.col_agent_vel_sum = 0.
         self.col_inters_sum = 0.
+        self.col_severity_index = 0.
         self.all_ttg = []
         self.froze_last = False
         self.freezing_instances = 0
