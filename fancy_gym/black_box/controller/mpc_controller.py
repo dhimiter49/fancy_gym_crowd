@@ -88,6 +88,7 @@ class MPCController(BaseController):
         self.mat_vel_acc = mat_vel_acc
         self.mat_vc_pos_vel = mat_vc_pos_vel
         self.mat_vc_acc_vel = mat_vc_acc_vel
+        self.breaking_steps = 0
         if self.velocity_control:
             self.mat_pos_control = self.mat_vc_pos_vel
             self.vec_pos_vel = self.vec_pos_vel_crowd = 0.5 * self.dt
@@ -212,6 +213,7 @@ class MPCController(BaseController):
         """
         Flush state which consists only of the lastr braking trajectory.
         """
+        self.old_breaking_flag = False
         self.last_braking_traj *= 0
 
 
@@ -498,12 +500,15 @@ class MPCController(BaseController):
 
 
         if control is None:
+            self.breaking_steps += 1 if not self.old_breaking_flag else 0
+            self.old_breaking_flag = True
             horizon = len(self.last_braking_traj.flatten()) // 2
             control = np.zeros(2 * horizon)
             control[0:horizon - 1] = self.last_braking_traj[1:, 0]
             control[horizon:2 * horizon - 1] = self.last_braking_traj[1:, 1]
             actions = np.array([control[:horizon], control[horizon:]]).T
         else:
+            self.old_breaking_flag = False
             if not self.velocity_control:
                 actions = np.array([control[:self.N], control[self.N:]]).T
             else:
