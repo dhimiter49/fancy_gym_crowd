@@ -95,17 +95,17 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             self.RAY_COS = np.cos(self.RAY_ANGLES)
             self.RAY_SIN = np.sin(self.RAY_ANGLES)
 
-        state_bound_min = np.hstack([self.observation_space.low] * self.n_crowd)
-        state_bound_max = np.hstack([self.observation_space.high] * self.n_crowd)
-        action_bound_min = np.hstack([self.action_space.low] * self.n_crowd)
-        action_bound_max = np.hstack([self.action_space.high] * self.n_crowd)
+        # state_bound_min = np.hstack([self.observation_space.low] * self.n_crowd)
+        # state_bound_max = np.hstack([self.observation_space.high] * self.n_crowd)
+        # action_bound_min = np.hstack([self.action_space.low] * self.n_crowd)
+        # action_bound_max = np.hstack([self.action_space.high] * self.n_crowd)
 
-        self.observation_space = spaces.Box(
-            low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
-        )
-        self.action_space = spaces.Box(
-            low=action_bound_min, high=action_bound_max, shape=action_bound_min.shape
-        )
+        # self.observation_space = spaces.Box(
+        #     low=state_bound_min, high=state_bound_max, shape=state_bound_min.shape
+        # )
+        # self.action_space = spaces.Box(
+        #     low=action_bound_min, high=action_bound_max, shape=action_bound_min.shape
+        # )
 
 
     def reset(
@@ -179,7 +179,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
 
 
     def _terminate(self, info):
-        return np.any(self._is_collided)
+        return self._is_collided
 
 
     def _get_obs(self) -> ObsType:
@@ -656,7 +656,8 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
         """
         A single step with action in angular velocity space
         """
-        assert action.shape == (self.n_crowd * 2,)
+        assert len(action) == self.n_crowd
+        action = np.array(action)
         action = action.reshape(self.n_crowd, 2)
         self._last_crowd_poss = self._crowd_poss.copy()
         self.update_state(action)
@@ -668,11 +669,14 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
             self._crowd_goal_poss[idx_goal_reached] =\
                 self._gen_crowd_goal(self._crowd_poss[idx_goal_reached], idx_goal_reached)
         dummy_rew = np.sum(self._current_reward)
-        info["terminal"] = self._is_collided
         info["rewards"] = self._current_reward
 
         self._steps += 1
         terminated = self._terminate(info)
-        truncated = False
+        truncated = np.zeros_like(terminated, dtype=bool)
+        info["terminal"] = self._is_collided
+        info["truncated"] = truncated
 
-        return self._get_obs().copy(), dummy_rew, terminated, truncated, info
+        obs = self._get_obs().copy()
+        obs = list(obs.reshape(self.n_crowd, -1))
+        return obs, self._current_reward, np.any(terminated), np.any(truncated), info

@@ -51,14 +51,14 @@ def example_general(env_id="Pendulum-v1", seed=1, iterations=1000, render=True, 
         if manual_control:
             action = manual_controller.action
         else:
-            action = env.action_space.sample()
+            action = np.array([env.action_space.sample() for _ in range(env.n_crowd)])
 
         obs, reward, terminated, truncated, info = env.step(action)
         rewards += reward
         if render:
             env.render()
 
-        if terminated or truncated:
+        if np.any(terminated) or np.any(truncated):
             print(rewards)
             if plot:
                 plot_rewards(rewards)

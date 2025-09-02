@@ -280,6 +280,19 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     @property
+    def wall_dist_crowd(self):
+        return np.array([
+            [
+                self.W_BORDER - self._crowd_poss[:, 0],
+                self.W_BORDER + self._crowd_poss[:, 0]
+            ],
+            [
+                self.H_BORDER - self._crowd_poss[:, 1],
+                self.H_BORDER + self._crowd_poss[:, 1]
+            ]
+        ]).reshape(4, self.n_crowd).T
+
+    @property
     def optimal_time(self):
         dist = np.linalg.norm(self._goal_pos - self._agent_pos)
         agent_vel = np.linalg.norm(self._agent_vel)

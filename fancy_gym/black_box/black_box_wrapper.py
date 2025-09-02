@@ -167,55 +167,103 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             return spaces.Box(low=min_obs_bound, high=max_obs_bound, dtype=self.env.observation_space.dtype)
         return self.env.observation_space
 
-    def step(self, action: np.ndarray, verbose: int = 2):
-        """ This function generates a trajectory based on a MP and then does the usual loop over reset and step"""
 
-        if isinstance(action, tuple):
-            condition = np.concatenate([self.unwrapped.goal_pos, np.zeros(2)])
-            position, velocity = self.get_trajectory(action, condition)
+    def step(self, action: np.ndarray):
+        if len(action.shape) >= 2:
+            obss, trajectory_returns, terms, truncates, infos = [], [], [], [], []
+            for a in action:
+                obs, trajectory_return, terminated, truncated, info = self._step(a)
+                obss.append(obs)
+                trajectory_returns.append(trajectory_return)
+                terms.append(terminated)
+                truncates.append(truncated)
+                infos.append(info)
+            return obss, trajectory_returns, terms, truncates, infos
         else:
-            position, velocity = self.get_trajectory(action)
-        action = action[0] if isinstance(action, tuple) else action
-        position, velocity = self.env.set_episode_arguments(action, position, velocity)
-        traj_is_valid, position, velocity = self.env.preprocessing_and_validity_callback(action, position, velocity,
-                                                                                         self.tau_bound, self.delay_bound)
+            return self._step(action)
 
-        trajectory_length = len(position)
-        rewards = np.zeros(shape=(trajectory_length,))
-        if self.verbose >= 2 or verbose >= 2:
-            actions = np.zeros(shape=(trajectory_length,) +
-                               self.env.action_space.shape)
-            observations = np.zeros(shape=(trajectory_length,) + self.env.observation_space.shape,
-                                    dtype=self.env.observation_space.dtype)
 
-        infos = dict()
-        terminated, truncated = False, False
+    def step(self, action: np.ndarray, verbose: int = 0):
+        """ This function generates a trajectory based on a MP and then does the usual loop over reset and step"""
+        positions, velocities = [], []
+        if len(action.shape) == 1:
+            n_agents = 1
+            action = action.reshape(1, -1)
+        else:
+            n_agents = len(action)
+        for a in action:
+            position, velocity = self.get_trajectory(a)
+            a = a[0] if isinstance(a, tuple) else a
+            position, velocity = self.env.set_episode_arguments(a, position, velocity)
+            traj_is_valid, position, velocity = self.env.preprocessing_and_validity_callback(
+                a, position, velocity, self.tau_bound, self.delay_bound
+            )
+            positions.append(position)
+            velocities.append(velocity)
 
-        if not traj_is_valid:
-            obs, trajectory_return, terminated, truncated, infos = self.env.invalid_traj_callback(action, position, velocity,
-                                                                                                  self.return_context_observation, self.tau_bound, self.delay_bound)
-            return self.observation(obs), trajectory_return, terminated, truncated, infos
+            trajectory_length = len(position)
+            rewards = np.zeros(shape=(trajectory_length, n_agents)) if n_agents > 1 else np.zeros(shape=(trajectory_length,))
+            if self.verbose >= 2 or verbose >= 2:
+                actions = np.zeros(shape=(trajectory_length,) +
+                                   self.env.action_space.shape)
+                observations = np.zeros(shape=(trajectory_length,) + self.env.observation_space.shape,
+                                        dtype=self.env.observation_space.dtype)
 
+            infos = dict()
+            terminated, truncated = False, False
+
+            if not traj_is_valid:
+                obs, trajectory_return, terminated, truncated, infos = self.env.invalid_traj_callback(action, position, velocity,
+                                                                                                      self.return_context_observation, self.tau_bound, self.delay_bound)
+                return self.observation(obs), trajectory_return, terminated, truncated, infos
+
+        positions = np.array(positions).transpose(1, 0, 2)
+        velocities = np.array(velocities).transpose(1, 0, 2)
         self.plan_steps += 1
-        for t, (pos, vel) in enumerate(zip(position, velocity)):
-            if not isinstance(self.tracking_controller, MPCController):
-                step_action = self.tracking_controller.get_action(
-                    pos, vel, self.env.unwrapped.current_pos, self.env.unwrapped.current_vel)
-                c_action = np.clip(
-                    step_action, self.env.action_space.low, self.env.action_space.high)
+        for t, (pos, vel) in enumerate(zip(positions, velocities)):
+            if len(pos.shape) > 1:
+                step_actions = []
+                for i, (agent_des_pos, agent_des_vel) in enumerate(zip(pos, vel)):
+                    agents_pos, agents_vel = self.unwrapped.crowd_pos_vel
+                    if not isinstance(self.tracking_controller, MPCController):
+                        step_action = self.tracking_controller.get_action(
+                            agent_des_pos, agent_des_vel, agents_pos[i], agents_vel[i])
+                        c_action = np.clip(
+                            step_action, self.env.action_space.low, self.env.action_space.high)
+                    else:
+                        agents_wall_dist = self.unwrapped.wall_dist_crowd
+                        step_action = self.tracking_controller.get_action(
+                            positions[t:, i].copy(),
+                            velocities[t:, i].copy(),
+                            agents_pos[i],
+                            agents_vel[i],
+                            agents_wall_dist[i],
+                            (np.delete(agents_pos, i, 0), np.delete(agents_vel, i, 0)),
+                        )
+                        c_action = step_action[0]
+                        # self.env.set_des_position(pos)
+                    step_actions.append(c_action)
+                    c_action = step_actions
             else:
-                step_action = self.tracking_controller.get_action(
-                    position[t:].copy(),
-                    velocity[t:].copy(),
-                    self.env.unwrapped.current_pos,
-                    self.env.unwrapped.current_vel,
-                    self.env.unwrapped.wall_dist,
-                    self.env.unwrapped.crowd_pos_vel,
-                )
-                c_action = step_action[0]
-                self.env.set_des_position(pos)
+                if not isinstance(self.tracking_controller, MPCController):
+                    step_action = self.tracking_controller.get_action(
+                        pos, vel, self.env.unwrapped.current_pos, self.env.unwrapped.current_vel)
+                    c_action = np.clip(
+                        step_action, self.env.action_space.low, self.env.action_space.high)
+                else:
+                    step_action = self.tracking_controller.get_action(
+                        positions[t:].copy(),
+                        velocities[t:].copy(),
+                        self.env.unwrapped.current_pos,
+                        self.env.unwrapped.current_vel,
+                        self.env.unwrapped.wall_dist,
+                        self.env.unwrapped.crowd_pos_vel,
+                    )
+                    c_action = step_action[0]
+                    self.env.set_des_position(pos)
             obs, c_reward, terminated, truncated, info = self.env.step(
                 c_action)
+            obs, c_reward, terminated, truncated, info = self.env.step(c_action)
             rewards[t] = c_reward
 
             if self.verbose >= 2 or verbose >= 2:
@@ -231,7 +279,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
                 self.env.render()
 
 
-            if terminated or truncated or (self.replanning_schedule(self.env.unwrapped.current_pos, self.env.unwrapped.current_vel, obs, c_action, t + 1 + self.current_traj_steps) and self.plan_steps < self.max_planning_times):
+            if np.any(terminated) or np.any(truncated) or (self.replanning_schedule(self.env.unwrapped.current_pos, self.env.unwrapped.current_vel, obs, c_action, t + 1 + self.current_traj_steps) and self.plan_steps < self.max_planning_times):
 
                 if self.condition_on_desired:
                     self.condition_pos = pos
@@ -250,8 +298,15 @@ class BlackBoxWrapper(gym.ObservationWrapper):
             infos['step_rewards'] = rewards[:t + 1]
 
         infos['trajectory_length'] = t + 1
-        trajectory_return = self.reward_aggregation(rewards[:t + 1])
-        return self.observation(obs), trajectory_return, terminated, truncated, infos
+        trajectory_return = self.reward_aggregation(rewards[:t + 1], axis=0)
+
+
+        prodmp_time = obs[-1].repeat(self.n_crowd).reshape(-1, 1)
+        obs = obs[:-1].reshape(self.n_crowd, -1)
+        obs = np.concatenate([obs, prodmp_time], -1)
+        obs = obs.reshape(self.n_crowd, -1)
+        obs = [self.observation(o) for o in obs]
+        return obs, trajectory_return, terminated, truncated, infos
 
     def render(self):
         self.do_render = True
