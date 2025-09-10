@@ -5,9 +5,12 @@ import rvo2
 
 from fancy_gym.envs.classic_control.crowd_navigation.crowd_navigation\
     import CrowdNavigationEnv
-from trust_region_projections.utils.custom_store import CustomStore
-from trust_region_projections.algorithms.pg.pg import PolicyGradient
-from trust_region_projections.utils.torch_utils import tensorize, get_numpy
+from fancy_gym.envs.classic_control.crowd_navigation.trp.utils.custom_store \
+    import CustomStore
+from fancy_gym.envs.classic_control.crowd_navigation.trp.algorithms.pg.pg \
+    import PolicyGradient
+from fancy_gym.envs.classic_control.crowd_navigation.trp.utils.torch_utils \
+    import tensorize, get_numpy
 
 
 class CrowdNavigationModelEnv(CrowdNavigationEnv):
@@ -42,7 +45,6 @@ class CrowdNavigationModelEnv(CrowdNavigationEnv):
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
         one_goal: bool = False,
-        model_path: str = None,
     ):
         super().__init__(
             n_crowd,
@@ -65,13 +67,6 @@ class CrowdNavigationModelEnv(CrowdNavigationEnv):
             one_goal=one_goal,
         )
         self.Ci = -1.
-        store = CustomStore(
-            storage_folder="", note=None, exp_id=model_path, new=False, mode="a"
-        )
-        self.model, _ = PolicyGradient.agent_from_data(
-            store, train_steps=None, checkpoint_iteration=-1, testing=True
-        )
-        self.prodmp_env = self.model.sampler.envs_test
 
 
     def reset(
@@ -81,6 +76,16 @@ class CrowdNavigationModelEnv(CrowdNavigationEnv):
             self._last_frames *= 0
         obs, info = super().reset(seed=seed, options=options)
         return obs, info
+
+
+    def set_model(self, path):
+        store = CustomStore(
+            storage_folder="", note=None, exp_id=path, new=False, mode="a"
+        )
+        self.model, _ = PolicyGradient.agent_from_data(
+            store, train_steps=None, checkpoint_iteration=-1, testing=True
+        )
+        self.prodmp_env = self.model.sampler.envs_test
 
 
     def _start_env_vars(self):

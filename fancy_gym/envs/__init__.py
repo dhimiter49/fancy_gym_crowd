@@ -137,10 +137,7 @@ register(
         "lidar_rays": 40,
         "lidar_vel": True,
         "lidar_max": 5,
-        "intrinsic_rew": True,
-        "model_path": "/home/dhimiter/Documents/RAM/TrustRegionProjections/results/" +
-        "mp_config/CrowdNavigationORCALiDARVel-v0/" +
-        "dcd8c1df-434c-4761-b304-5c3a6e470f7d/"
+        "intrinsic_rew": True
     }
 )
 
