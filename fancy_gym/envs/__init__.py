@@ -15,6 +15,7 @@ from .classic_control.crowd_navigation.crowd_navigation_static import CrowdNavig
 from .classic_control.crowd_navigation.l_shape_env import LShapeCrowdNavigationEnv
 from .classic_control.crowd_navigation.navigation import NavigationEnv
 from .classic_control.crowd_navigation.crowd_navigation_orca import CrowdNavigationORCAEnv
+from .classic_control.crowd_navigation.crowd_navigation_model import CrowdNavigationModelEnv
 from .classic_control.crowd_navigation.crowd_navigation_sfm import CrowdNavigationSFMEnv
 from .classic_control.crowd_navigation import (
     MPWrapper_Crowd,
@@ -119,6 +120,27 @@ register(
         "lidar_vel": True,
         "lidar_max": 5,
         "intrinsic_rew": True,
+    }
+)
+
+register(
+    id='fancy/CrowdNavigationModelLiDARVel-v0',
+    entry_point=CrowdNavigationModelEnv,
+    mp_wrapper=MPWrapper_Crowd_Vel,
+    max_episode_steps=140,
+    kwargs={
+        "n_crowd": 6,
+        "width": 14,
+        "height": 14,
+        "velocity_control": True,
+        "interceptor_percentage": 2,
+        "lidar_rays": 40,
+        "lidar_vel": True,
+        "lidar_max": 5,
+        "intrinsic_rew": True,
+        "model_path": "/home/dhimiter/Documents/RAM/TrustRegionProjections/results/" +
+        "mp_config/CrowdNavigationORCALiDARVel-v0/" +
+        "dcd8c1df-434c-4761-b304-5c3a6e470f7d/"
     }
 )
 
