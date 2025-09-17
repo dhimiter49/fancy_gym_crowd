@@ -410,18 +410,18 @@ class BaseCrowdNavigationEnv(gym.Env):
             self.one_way:
             goal_pos = np.random.uniform(
                 [self.W_BORDER / 2,
-                 -self.H_BORDER + self.PHYSICAL_SPACE[0]],
-                [self.W_BORDER - self.PHYSICAL_SPACE[0],
-                 self.H_BORDER - self.PHYSICAL_SPACE[0]]
+                 -self.H_BORDER + 2 * self.PHYSICAL_SPACE[0]],
+                [self.W_BORDER - 2 * self.PHYSICAL_SPACE[0],
+                 self.H_BORDER - 2 * self.PHYSICAL_SPACE[0]]
             )
         else:
             goal_pos = agent_pos
             while np.linalg.norm(agent_pos - goal_pos) < 2 * self.PERSONAL_SPACE[0]:
                 goal_pos = np.random.uniform(
-                    [-self.W_BORDER + self.PHYSICAL_SPACE[0],
-                     -self.H_BORDER + self.PHYSICAL_SPACE[0]],
-                    [self.W_BORDER - self.PHYSICAL_SPACE[0],
-                     self.H_BORDER - self.PHYSICAL_SPACE[0]]
+                    [-self.W_BORDER + 2 * self.PHYSICAL_SPACE[0],
+                     -self.H_BORDER + 2 * self.PHYSICAL_SPACE[0]],
+                    [self.W_BORDER - 2 * self.PHYSICAL_SPACE[0],
+                     self.H_BORDER - 2 * self.PHYSICAL_SPACE[0]]
                 )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
