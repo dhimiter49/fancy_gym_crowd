@@ -420,19 +420,19 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         """
         A single step with action in angular velocity space
         """
+        self.exec_actions.append(action)
         self.update_state(action)
+        self._old_action = action
         self.exec_traj.append(self._agent_pos)
 
         self._last_crowd_poss = self._crowd_poss.copy()
         self._goal_reached = self.check_goal_reached()
         self._is_collided = self._check_collisions()
         if self._is_collided:
-            global NUM_COL
-            global COL_AGENT_VEL_SUM
-            COL_AGENT_VEL_SUM += np.linalg.norm(self._agent_vel)
-            NUM_COL += 1
-            print("Num col", NUM_COL)
-            print("Average agent speed:", COL_AGENT_VEL_SUM / NUM_COL)
+            self.collision_metrics()
+        self.freezing_agent()
+        if self._goal_reached:
+            self.ttg()
         self._current_reward, info = self._get_reward(action)
         if self.intrinsic_rew:
             rew, new_info = self._get_intrinsic_reward()
@@ -440,6 +440,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             info.update(new_info)
 
         self._steps += 1
+        self._traj_index += 1
         terminated = self._terminate(info)
         truncated = False
 
