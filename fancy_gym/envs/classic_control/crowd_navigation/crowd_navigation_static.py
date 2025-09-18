@@ -27,6 +27,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         lidar_rays: int = 0,
         sequence_obs: bool = False,
         polar: bool = False,
+        intrinsic_rew: bool = True,
     ):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         self.MAX_EPISODE_STEPS = 80
@@ -43,6 +44,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
         self.seq_obs = sequence_obs
+        self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
@@ -151,6 +153,17 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
 
         reward = Rg + Rc + Rw
         return reward, dict(goal=Rg, collision=Rc, wall=Rw)
+
+
+    def _get_intrinsic_reward(self):
+        """
+        Check how far the current position after the action is relative to the desired
+        position proposed by the ProDMP.
+        """
+        Ri = 0.
+        if self.desired_position is not None:
+            Ri = self.Ci * np.linalg.norm(self._agent_pos - self.desired_position)
+        return Ri, dict(intrinsic=Ri)
 
 
     def _terminate(self, info):
@@ -421,6 +434,10 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
             print("Num col", NUM_COL)
             print("Average agent speed:", COL_AGENT_VEL_SUM / NUM_COL)
         self._current_reward, info = self._get_reward(action)
+        if self.intrinsic_rew:
+            rew, new_info = self._get_intrinsic_reward()
+            self._current_reward += rew
+            info.update(new_info)
 
         self._steps += 1
         terminated = self._terminate(info)
