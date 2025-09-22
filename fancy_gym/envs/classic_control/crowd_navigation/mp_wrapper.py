@@ -126,15 +126,18 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
         },
         'controller_kwargs': {
             'controller_type': 'mpc',
-            'mat_vc_pos_vel': gen_mat_vc_pos_vel(10, 0.1),
-            'mat_vc_acc_vel': gen_mat_vc_acc_vel(10, 0.1),
-            'max_acc': 10.0,
-            'max_vel': 1.0,
-            'horizon': 10,  # 2 sec to stop (1 extra step is current step)
+            'mpc_type': 'velocity_control',
+            'horizon': 20,  # 2 sec to stop (1 extra step is current step)
             'dt': 0.1,
-            'velocity_control': True,
-            'min_dist_crowd': 0.81001,  # personal space of the members of the crowd
-            'min_dist_wall': 0.41,  # physical space of agent + 0.01
+            'physical_space': 0.4,
+            'const_dist_crowd': 0.81001,
+            'agent_max_vel': 1.,
+            'agent_max_acc': 10.,
+            'crowd_max_vel': 1.5,
+            'crowd_max_acc': 10.,
+            'n_crowd': 6,
+            # 'uncertainty': 'dist',
+            # 'horizon_tries': 3,
         },
         'trajectory_generator_kwargs': {
             'weights_scale': 1,

@@ -211,6 +211,7 @@ class BlackBoxWrapper(gym.ObservationWrapper):
                     self.env.unwrapped.current_vel,
                     self.env.unwrapped.wall_dist,
                     self.env.unwrapped.crowd_pos_vel,
+                    self.env.unwrapped.goal_pos,
                 )
                 c_action = step_action[0]
                 self.env.set_des_position(pos)
