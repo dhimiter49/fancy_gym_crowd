@@ -242,20 +242,34 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         ] * self.n_crowd,
                     ])
         else:
-            state_bound_min = np.hstack([
-                [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
-                [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
-                [-self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] * self.n_crowd,
-                [0] * 4,  # four directions
-                [self.MIN_RADIUS] * (self.n_crowd + 1)
-            ])
-            state_bound_max = np.hstack([
-                [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
-                [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
-                [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
-                np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
-                [self.MAX_RADIUS] * (self.n_crowd + 1),
-            ])
+            if self.var_radius:
+                state_bound_min = np.hstack([
+                    [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
+                    [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                    [-self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] * self.n_crowd,
+                    [0] * 4,  # four directions
+                    [self.MIN_RADIUS] * (self.n_crowd + 1)
+                ])
+                state_bound_max = np.hstack([
+                    [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
+                    [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                    [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
+                    np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
+                    [self.MAX_RADIUS] * (self.n_crowd + 1),
+                ])
+            else:
+                state_bound_min = np.hstack([
+                    [-self.WIDTH, -self.HEIGHT] * (self.n_crowd + 1),
+                    [-self.AGENT_MAX_VEL, -self.AGENT_MAX_VEL],
+                    [-self.CROWD_MAX_VEL, -self.CROWD_MAX_VEL] * self.n_crowd,
+                    [0] * 4,  # four directions
+                ])
+                state_bound_max = np.hstack([
+                    [self.WIDTH, self.HEIGHT] * (self.n_crowd + 1),
+                    [self.AGENT_MAX_VEL, self.AGENT_MAX_VEL],
+                    [self.CROWD_MAX_VEL, self.CROWD_MAX_VEL] * self.n_crowd,
+                    np.repeat([self.WIDTH, self.HEIGHT], 2),  # four directions
+                ])
         if hasattr(self, 'INTER_CROWD'):
             self.n_crowd += 1
 
