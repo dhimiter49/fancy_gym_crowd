@@ -52,13 +52,15 @@ class MPCController(BaseController):
     ):
         des_pos = des_pos[:self.N]
         des_vel = des_vel[:self.N]
+        crowd_poss = np.array(crowd[0]) - curr_pos
+        crowd_vels = np.array(crowd[1])
         reference_pos = np.repeat(curr_pos, self.N) -\
             np.hstack([des_pos[:self.N, 0], des_pos[:self.N, 1]])
         reference_vel = np.repeat(curr_vel, self.N) -\
             np.hstack([des_vel[:self.N, 0], des_vel[:self.N, 1]])
         control_plan, breaking_flag = self.mpc.get_action(
             (-reference_pos, reference_vel),
-            (goal, crowd[0], curr_vel, crowd[1], wall_dist, None)
+            (goal, crowd_poss, curr_vel, crowd_vels, wall_dist, None)
         )
         self.old_breaking_flag = breaking_flag
         return control_plan
