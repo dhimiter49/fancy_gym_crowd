@@ -3,6 +3,7 @@ import inspect
 
 import gymnasium as gym
 import numpy as np
+import pickle
 from gymnasium import spaces
 from gymnasium.core import ObsType
 
@@ -30,6 +31,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         dt: float = 0.1,
         continuous_collision: bool = True,
         var_radius: bool = False,
+        test_case: str = "",
     ):
         self.non_polar_action = False
         calling_frames = inspect.getouterframes(inspect.currentframe())[1:]
@@ -44,6 +46,16 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.var_radius = var_radius
         self._reset_steps = 0
         self.max_n_crowd = self.n_crowd
+        self.run_test_case = test_case != ""
+        if self.run_test_case:
+            self._test_case_idx = -1  # -1 is not executed it is just test run
+            current_dir = __file__.split('/')[:-1]
+            with open("/".join(current_dir) + "/" + test_case, "rb") as f:
+                self._test_case_array = np.array(pickle.load(f, encoding="latin1"))
+            self.n_crowd = self.max_n_crowd = self._test_case_array.shape[1] - 1
+            if "Inter" in type(self).__name__:
+                self.n_crowd += 1
+                self.max_n_crowd += 1
         self.current_seed = -1
 
         self.WIDTH = width
@@ -92,14 +104,22 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.rot_mat = lambda deg: np.array([
             [np.cos(deg), -np.sin(deg)], [np.sin(deg), np.cos(deg)]
         ])
-        (
-            self._agent_pos,
-            self._agent_vel,
-            self._goal_pos,
-            self._crowd_poss,
-            self._crowd_vels
-        ) = self._start_env_vars()
-
+        if self.run_test_case:
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._read_test_case()
+        else:
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._start_env_vars()
 
         self.discrete_action = discrete_action
         self.velocity_control = velocity_control
@@ -165,7 +185,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.exec_traj = []
         self.exec_actions = []
         self.idx_colliding_agents = []
-        self.desired_position = None  # desired position when using ProDMP
+        self.desired_position = None
         self.current_trajectory = np.zeros((100, 2))
         self.current_trajectory_vel = np.zeros((100, 2))
         self.separating_planes = np.zeros((self.max_n_crowd, 4))
@@ -322,13 +342,23 @@ class BaseCrowdNavigationEnv(gym.Env):
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[ObsType, Dict[str, Any]]:
         super(BaseCrowdNavigationEnv, self).reset(seed=seed, options=options)
-        (
-            self._agent_pos,
-            self._agent_vel,
-            self._goal_pos,
-            self._crowd_poss,
-            self._crowd_vels
-        ) = self._start_env_vars()
+        if self.run_test_case:
+            self._test_case_idx += 1
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._read_test_case()
+        else:
+            (
+                self._agent_pos,
+                self._agent_vel,
+                self._goal_pos,
+                self._crowd_poss,
+                self._crowd_vels
+            ) = self._start_env_vars()
         self._reset_steps += 1
         self._steps = 0
         self.exec_traj = [self._agent_pos]
@@ -338,6 +368,18 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._current_reward = 0
         self.froze_last = False
         return self._get_obs().copy(), {}
+
+
+    def _read_test_case(self):
+        if "Inter" not in type(self).__name__:
+            agent_pos = self._test_case_array[self._test_case_idx, 0, :2]
+            goal_pos = self._test_case_array[self._test_case_idx, 0, 2:4]
+            crowd_poss = self._test_case_array[self._test_case_idx, 1:, :2]
+        else:
+            agent_pos = np.zeros(2)
+            goal_pos = np.zeros(2)
+            crowd_poss = self._test_case_array[self._test_case_idx, 0:, :2]
+        return agent_pos, 0 * agent_pos, goal_pos, crowd_poss, 0 * crowd_poss
 
 
     def _start_env_vars(self):

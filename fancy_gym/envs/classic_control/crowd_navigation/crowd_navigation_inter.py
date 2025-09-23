@@ -663,7 +663,7 @@ class CrowdNavigationInterEnv(CrowdNavigationEnv):
 
         self._is_collided = self._check_collisions()
         self._current_reward, info = self._get_reward(action)
-        if np.any(self._goal_reached):
+        if np.any(self._goal_reached) and not self.one_goal:
             idx_goal_reached = np.where(self._goal_reached == 1)[0]
             self._crowd_goal_poss[idx_goal_reached] =\
                 self._gen_crowd_goal(self._crowd_poss[idx_goal_reached], idx_goal_reached)

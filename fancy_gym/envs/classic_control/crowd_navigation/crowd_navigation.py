@@ -314,7 +314,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         Check how far the current position after the action is relative to the desired
         position proposed by the ProDMP.
         """
-        Ri = 0.
+        Ri = 0
         if self.desired_position is not None:
             Ri = self.Ci * np.linalg.norm(self._agent_pos - self.desired_position)
         return Ri, dict(intrinsic=Ri)
@@ -539,6 +539,30 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 ]).astype(np.float32).flatten()
 
 
+    def _read_test_case(self):
+        agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._read_test_case()
+        if "Inter" not in type(self).__name__:
+            crowd_goal_poss = self._test_case_array[self._test_case_idx, 1:, 2:4]
+        else:
+            crowd_goal_poss = self._test_case_array[self._test_case_idx, 0:, 2:4]
+        next_crowd_vels = np.zeros(crowd_poss.shape)
+
+        if self.const_vel:
+            next_crowd_vels = (crowd_goal_poss - crowd_poss)
+            next_crowd_vels = np.einsum(
+                "ij,i->ij",
+                next_crowd_vels,
+                np.random.uniform(0.5, self.CROWD_MAX_VEL) /
+                np.linalg.norm(next_crowd_vels, axis=-1)
+            )
+        else:
+            (
+                self._crowd_goal_poss, self._planned_crowd_vels, next_crowd_vels
+            ) = self._gen_crowd_goal_and_plan(crowd_poss)
+
+        return agent_pos, agent_vel, goal_pos, crowd_poss, next_crowd_vels
+
+
     def _start_env_vars(self):
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super()._start_env_vars()
         next_crowd_vels = np.zeros(crowd_poss.shape)
@@ -588,11 +612,17 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         """
         if len(crowd_poss.shape) == 1:
             crowd_poss = np.array([crowd_poss])
-        crowd_goal_poss = np.random.uniform(
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER],
-            (len(crowd_poss), 2)
-        )
+        if self.run_test_case:
+            if "Inter" not in type(self).__name__:
+                crowd_goal_poss = self._test_case_array[self._test_case_idx, 1:, 2:4]
+            else:
+                crowd_goal_poss = self._test_case_array[self._test_case_idx, 0:, 2:4]
+        else:
+            crowd_goal_poss = np.random.uniform(
+                [-self.W_BORDER, -self.H_BORDER],
+                [self.W_BORDER, self.H_BORDER],
+                (len(crowd_poss), 2)
+            )
 
         crowd_vels = []
         next_crowd_vels = np.zeros(crowd_poss.shape)
