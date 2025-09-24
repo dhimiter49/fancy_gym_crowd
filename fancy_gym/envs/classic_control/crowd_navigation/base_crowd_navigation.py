@@ -100,7 +100,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.Cg = -self.COLLISION_REWARD / (self.AGENT_MAX_VEL * self._dt) ** 2 /\
             self.MAX_EPISODE_STEPS
         self.Tc = -self.COLLISION_REWARD
-        self.Ci = -20. if hasattr(self, "const_vel") and self.const_vel else -5.
+        self.Ci = -2. if hasattr(self, "const_vel") and self.const_vel else -5.
         self.Cc *= 2
 
         self.allow_collision = allow_collision
