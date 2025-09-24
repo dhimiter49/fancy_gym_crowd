@@ -207,6 +207,9 @@ class BaseCrowdNavigationEnv(gym.Env):
         self.all_ttg = []
         self.froze_last = False
         self.freezing_instances = 0
+        self.zero_vel_instances = 0
+        self.oscillating_instances = 0
+        self.far_from_goal_instances = 0
 
 
     def hard_set_vars(self, vars):
