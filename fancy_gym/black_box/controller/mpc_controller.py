@@ -29,6 +29,7 @@ class MPCController(BaseController):
         self.replan = replan_steps
         self.N = horizon
         self.velocity_control = "velocity" in mpc_type
+        self.breaking_steps = 0
         self.mpc = mpc_factory.get_mpc(
             mpc_type,
             horizon=horizon,
@@ -62,6 +63,7 @@ class MPCController(BaseController):
             (-reference_pos, reference_vel),
             (goal, crowd_poss, curr_vel, crowd_vels, wall_dist, None)
         )
+        self.breaking_steps += 1 if breaking_flag and not self.old_breaking_flag else 0
         self.old_breaking_flag = breaking_flag
         return control_plan
 
