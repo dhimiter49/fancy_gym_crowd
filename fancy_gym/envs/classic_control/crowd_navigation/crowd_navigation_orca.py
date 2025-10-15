@@ -20,6 +20,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         n_frames: number of frames to stack for lidar, irrelevant if lidar_vel
         avoid_agent_parameter: 1 to avoid completely, lower to increase safety distance
             higher values to avoid the agent less
+        intersect_crowd: crowd goal position will try to intersect with the agents traj
+            to the its goal
     """
     def __init__(
         self,
@@ -40,9 +42,11 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
-        avoid_agent_parameter: float = 1.,
-        one_goal: bool = False,
+        avoid_agent_parameter: float = 4.,
+        one_goal: bool = True,
+        intersect_crowd: bool = True,
     ):
+        self.intersect_crowd = intersect_crowd
         super().__init__(
             n_crowd,
             dt,
@@ -109,16 +113,15 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
 
     def _start_env_vars(self):
-        self.current_seed += 1
         agent_pos, agent_vel, goal_pos, crowd_poss, _ = super(
             CrowdNavigationEnv, self
         )._start_env_vars()
-        self._crowd_goal_poss = self._gen_crowd_goal(crowd_poss)
+        self._crowd_goal_poss = self._gen_crowd_goal(crowd_poss, agent_pos, goal_pos)
 
         return agent_pos, agent_vel, goal_pos, crowd_poss, crowd_poss * 0
 
 
-    def _gen_crowd_goal(self, crowd_poss):
+    def _gen_crowd_goal(self, crowd_poss, agent_pos, goal_pos):
         """
         Generated random goals for each member of the crowd.
 
@@ -130,11 +133,27 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         """
         if len(crowd_poss.shape) == 1:
             crowd_poss = np.array([crowd_poss])
-        crowd_goal_poss = np.random.uniform(
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER],
-            (len(crowd_poss), 2)
-        )
+        if self.intersect_crowd:
+            agent_traj = goal_pos - agent_pos
+            intersect_coeff = np.random.uniform(size=len(crowd_poss))
+            intersect_point_traj = agent_pos + np.einsum(
+                "i,j->ij", intersect_coeff, agent_traj
+            )
+            crowd_goal_traj = intersect_point_traj - crowd_poss
+            crowd_goal_poss = crowd_poss + np.einsum(
+                "i,ij->ij", np.random.uniform(1.1, 2., size=len(crowd_poss)), crowd_goal_traj
+            )
+            crowd_goal_poss = np.clip(
+                crowd_goal_poss,
+                [-self.W_BORDER, -self.H_BORDER],
+                [self.W_BORDER, self.H_BORDER],
+            )
+        else:
+            crowd_goal_poss = np.random.uniform(
+                [-self.W_BORDER, -self.H_BORDER],
+                [self.W_BORDER, self.H_BORDER],
+                (len(crowd_poss), 2)
+            )
 
         return crowd_goal_poss
 
