@@ -681,6 +681,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def render(self):
+        plan_hor = 5
+        safety_hor = 10
         if self.fig is None:
             # Create base figure once on the beginning. Afterwards only update
             plt.ion()
@@ -807,6 +809,28 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self.pred_current_trajectory[:, 1],
                 "m",
             )
+            # self.pred_trajectory_line = []
+            # for i in range(plan_hor + 1):
+            #     if i == plan_hor:
+            #         self.pred_trajectory_line.append(ax.plot(
+            #             self.pred_current_trajectory[
+            #                 [j * safety_hor for j in range(plan_hor)], 0
+            #             ] ,
+            #             self.pred_current_trajectory[
+            #                 [j * safety_hor for j in range(plan_hor)], 1
+            #             ],
+            #             "m",
+            #         )[0])
+            #     else:
+            #         self.pred_trajectory_line.append(ax.plot(
+            #             self.pred_current_trajectory[
+            #                 i * safety_hor:(i + 1) * safety_hor, 0
+            #             ],
+            #             self.pred_current_trajectory[
+            #                 i * safety_hor:(i + 1) * safety_hor, 1
+            #             ],
+            #             "m",
+            #         )[0])
             self.trajectory_line_vel, = ax.plot(
                 self.current_trajectory_vel[:, 0],
                 self.current_trajectory_vel[:, 1],
@@ -884,6 +908,21 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.pred_current_trajectory[:, 0],
             self.pred_current_trajectory[:, 1]
         )
+        # for i in range(plan_hor + 1):
+        #     if i == plan_hor:
+        #         self.pred_trajectory_line[i].set_data(
+        #             self.pred_current_trajectory[
+        #                 [j * safety_hor for j in range(plan_hor)], 0
+        #             ] ,
+        #             self.pred_current_trajectory[
+        #                 [j * safety_hor for j in range(plan_hor)], 1
+        #             ],
+        #         )
+        #     else:
+        #         self.pred_trajectory_line[i].set_data(
+        #             self.pred_current_trajectory[i * safety_hor:(i + 1) * safety_hor, 0],
+        #             self.pred_current_trajectory[i * safety_hor:(i + 1) * safety_hor, 1],
+        #         )
         if len(self.exec_traj) > 0:
             self.trajectory_line_exec.set_data(
                 np.array(self.exec_traj)[:, 0],
