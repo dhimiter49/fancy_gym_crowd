@@ -587,7 +587,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         if self.const_vel:
             if self.one_way:
                 idxs = np.random.choice([-1, 1], self.n_crowd)
-                dirs = agnet_pos - crowd_poss
+                dirs = agent_pos - crowd_poss
                 pol_vels = self.c2p(dirs)
                 angles = pol_vels[:, 1]
                 pol_vels[:, 0] = np.random.uniform(0.5, self.CROWD_MAX_VEL, self.n_crowd)
