@@ -187,14 +187,14 @@ class BaseCrowdNavigationEnv(gym.Env):
             np.linalg.norm(self._agent_vel) < self.MAX_ACC * self._dt
         )
         self.traj_idx = 0
-        self.current_trajectory = np.zeros((200, 2))
+        self.current_trajectory = np.zeros((2 * self.MAX_EPISODE_STEPS, 2))
         self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
         self.exec_actions = []
         self.idx_colliding_agents = []
         self.desired_position = None  # desired position when using ProDMP
-        self.current_trajectory_vel = np.zeros((100, 2))
+        self.current_trajectory_vel = np.zeros((self.MAX_EPISODE_STEPS, 2))
         self._traj_index = 0
         self.separating_planes = np.zeros((self.max_n_crowd, 4))
 
@@ -285,9 +285,14 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def p2c(self, pol):
-        x = pol[0] * np.cos(pol[1])
-        y = pol[0] * np.sin(pol[1])
-        return np.array([x, y])
+        if len(pol.shape) > 1:
+            x = pol[:, 0] * np.cos(pol[:, 1])
+            y = pol[:, 0] * np.sin(pol[:, 1])
+            return np.array([x, y]).T
+        else:
+            x = pol[0] * np.cos(pol[1])
+            y = pol[0] * np.sin(pol[1])
+            return np.array([x, y])
 
 
     def set_separating_planes(self):
@@ -514,7 +519,9 @@ class BaseCrowdNavigationEnv(gym.Env):
                 )
 
         crowd_poss = np.zeros((self.n_crowd, 2))
-        try_between = "Inter" not in type(self).__name__  # no need in case of inter crowd
+        try_between = (
+            "Inter" not in type(self).__name__ or not self.one_way
+        )  # no need in case of inter crowd
         for i in range(self.n_crowd):
             while True:
                 if try_between:
@@ -529,12 +536,20 @@ class BaseCrowdNavigationEnv(gym.Env):
                         self.rot_mat(rot_deg) @ rand
                     try_between = False
                 else:
-                    sampled_pos = np.random.uniform(
-                        [-self.W_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2,
-                         -self.H_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2],
-                        [self.W_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2,
-                         self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
-                    )
+                    if self.one_way:
+                        sampled_pos = np.random.uniform(
+                            [-self.W_BORDER + self.PHYSICAL_SPACE[i + 1] * 2.2,
+                             -self.H_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2],
+                            [self.W_BORDER * 2 - self.PHYSICAL_SPACE[i + 1] * 1.2,
+                             self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
+                        )
+                    else:
+                        sampled_pos = np.random.uniform(
+                            [-self.W_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2,
+                             -self.H_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2],
+                            [self.W_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2,
+                             self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
+                        )
                 no_crowd_collision = self.allow_collision or i == 0
                 if not self.allow_collision and i > 0:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
