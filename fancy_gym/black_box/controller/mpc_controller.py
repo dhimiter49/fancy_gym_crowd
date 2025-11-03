@@ -30,6 +30,7 @@ class MPCController(BaseController):
         self.N = horizon
         self.velocity_control = "velocity" in mpc_type
         self.braking_steps = 0
+        self.old_braking_flag = False
         self.mpc = mpc_factory.get_mpc(
             mpc_type,
             horizon=horizon,
