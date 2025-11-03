@@ -337,10 +337,10 @@ register(
 register(
     id='fancy/CrowdNavigationConstOneWay-v0',
     entry_point=CrowdNavigationEnv,
-    max_episode_steps=100,
+    max_episode_steps=250,
     kwargs={
         "n_crowd": 20,
-        "width": 30,
+        "width": 15,
         "height": 10,
         "interceptor_percentage": 2,
         "const_vel": True,
@@ -351,10 +351,10 @@ register(
 register(
     id='fancy/CrowdNavigationConstOneWayVel-v0',
     entry_point=CrowdNavigationEnv,
-    max_episode_steps=100,
+    max_episode_steps=250,
     kwargs={
         "n_crowd": 20,
-        "width": 30,
+        "width": 15,
         "height": 10,
         "interceptor_percentage": 2,
         "const_vel": True,
@@ -366,10 +366,10 @@ register(
 register(
     id='fancy/CrowdNavigationConstOneWayLiDARVel-v0',
     entry_point=CrowdNavigationEnv,
-    max_episode_steps=100,
+    max_episode_steps=250,
     kwargs={
         "n_crowd": 20,
-        "width": 30,
+        "width": 15,
         "height": 10,
         "interceptor_percentage": 2,
         "const_vel": True,

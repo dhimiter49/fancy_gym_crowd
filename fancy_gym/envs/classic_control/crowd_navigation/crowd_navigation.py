@@ -49,7 +49,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         # need to specify num of rays if there is a maximum distance to the lidar
         assert not lidar_max > 0.0 or lidar_rays > 0
-        self.MAX_EPISODE_STEPS = 100
+        self.MAX_EPISODE_STEPS = 100 if not one_way else 250
         self.const_vel = const_vel
         self.one_way = one_way
         self.polar = polar
@@ -582,22 +582,30 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         next_crowd_vels = np.zeros(crowd_poss.shape)
 
         if self.const_vel:
-            for i, c in enumerate(crowd_poss):
-                if c[0] > 0 or self.one_way:
-                    idx = np.random.choice([0, 1])
-                    if idx == 0:
-                        pol_vel = np.random.uniform(
-                            [0.5, np.pi * 5 / 6], [self.CROWD_MAX_VEL, np.pi]
-                        )
-                    else:
-                        pol_vel = np.random.uniform(
-                            [0.5, -np.pi], [self.CROWD_MAX_VEL, -np.pi * 5 / 6]
-                        )
-                else:
-                    pol_vel = np.random.uniform(
-                        [0.5, -np.pi * 1 / 6], [self.CROWD_MAX_VEL, np.pi * 1 / 6]
-                    )
-                next_crowd_vels[i] = self.p2c(pol_vel)
+            if self.one_way:
+                idxs = np.random.choice([-1, 1], self.n_crowd)
+                dirs = agent_pos - crowd_poss
+                pol_vels = self.c2p(dirs)
+                angles = pol_vels[:, 1]
+                pol_vels[:, 0] = np.random.uniform(0.5, self.CROWD_MAX_VEL, self.n_crowd)
+                pol_vels[:, 1] += np.random.uniform(0, np.pi * 1 / 6, self.n_crowd) * idxs
+            else:
+                to_right_idxs = crowd_poss[:, 0] >= 0
+                to_left_idxs = crowd_poss[:, 0] < 0
+                pol_vels = np.zeros([self.n_crowd, 2])
+                pol_vels[to_right_idxs] = np.random.uniform(
+                    [0.5, np.pi * 5 / 6], [self.CROWD_MAX_VEL, np.pi * 7 / 6],
+                    (int(np.sum(to_right_idxs)), 2)
+                )
+                pol_vels[to_left_idxs] = np.random.uniform(
+                    [0.5, -np.pi * 1 / 6], [self.CROWD_MAX_VEL, np.pi * 1 / 6],
+                    (int(np.sum(to_left_idxs)), 2)
+                )
+            over_pi_idxs = pol_vels[:, 1] > np.pi
+            under_minus_pi_idxs = pol_vels[:, 1] < -np.pi
+            pol_vels[over_pi_idxs, 1] += -2 * np.pi
+            pol_vels[over_pi_idxs, 1] += 2 * np.pi
+            next_crowd_vels = self.p2c(pol_vels)
         else:
             (
                 self._crowd_goal_poss, self._planned_crowd_vels, next_crowd_vels
@@ -754,14 +762,15 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self.SOCIAL_SPACE[1:], self.PERSONAL_SPACE[1:], self.PHYSICAL_SPACE[1:]
             )):
                 pos = self._crowd_poss[i] if i < self.n_crowd else np.array([-100, -100])
-                self.ScS_crowd.append(
-                    plt.Circle(pos, soc, color="r", fill=False, linestyle="--")
-                )
-                ax.add_patch(self.ScS_crowd[-1])
-                self.PrS_crowd.append(
-                    plt.Circle(pos, per, color="r", fill=False)
-                )
-                ax.add_patch(self.PrS_crowd[-1])
+                if not self.one_way:
+                    self.ScS_crowd.append(
+                        plt.Circle(pos, soc, color="r", fill=False, linestyle="--")
+                    )
+                    ax.add_patch(self.ScS_crowd[-1])
+                    self.PrS_crowd.append(
+                        plt.Circle(pos, per, color="r", fill=False)
+                    )
+                    ax.add_patch(self.PrS_crowd[-1])
                 self.PhS_crowd.append(
                     plt.Circle(pos, phy, color="r", alpha=0.5)
                 )
@@ -823,8 +832,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self.space_agent.radius = self.PHYSICAL_SPACE[0]
             for i in range(self.n_crowd):
                 if self.var_radius:
-                    self.ScS_crowd[i].radius = self.SOCIAL_SPACE[i + 1]
-                    self.PrS_crowd[i].radius = self.PERSONAL_SPACE[i + 1]
+                    if not self.one_way:
+                        self.ScS_crowd[i].radius = self.SOCIAL_SPACE[i + 1]
+                        self.PrS_crowd[i].radius = self.PERSONAL_SPACE[i + 1]
                     self.PhS_crowd[i].radius = self.PHYSICAL_SPACE[i + 1]
 
         self.vel_agent.set_data(
@@ -833,8 +843,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         )
         self.space_agent.center = self._agent_pos
         for i, member in enumerate(self._crowd_poss):
-            self.ScS_crowd[i].center = member
-            self.PrS_crowd[i].center = member
+            if not self.one_way:
+                self.ScS_crowd[i].center = member
+                self.PrS_crowd[i].center = member
             self.PhS_crowd[i].center = member
             if not self.const_vel:
                 self.crowd_goal_points[i].set_data(
