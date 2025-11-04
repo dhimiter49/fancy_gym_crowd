@@ -520,7 +520,7 @@ class BaseCrowdNavigationEnv(gym.Env):
 
         crowd_poss = np.zeros((self.n_crowd, 2))
         try_between = (
-            "Inter" not in type(self).__name__ or not self.one_way
+            "Inter" not in type(self).__name__ and not self.one_way
         )  # no need in case of inter crowd
         for i in range(self.n_crowd):
             while True:
@@ -550,8 +550,8 @@ class BaseCrowdNavigationEnv(gym.Env):
                             [self.W_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2,
                              self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
                         )
-                no_crowd_collision = self.allow_collision or i == 0
-                if not self.allow_collision and i > 0:
+                no_crowd_collision = self.allow_collision or i == 0 or self.one_way
+                if not self.allow_collision and i > 0 and not self.one_way:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
                         crowd_poss[:i] - sampled_pos, axis=-1
                     ) < self.PERSONAL_SPACE[:i] + self.PERSONAL_SPACE[i]) == 0
