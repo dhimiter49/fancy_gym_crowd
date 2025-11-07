@@ -54,6 +54,7 @@ class MPCController(BaseController):
     ):
         des_pos = des_pos[:self.N]
         des_vel = des_vel[:self.N]
+        self.mpc.current_pos = curr_pos
         crowd_poss = np.array(crowd[0]) - curr_pos
         crowd_vels = np.array(crowd[1])
         reference_pos = np.repeat(curr_pos, self.N) -\
