@@ -44,7 +44,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         intrinsic_rew: bool = False,
         avoid_agent_parameter: float = 4.,
         one_goal: bool = True,
-        intersect_crowd: bool = True,
+        intersect_crowd: bool = False,
     ):
         self.intersect_crowd = intersect_crowd
         super().__init__(

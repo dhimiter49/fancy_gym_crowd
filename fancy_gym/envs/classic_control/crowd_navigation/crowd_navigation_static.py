@@ -33,6 +33,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         self.MAX_EPISODE_STEPS = 80
         self.polar = polar
         self.replan = REPLAN_STATIC
+        self.one_way = False
         super().__init__(
             n_crowd,
             width,

@@ -112,7 +112,7 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
         },
         'trajectory_generator_kwargs': {
             'weights_scale': 1,
-            'goal_scale': 2,
+            'goal_scale': 32,
         },
         'basis_generator_kwargs': {
             'num_basis': 4,
