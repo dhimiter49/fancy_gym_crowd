@@ -589,7 +589,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 idxs = np.random.choice([-1, 1], self.n_crowd)
                 dirs = agent_pos - crowd_poss
                 pol_vels = self.c2p(dirs)
-                angles = pol_vels[:, 1]
                 pol_vels[:, 0] = np.random.uniform(0.5, self.CROWD_MAX_VEL, self.n_crowd)
                 pol_vels[:, 1] += np.random.uniform(0, np.pi * 1 / 6, self.n_crowd) * idxs
             else:
@@ -605,7 +604,6 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     (int(np.sum(to_left_idxs)), 2)
                 )
             over_pi_idxs = pol_vels[:, 1] > np.pi
-            under_minus_pi_idxs = pol_vels[:, 1] < -np.pi
             pol_vels[over_pi_idxs, 1] += -2 * np.pi
             pol_vels[over_pi_idxs, 1] += 2 * np.pi
             next_crowd_vels = self.p2c(pol_vels)

@@ -301,8 +301,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             vec = pos / np.linalg.norm(pos)
             norm = np.array([-vec[1], vec[0]])
             self.separating_planes[i] = np.concatenate((
-                self._crowd_poss[i] + vec * 2 *
-                (self.PHYSICAL_SPACE[0] + self.PHYSICAL_SPACE[i]) - norm * 50,
+                self._crowd_poss[i] + vec * self.PHYSICAL_SPACE[i] - norm * 50,
                 norm * 100
             ))
 
