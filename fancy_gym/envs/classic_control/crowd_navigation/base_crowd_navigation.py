@@ -188,6 +188,7 @@ class BaseCrowdNavigationEnv(gym.Env):
         )
         self.traj_idx = 0
         self.current_trajectory = np.zeros((2 * self.MAX_EPISODE_STEPS, 2))
+        self.motions = []
         self.casc_trajectory = np.zeros((self._safety_traj * self._plan_traj, 2))
         self.pred_current_trajectory = np.zeros((100, 2))
         self.exec_traj = []
@@ -255,6 +256,9 @@ class BaseCrowdNavigationEnv(gym.Env):
         # positions += distances
         # positions = np.cumsum(positions, 0)
         # self.current_trajectory_vel = positions.copy()
+
+    def set_all_motions(self, positions):
+        self.motions = [self.current_pos + p for p in positions]
 
 
     def set_casc_trajectory(self, positions):

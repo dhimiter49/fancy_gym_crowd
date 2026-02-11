@@ -687,8 +687,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
 
     def render(self):
-        plan_hor = 5
-        safety_hor = 10
+        # plan_hor = 5
+        # safety_hor = 10
         if self.fig is None:
             # Create base figure once on the beginning. Afterwards only update
             plt.ion()
@@ -792,10 +792,19 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             )
 
             # Trajectory
+            self.motions_line = []
+            n_mot = len(self.motions)
+            for i, motion in enumerate(self.motions):
+                color = (
+                    (i / (n_mot - 1)),
+                    (1 - i / (n_mot - 1)),
+                    (1 - i / (n_mot - 1))
+                )
+                self.motions_line.append(
+                    ax.plot(motion[:, 0], motion[:, 1], color=color)[0]
+                )
             self.trajectory_line_exec, = ax.plot(
-                np.array(self.exec_traj)[:, 0],
-                np.array(self.exec_traj)[:, 1],
-                "k",
+                np.array(self.exec_traj)[:, 0], np.array(self.exec_traj)[:, 1], "k",
             )
             # self.casc_trajectory_line = []
             # for i in range(self._plan_traj):
@@ -806,15 +815,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             #             color=((1, 0.8, 0.05, 1 - 0.1 * i))
             #         )[0]
             #     )
-            self.trajectory_line, = ax.plot(
-                self.current_trajectory[:, 0],
-                self.current_trajectory[:, 1],
-                "y",
-            )
-            self.pred_trajectory_line, = ax.plot(
+            # self.trajectory_line, = ax.plot(
+            #     self.current_trajectory[:, 0],
+            #     self.current_trajectory[:, 1],
+            #     "y",
+            # )
+
+            self.pred_trajectory_line = ax.scatter(
                 self.pred_current_trajectory[:, 0],
                 self.pred_current_trajectory[:, 1],
-                "m",
+                s=0.1
             )
             # self.pred_trajectory_line = []
             # for i in range(plan_hor + 1):
@@ -838,11 +848,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             #             ],
             #             "m",
             #         )[0])
-            self.trajectory_line_vel, = ax.plot(
-                self.current_trajectory_vel[:, 0],
-                self.current_trajectory_vel[:, 1],
-                "b",
-            )
+            # self.trajectory_line_vel, = ax.plot(
+            #     self.current_trajectory_vel[:, 0],
+            #     self.current_trajectory_vel[:, 1],
+            #     "b",
+            # )
 
             # Walls
             ax.axvspan(self.W_BORDER, self.W_BORDER + 100, hatch='.')
@@ -864,6 +874,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             ))
 
             self.fig.show()
+            input()
 
         self.fig.suptitle(f"Iteration: {self._steps}")
         self.fig.gca().set_title(
@@ -882,6 +893,11 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         self.ScS_crowd[i].radius = self.SOCIAL_SPACE[i + 1]
                         self.PrS_crowd[i].radius = self.PERSONAL_SPACE[i + 1]
                     self.PhS_crowd[i].radius = self.PHYSICAL_SPACE[i + 1]
+            for motion, motion_line in zip(self.motions, self.motions_line):
+                motion_line.set_data(motion[:, 0], motion[:, 1])
+            if len(self.motions) < len(self.motions_line):
+                for i in range(len(self.motions), len(self.motions_line)):
+                    self.motions_line[i].set_data([100], [100])
 
         self.vel_agent.set_data(
             x=self._agent_pos[0], y=self._agent_pos[1],
@@ -909,14 +925,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     x=self._agent_pos[0], y=self._agent_pos[1],
                     dx=distance * np.cos(angle), dy=distance * np.sin(angle)
                 )
-        self.trajectory_line.set_data(
-            self.current_trajectory[:self.traj_idx * self._traj_len, 0],
-            self.current_trajectory[:self.traj_idx * self._traj_len, 1]
+        # self.trajectory_line.set_data(
+        #     self.current_trajectory[:self.traj_idx * self._traj_len, 0],
+        #     self.current_trajectory[:self.traj_idx * self._traj_len, 1]
+        # )
+        self.pred_trajectory_line.set_offsets(
+            np.c_[self.pred_current_trajectory[:, 0], self.pred_current_trajectory[:, 1]]
         )
-        self.pred_trajectory_line.set_data(
-            self.pred_current_trajectory[:, 0],
-            self.pred_current_trajectory[:, 1]
-        )
+        # self.pred_trajectory_line.set_data(
+        #     self.pred_current_trajectory[:, 0], self.pred_current_trajectory[:, 1]
+        # )
         # for i in range(plan_hor + 1):
         #     if i == plan_hor:
         #         self.pred_trajectory_line[i].set_data(
@@ -937,9 +955,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 np.array(self.exec_traj)[:, 0],
                 np.array(self.exec_traj)[:, 1]
             )
-        self.trajectory_line_vel.set_data(
-            self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
-        )
+        # self.trajectory_line_vel.set_data(
+        #     self.current_trajectory_vel[:, 0], self.current_trajectory_vel[:, 1]
+        # )
         for i in range(self.n_crowd):
             self.sep_planes[i].set_data(
                 x=self.separating_planes[i][0], y=self.separating_planes[i][1],
