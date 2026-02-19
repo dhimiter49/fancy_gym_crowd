@@ -793,7 +793,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
             # Trajectory
             self.motions_line = []
-            n_mot = len(self.motions)
+            n_mot = len(self.motions) if len(self.motions) > 1 else 2
             for i, motion in enumerate(self.motions):
                 color = (
                     (i / (n_mot - 1)),
