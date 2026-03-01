@@ -44,6 +44,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         n_frames: int = 4,
         intrinsic_rew: bool = False,
         one_goal: bool = False,
+        obs_noise: bool = False
     ):
         assert time_frame == 0 or not lidar_vel
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
@@ -71,6 +72,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
         self.lidar_max = lidar_max if lidar_max > 0.0 else np.inf
+        self.obs_noise = obs_noise
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
             self.lidar_vel = lidar_vel
@@ -438,6 +440,22 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self._last_frames[:, i] = r_interp(
                         np.linspace(0, self.frame_steps - 1, self._n_frames)
                     )
+            if self.obs_noise:
+                rel_goal_pos += np.random.normal(0, 0.02, size=len(rel_goal_pos))
+                agent_vel += np.random.normal(0, 0.02, size=len(agent_vel))
+                self._last_frames[0] += np.random.normal(
+                    0, 0.04, size=len(self._last_frames[0])
+                )  # noise
+                self._last_frames[1] += np.random.normal(
+                    0, 0.04, size=len(self._last_frames[1])
+                )  # noise
+                # dropout
+                self._last_frames[0] *= np.random.random(
+                    size=len(self._last_frames[0])
+                ) > 0.05
+                self._last_frames[1] *= np.random.random(
+                    size=len(self._last_frames[1])
+                ) > 0.05
 
             return np.concatenate([
                 rel_goal_pos,
