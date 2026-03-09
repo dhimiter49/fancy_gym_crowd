@@ -812,11 +812,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             # Trajectory
             self.motions_line = []
             n_mot = len(self.motions) if len(self.motions) > 1 else 2
+            len_mot = len(self.motions) - 1
             for i, motion in enumerate(self.motions):
+                j = len_mot - i
                 color = (
-                    (i / (n_mot - 1)),
-                    (1 - i / (n_mot - 1)),
-                    (1 - i / (n_mot - 1))
+                    (j / (n_mot - 1)),
+                    (1 - j / (n_mot - 1)),
+                    (1 - j / (n_mot - 1))
                 )
                 self.motions_line.append(
                     ax.plot(motion[:, 0], motion[:, 1], color=color)[0]
