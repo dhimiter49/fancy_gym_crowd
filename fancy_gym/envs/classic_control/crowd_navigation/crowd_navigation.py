@@ -841,11 +841,18 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             #     "y",
             # )
 
-            self.pred_trajectory_line = ax.scatter(
-                self.pred_current_trajectory[:, 0],
-                self.pred_current_trajectory[:, 1],
-                s=0.1
-            )
+            if len(self.pred_current_trajectory.shape) > 2:
+                self.pred_trajectory_lines = []
+                for pred_traj in self.pred_current_trajectory:
+                    self.pred_trajectory_lines.append(
+                        ax.scatter(pred_traj[:, 0], pred_traj[:, 1], s=0.1)
+                    )
+            else:
+                self.pred_trajectory_line = ax.scatter(
+                    self.pred_current_trajectory[:, 0],
+                    self.pred_current_trajectory[:, 1],
+                    s=0.1
+                )
             # self.pred_trajectory_line = []
             # for i in range(plan_hor + 1):
             #     if i == plan_hor:
@@ -949,9 +956,16 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         #     self.current_trajectory[:self.traj_idx * self._traj_len, 0],
         #     self.current_trajectory[:self.traj_idx * self._traj_len, 1]
         # )
-        self.pred_trajectory_line.set_offsets(
-            np.c_[self.pred_current_trajectory[:, 0], self.pred_current_trajectory[:, 1]]
-        )
+
+        if len(self.pred_current_trajectory.shape) > 2:
+            for i, pred_traj in enumerate(self.pred_current_trajectory):
+                self.pred_trajectory_lines[i].set_offsets(np.c_[
+                    pred_traj[:, 0], pred_traj[:, 1]
+                ])
+        else:
+            self.pred_trajectory_line.set_offsets(np.c_[
+                self.pred_current_trajectory[:, 0], self.pred_current_trajectory[:, 1]
+            ])
         # self.pred_trajectory_line.set_data(
         #     self.pred_current_trajectory[:, 0], self.pred_current_trajectory[:, 1]
         # )

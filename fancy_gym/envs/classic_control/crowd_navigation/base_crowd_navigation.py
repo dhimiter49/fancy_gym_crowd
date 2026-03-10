@@ -237,15 +237,15 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def set_trajectory(self, positions, velocities=None):
-        self._traj_index = 0
+        # self._traj_index = 0
         positions = positions[:]
         # velocities = velocities[:self._traj_len]
 
-        positions -= positions[0]
-        positions += self._agent_pos + self._agent_vel * self._dt
-        self.current_trajectory[
-            self.traj_idx * self._traj_len:(self.traj_idx + 1) * self._traj_len
-        ] = positions[:self._traj_len].copy()
+        positions[:] -= positions[0, 0]
+        positions[:] += self._agent_pos + self._agent_vel * self._dt
+        # self.current_trajectory[
+        #     self.traj_idx * self._traj_len:(self.traj_idx + 1) * self._traj_len
+        # ] = positions[:self._traj_len].copy()
         self.pred_current_trajectory = positions.copy()
         self.traj_idx += 1
 
