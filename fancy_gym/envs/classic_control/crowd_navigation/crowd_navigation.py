@@ -823,6 +823,8 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 self.motions_line.append(
                     ax.plot(motion[:, 0], motion[:, 1], color=color)[0]
                 )
+            for i in range(len(self.motions), 50):
+                self.motions_line.append(ax.plot([100], [100], color='b')[0])
             self.trajectory_line_exec, = ax.plot(
                 np.array(self.exec_traj)[:, 0], np.array(self.exec_traj)[:, 1], "k",
             )
@@ -920,8 +922,18 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                         self.ScS_crowd[i].radius = self.SOCIAL_SPACE[i + 1]
                         self.PrS_crowd[i].radius = self.PERSONAL_SPACE[i + 1]
                     self.PhS_crowd[i].radius = self.PHYSICAL_SPACE[i + 1]
-            for motion, motion_line in zip(self.motions, self.motions_line):
+            n_mot = len(self.motions) if len(self.motions) > 1 else 2
+            len_mot = len(self.motions) - 1
+            for i, (motion, motion_line) in\
+                enumerate(zip(self.motions, self.motions_line)):
+                j = len_mot - i
+                color = (
+                    (j / (n_mot - 1)),
+                    (1 - j / (n_mot - 1)),
+                    (1 - j / (n_mot - 1))
+                )
                 motion_line.set_data(motion[:, 0], motion[:, 1])
+                motion_line.set_color(color)
             if len(self.motions) < len(self.motions_line):
                 for i in range(len(self.motions), len(self.motions_line)):
                     self.motions_line[i].set_data([100], [100])
