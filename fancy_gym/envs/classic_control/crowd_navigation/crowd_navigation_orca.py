@@ -45,6 +45,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         avoid_agent_parameter: float = 4.,
         one_goal: bool = True,
         intersect_crowd: bool = False,
+        obs_noise: bool = False
     ):
         self.intersect_crowd = intersect_crowd
         super().__init__(
@@ -66,6 +67,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             lidar_max=lidar_max,
             intrinsic_rew=intrinsic_rew,
             one_goal=one_goal,
+            obs_noise=obs_noise,
         )
         assert avoid_agent_parameter > 0
         self.Ci = -1.
