@@ -56,7 +56,9 @@ class BaseCrowdNavigationEnv(gym.Env):
             self._test_case_idx = -1  # -1 is not executed it is just test run
             current_dir = __file__.split('/')[:-1]
             with open("/".join(current_dir) + "/" + test_case, "rb") as f:
-                self._test_case_array = np.array(pickle.load(f, encoding="latin1"))
+                self._test_case_array = np.array(
+                    pickle.load(f, encoding="latin1"), dtype=np.float64
+                )
             self.n_crowd = self.max_n_crowd = self._test_case_array.shape[1] - 1
             if "Inter" in type(self).__name__:
                 self.n_crowd += 1
