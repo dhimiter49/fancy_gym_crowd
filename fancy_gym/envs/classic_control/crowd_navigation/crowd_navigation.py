@@ -340,7 +340,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         return self._is_collided or self._goal_reached
 
 
-    def _get_obs(self) -> ObsType:
+    def _get_obs(self) -> object:
         rel_goal_pos = self._goal_pos - self._agent_pos
         rel_goal_pos = self.c2p(rel_goal_pos) if self.polar else rel_goal_pos
         agent_vel = self.c2p(self._agent_vel) if self.polar else self._agent_vel
