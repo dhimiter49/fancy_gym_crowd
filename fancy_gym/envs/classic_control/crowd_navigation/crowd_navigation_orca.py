@@ -22,6 +22,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             higher values to avoid the agent less
         intersect_crowd: crowd goal position will try to intersect with the agents traj
             to the its goal
+        gca_spawn: if true it uses the sapwn function from gym-collision-avoidance,
+            otherwise it uses random positions
     """
     def __init__(
         self,
@@ -45,7 +47,8 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         avoid_agent_parameter: float = 4.,
         one_goal: bool = True,
         intersect_crowd: bool = False,
-        obs_noise: bool = False
+        obs_noise: bool = False,
+        gca_spawn: bool = False,
     ):
         self.intersect_crowd = intersect_crowd
         super().__init__(
@@ -71,6 +74,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         )
         assert avoid_agent_parameter > 0
         self.Ci = -1.
+        self.gca_spawn = gca_spawn
         self.neighbor_dist = np.inf
         self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
         self.time_horizon = 5.
@@ -180,64 +184,71 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
 
 
     def _start_env_vars(self):
-        self.current_seed += 1
-        test_case = np.zeros((self.n_crowd + 1, 4))
-        assert self.WIDTH == self.HEIGHT
-        length = self.WIDTH // 2.8
-        for i in range(self.n_crowd + 1):
-            counter = 0
-            while True:
-                # generate random starting/ending points
-                counter += 1
-                length = length * 1.01
-                start = length * 2 * np.random.rand(2,) - length
-                end = length * 2 * np.random.rand(2,) - length
+        if not self.gca_spawn:
+            agent_pos, agent_vel, goal_pos, crowd_poss, _ = super(
+                CrowdNavigationEnv, self
+            )._start_env_vars()
+            self._crowd_goal_poss = self._gen_crowd_goal(crowd_poss, agent_pos, goal_pos)
+        else:
+            self.current_seed += 1
+            test_case = np.zeros((self.n_crowd + 1, 4))
+            assert self.WIDTH == self.HEIGHT
+            length = self.WIDTH // 2.8
+            for i in range(self.n_crowd + 1):
+                counter = 0
+                while True:
+                    # generate random starting/ending points
+                    counter += 1
+                    length = length * 1.01
+                    start = length * 2 * np.random.rand(2,) - length
+                    end = length * 2 * np.random.rand(2,) - length
 
-                # if colliding with previous test cases
-                if_collide = False
-                for j in range(i):
-                    radius_start = self.PHYSICAL_SPACE[j] + 1.5 * self.PHYSICAL_SPACE[i]
-                    radius_end = self.PHYSICAL_SPACE[j] + 1.5 * self.PHYSICAL_SPACE[i]
-                    # start
-                    if np.linalg.norm(start - test_case[j, 0:2]) < radius_start:
-                        if_collide = True
-                        break
-                    # end
-                    if np.linalg.norm(end - test_case[j, 2:4]) < radius_end:
-                        if_collide = True
-                        break
-                if if_collide:
-                    continue
-
-                # if straight line is permited
-                if i >= 1:
-                    if_straightLineSoln = True
-                    for j in range(0, i):
-                        x1, x2 = test_case[j, 0:2], test_case[j, 2:4]
-                        y1, y2 = start, end
-                        s1, s2 = self.AGENT_MAX_VEL, self.AGENT_MAX_VEL
-                        radius = self.PHYSICAL_SPACE[j] + 1.5 * self.PHYSICAL_SPACE[i]
-                        if not self.if_permitStraightLineSoln(
-                            x1, x2, s1, y1, y2, s2, radius
-                        ):
-                            # print 'num_agents %d; i %d; j %d'%  (num_agents, i, j)
-                            if_straightLineSoln = False
+                    # if colliding with previous test cases
+                    if_collide = False
+                    for j in range(i):
+                        radius_start = self.PHYSICAL_SPACE[j] + 1.5 *\
+                            self.PHYSICAL_SPACE[i]
+                        radius_end = self.PHYSICAL_SPACE[j] + 1.5 * self.PHYSICAL_SPACE[i]
+                        # start
+                        if np.linalg.norm(start - test_case[j, 0:2]) < radius_start:
+                            if_collide = True
                             break
-                    if if_straightLineSoln:
+                        # end
+                        if np.linalg.norm(end - test_case[j, 2:4]) < radius_end:
+                            if_collide = True
+                            break
+                    if if_collide:
                         continue
 
+                    # if straight line is permited
+                    if i >= 1:
+                        if_straightLineSoln = True
+                        for j in range(0, i):
+                            x1, x2 = test_case[j, 0:2], test_case[j, 2:4]
+                            y1, y2 = start, end
+                            s1, s2 = self.AGENT_MAX_VEL, self.AGENT_MAX_VEL
+                            radius = self.PHYSICAL_SPACE[j] + 1.5 * self.PHYSICAL_SPACE[i]
+                            if not self.if_permitStraightLineSoln(
+                                x1, x2, s1, y1, y2, s2, radius
+                            ):
+                                # print 'num_agents %d; i %d; j %d'%  (num_agents, i, j)
+                                if_straightLineSoln = False
+                                break
+                        if if_straightLineSoln:
+                            continue
 
-                if np.linalg.norm(start - end) > length * 0.5:
-                    break
 
-            # record test case
-            test_case[i, 0:2] = start
-            test_case[i, 2:4] = end
-        agent_pos = test_case[0, :2]
-        agent_vel = np.zeros(2)
-        goal_pos = test_case[0, 2:4]
-        crowd_poss = test_case[1:, :2]
-        self._crowd_goal_poss = test_case[1:, 2:4]
+                    if np.linalg.norm(start - end) > length * 0.5:
+                        break
+
+                # record test case
+                test_case[i, 0:2] = start
+                test_case[i, 2:4] = end
+            agent_pos = test_case[0, :2]
+            agent_vel = np.zeros(2)
+            goal_pos = test_case[0, 2:4]
+            crowd_poss = test_case[1:, :2]
+            self._crowd_goal_poss = test_case[1:, 2:4]
 
         return agent_pos, agent_vel, goal_pos, crowd_poss, crowd_poss * 0
 
