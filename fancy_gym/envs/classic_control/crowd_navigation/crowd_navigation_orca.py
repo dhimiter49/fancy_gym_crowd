@@ -51,6 +51,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         gca_spawn: bool = False,
     ):
         self.intersect_crowd = intersect_crowd
+        self.gca_spawn = gca_spawn
         super().__init__(
             n_crowd,
             dt,
@@ -74,7 +75,6 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         )
         assert avoid_agent_parameter > 0
         self.Ci = -1.
-        self.gca_spawn = gca_spawn
         self.neighbor_dist = np.inf
         self.safety_space = np.max(self.PHYSICAL_SPACE[1:]) / 2
         self.time_horizon = 5.
