@@ -806,12 +806,12 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
             # Goal
             self.goal_point, = ax.plot(
-                self._goal_pos[0], self._goal_pos[1], 'gx', markersize=10
+                self._goal_pos[0], self._goal_pos[1], 'gx', markersize=40
             )
 
             # Trajectory
             self.motions_line = []
-            n_mot = len(self.motions) if len(self.motions) > 1 else 2
+            n_mot = max(2, len(self.motions))
             len_mot = len(self.motions) - 1
             for i, motion in enumerate(self.motions):
                 j = len_mot - i
@@ -845,9 +845,15 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
 
             if len(self.pred_current_trajectory.shape) > 2:
                 self.pred_trajectory_lines = []
-                for pred_traj in self.pred_current_trajectory:
+                n_pred = max(2, len(self.pred_current_trajectory))
+                len_pred = len(self.pred_current_trajectory) - 1
+                for i, pred_traj in enumerate(self.pred_current_trajectory):
+                    j = len_pred - i
+                    color = (
+                        (j / (n_pred - 1)), (1 - j / (n_pred - 1)), (1 - j / (n_pred - 1))
+                    )
                     self.pred_trajectory_lines.append(
-                        ax.scatter(pred_traj[:, 0], pred_traj[:, 1], s=0.1)
+                        ax.scatter(pred_traj[:, 0], pred_traj[:, 1], s=0.1, color=color)
                     )
             else:
                 self.pred_trajectory_line = ax.scatter(
