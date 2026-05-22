@@ -26,7 +26,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         intrinsic_rew: bool = True,
     ):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
-        self.MAX_EPISODE_STEPS = 80
+        self.MAX_EPISODE_STEPS = 160
         self.polar = polar
         self.replan = REPLAN_STATIC
         self.one_way = False

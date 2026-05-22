@@ -430,7 +430,7 @@ register(
     id='fancy/CrowdNavigationStatic-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -443,7 +443,7 @@ register(
     id='fancy/CrowdNavigationStaticPolar-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -456,7 +456,7 @@ register(
 register(
     id='fancy/CrowdNavigationStaticPolarVel-v0',
     entry_point=CrowdNavigationStaticEnv,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -471,7 +471,7 @@ register(
     id='fancy/CrowdNavigationStaticLiDAR-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -485,7 +485,7 @@ register(
     id='fancy/CrowdNavigationStaticLiDARVel-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic_Vel,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -499,7 +499,7 @@ register(
 register(
     id='fancy/CrowdNavigationStaticLiDARPolarVel-v0',
     entry_point=CrowdNavigationStaticEnv,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -515,7 +515,7 @@ register(
     id='fancy/CrowdNavigationStaticVel-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic_Vel,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -529,7 +529,7 @@ register(
     id='fancy/CrowdNavigationStaticSeqVel-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic_Vel,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
