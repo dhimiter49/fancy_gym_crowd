@@ -544,7 +544,7 @@ register(
     id='fancy/Navigation-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
@@ -555,7 +555,7 @@ register(
     id='fancy/NavigationPolar-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
@@ -566,7 +566,7 @@ register(
 register(
     id='fancy/NavigationPolarVel-v0',
     entry_point=NavigationEnv,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
@@ -579,7 +579,7 @@ register(
     id='fancy/NavigationVel-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation_Vel,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
