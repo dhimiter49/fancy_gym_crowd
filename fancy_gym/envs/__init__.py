@@ -364,6 +364,21 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationConstOneWayShortVel-v0',
+    entry_point=CrowdNavigationEnv,
+    max_episode_steps=150,
+    kwargs={
+        "n_crowd": 15,
+        "width": 12,
+        "height": 10,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "one_way": True,
+        "velocity_control": True,
+    }
+)
+
+register(
     id='fancy/CrowdNavigationConstOneWayLiDARVel-v0',
     entry_point=CrowdNavigationEnv,
     max_episode_steps=250,
