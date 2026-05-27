@@ -364,6 +364,21 @@ register(
 )
 
 register(
+    id='fancy/CrowdNavigationConstOneWayShortVel-v0',
+    entry_point=CrowdNavigationEnv,
+    max_episode_steps=150,
+    kwargs={
+        "n_crowd": 15,
+        "width": 12,
+        "height": 10,
+        "interceptor_percentage": 2,
+        "const_vel": True,
+        "one_way": True,
+        "velocity_control": True,
+    }
+)
+
+register(
     id='fancy/CrowdNavigationConstOneWayLiDARVel-v0',
     entry_point=CrowdNavigationEnv,
     max_episode_steps=250,
@@ -430,7 +445,7 @@ register(
     id='fancy/CrowdNavigationStatic-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -443,7 +458,7 @@ register(
     id='fancy/CrowdNavigationStaticPolar-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -456,7 +471,7 @@ register(
 register(
     id='fancy/CrowdNavigationStaticPolarVel-v0',
     entry_point=CrowdNavigationStaticEnv,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -471,7 +486,7 @@ register(
     id='fancy/CrowdNavigationStaticLiDAR-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -485,7 +500,7 @@ register(
     id='fancy/CrowdNavigationStaticLiDARVel-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic_Vel,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -499,7 +514,7 @@ register(
 register(
     id='fancy/CrowdNavigationStaticLiDARPolarVel-v0',
     entry_point=CrowdNavigationStaticEnv,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -515,7 +530,7 @@ register(
     id='fancy/CrowdNavigationStaticVel-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic_Vel,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -529,7 +544,7 @@ register(
     id='fancy/CrowdNavigationStaticSeqVel-v0',
     entry_point=CrowdNavigationStaticEnv,
     mp_wrapper=MPWrapper_CrowdStatic_Vel,
-    max_episode_steps=100,
+    max_episode_steps=160,
     kwargs={
         "n_crowd": 4,
         "width": 16,
@@ -544,7 +559,7 @@ register(
     id='fancy/Navigation-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
@@ -555,7 +570,7 @@ register(
     id='fancy/NavigationPolar-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
@@ -566,7 +581,7 @@ register(
 register(
     id='fancy/NavigationPolarVel-v0',
     entry_point=NavigationEnv,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
@@ -579,7 +594,7 @@ register(
     id='fancy/NavigationVel-v0',
     entry_point=NavigationEnv,
     mp_wrapper=MPWrapper_Navigation_Vel,
-    max_episode_steps=60,
+    max_episode_steps=100,
     kwargs={
         "width": 10,
         "height": 10,
