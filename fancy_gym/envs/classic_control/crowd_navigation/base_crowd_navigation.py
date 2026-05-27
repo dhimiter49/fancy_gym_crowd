@@ -554,22 +554,22 @@ class BaseCrowdNavigationEnv(gym.Env):
             if vel_norm > self.AGENT_MAX_VEL:
                 vel *= self.AGENT_MAX_VEL / vel_norm
 
-            self._agent_pos += (self._agent_vel + vel) * self._dt / 2
-            self._agent_vel = vel
         else:
             acc = action
             acc_norm = np.linalg.norm(acc)
             if acc_norm > self.MAX_ACC:
                 acc *= self.MAX_ACC / acc_norm
 
-            self._agent_pos += self._agent_vel * self._dt + acc * 0.5 * self._dt ** 2
-            self._agent_vel += acc * self._dt
-
-            agent_speed = np.linalg.norm(self._agent_vel)
+            vel = self._agent_vel + acc * self._dt
+            agent_speed = np.linalg.norm(vel)
             if agent_speed > self.AGENT_MAX_VEL:
-                self._agent_vel *= self.AGENT_MAX_VEL / agent_speed
+                vel *= self.AGENT_MAX_VEL / agent_speed
 
-        # check bounds of the environment and the bounds of the maximum velocity
+        self._agent_pos += (self._agent_vel + vel) * self._dt / 2
+        self._agent_vel = vel
+
+
+        # check bounds of the environment
         self._agent_pos = np.clip(
             self._agent_pos,
             [-self.W_BORDER, -self.H_BORDER],
