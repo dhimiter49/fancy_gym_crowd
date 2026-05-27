@@ -23,10 +23,11 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         polar: bool = False,
         sequence_obs: bool = False,
     ):
-        self.MAX_EPISODE_STEPS = 60
+        self.MAX_EPISODE_STEPS = 100
         self.seq_obs = sequence_obs
         self.polar = polar
         self.replan = REPLAN_NO_CROWD
+        self.one_way = False
         super().__init__(
             0,
             width,
