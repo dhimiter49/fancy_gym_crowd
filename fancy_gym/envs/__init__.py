@@ -368,7 +368,7 @@ register(
     entry_point=CrowdNavigationEnv,
     max_episode_steps=150,
     kwargs={
-        "n_crowd": 15,
+        "n_crowd": 12,
         "width": 12,
         "height": 10,
         "interceptor_percentage": 2,
