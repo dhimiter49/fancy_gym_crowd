@@ -539,7 +539,7 @@ class BaseCrowdNavigationEnv(gym.Env):
                 else:
                     if self.one_way:
                         sampled_pos = np.random.uniform(
-                            [-self.W_BORDER + self.PHYSICAL_SPACE[i + 1] * 2.2,
+                            [-self.W_BORDER + self.PHYSICAL_SPACE[i + 1] * 2.8,
                              -self.H_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2],
                             [self.W_BORDER * 2 - self.PHYSICAL_SPACE[i + 1] * 1.2,
                              self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
