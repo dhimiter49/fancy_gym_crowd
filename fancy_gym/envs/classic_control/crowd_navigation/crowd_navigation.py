@@ -50,7 +50,13 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         # need to specify num of rays if there is a maximum distance to the lidar
         assert not lidar_max > 0.0 or lidar_rays > 0
-        self.MAX_EPISODE_STEPS = 100 if not one_way else 250
+        if one_way:
+            if n_crowd == 20:
+                self.MAX_EPISODE_STEPS = 250
+            else:
+                self.MAX_EPISODE_STEPS = 150
+        else:
+            self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
         self.one_way = one_way
         self.polar = polar
