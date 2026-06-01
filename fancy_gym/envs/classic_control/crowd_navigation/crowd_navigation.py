@@ -54,7 +54,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             if n_crowd == 20:
                 self.MAX_EPISODE_STEPS = 250
             else:
-                self.MAX_EPISODE_STEPS = 150
+                self.MAX_EPISODE_STEPS = 100
         else:
             self.MAX_EPISODE_STEPS = 100
         self.const_vel = const_vel
@@ -611,7 +611,9 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                 dirs = agent_pos - crowd_poss
                 pol_vels = self.c2p(dirs)
                 pol_vels[:, 0] = np.random.uniform(0.5, self.CROWD_MAX_VEL, self.n_crowd)
-                pol_vels[:, 1] += np.random.uniform(0, np.pi * 1 / 6, self.n_crowd) * idxs
+                pol_vels[:, 1] += np.random.uniform(
+                    0, np.pi * 1 / 12, self.n_crowd
+                ) * idxs
             else:
                 to_right_idxs = crowd_poss[:, 0] >= 0
                 to_left_idxs = crowd_poss[:, 0] < 0
