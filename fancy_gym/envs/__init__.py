@@ -366,11 +366,11 @@ register(
 register(
     id='fancy/CrowdNavigationConstOneWayShortVel-v0',
     entry_point=CrowdNavigationEnv,
-    max_episode_steps=150,
+    max_episode_steps=100,
     kwargs={
-        "n_crowd": 12,
-        "width": 12,
-        "height": 10,
+        "n_crowd": 8,
+        "width": 10,
+        "height": 6,
         "interceptor_percentage": 2,
         "const_vel": True,
         "one_way": True,
