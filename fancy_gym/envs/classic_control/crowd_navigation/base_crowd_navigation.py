@@ -504,10 +504,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         if type(self).__name__ == "CrowdNavigationEnv" and self.const_vel and\
             self.one_way:
             goal_pos = np.random.uniform(
-                [self.W_BORDER / 2,
-                 -self.H_BORDER + self.PHYSICAL_SPACE[0]],
-                [self.W_BORDER - self.PHYSICAL_SPACE[0],
-                 self.H_BORDER - self.PHYSICAL_SPACE[0]]
+                [self.W_BORDER / 2, -self.H_BORDER * 0.5],
+                [self.W_BORDER - 3 * self.PHYSICAL_SPACE[0], self.H_BORDER * 0.5]
             )
         else:
             goal_pos = agent_pos
@@ -523,8 +521,10 @@ class BaseCrowdNavigationEnv(gym.Env):
         try_between = (
             "Inter" not in type(self).__name__ and not self.one_way
         )  # no need in case of inter crowd
+        tries = 0
         for i in range(self.n_crowd):
             while True:
+                tries += 1
                 if try_between:
                     direction = goal_pos - agent_pos
                     rot_deg = np.sign(direction[1]) *\
@@ -540,9 +540,9 @@ class BaseCrowdNavigationEnv(gym.Env):
                     if self.one_way:
                         sampled_pos = np.random.uniform(
                             [-self.W_BORDER + self.PHYSICAL_SPACE[i + 1] * 2.8,
-                             -self.H_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.2],
-                            [self.W_BORDER * 2 - self.PHYSICAL_SPACE[i + 1] * 1.2,
-                             self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
+                             -self.H_BORDER + self.PHYSICAL_SPACE[i + 1] * 1.5],
+                            [self.W_BORDER * 2,
+                             self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.5]
                         )
                     else:
                         sampled_pos = np.random.uniform(
@@ -551,14 +551,17 @@ class BaseCrowdNavigationEnv(gym.Env):
                             [self.W_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2,
                              self.H_BORDER - self.PHYSICAL_SPACE[i + 1] * 1.2]
                         )
-                no_crowd_collision = self.allow_collision or i == 0 or self.one_way
-                if not self.allow_collision and i > 0 and not self.one_way:
+                no_crowd_collision = self.allow_collision or i == 0 or tries > 30
+                if not self.allow_collision and i > 0 and not tries > 30:
                     no_crowd_collision = np.sum(np.linalg.norm(  # at least one collision
                         crowd_poss[:i] - sampled_pos, axis=-1
                     ) < self.PERSONAL_SPACE[:i] + self.PERSONAL_SPACE[i]) == 0
-                if (np.linalg.norm(sampled_pos - agent_pos) > self.MIN_SPAWN_DIST and
-                    np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE[i] and
-                   no_crowd_collision):
+                if (
+                    np.linalg.norm(sampled_pos - agent_pos) > self.MIN_SPAWN_DIST and
+                    (np.linalg.norm(sampled_pos - goal_pos) > self.SOCIAL_SPACE[i] or
+                     self.one_way) and
+                    no_crowd_collision
+                ):
                     crowd_poss[i] = sampled_pos
                     break
 
