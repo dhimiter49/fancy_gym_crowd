@@ -81,12 +81,7 @@ class BaseCrowdNavigationEnv(gym.Env):
             self.PHYSICAL_SPACE = np.array([0.4] * (self.max_n_crowd + 1))
         self.PERSONAL_SPACE = self.PHYSICAL_SPACE + 1.
         self.SOCIAL_SPACE = self.PHYSICAL_SPACE + 1.5
-        self.MAX_ACC = 10.0
-        if self.one_way:
-            if n_crowd == 20:
-                self.MAX_ACC = 1.0
-            else:
-                self.MAX_ACC = 2.0
+        self.MAX_ACC = 10.0 if not self.one_way else 1.0
         self.MAX_STOPPING_TIME = self.AGENT_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_TIME_CROWD = self.CROWD_MAX_VEL / self.MAX_ACC
         self.MAX_STOPPING_DIST = self.AGENT_MAX_VEL * self.MAX_STOPPING_TIME -\
