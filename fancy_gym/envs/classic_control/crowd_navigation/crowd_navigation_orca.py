@@ -190,6 +190,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             )._start_env_vars()
             self._crowd_goal_poss = self._gen_crowd_goal(crowd_poss, agent_pos, goal_pos)
         else:
+            np.random.seed(self.current_seed)
             self.current_seed += 1
             test_case = np.zeros((self.n_crowd + 1, 4))
             assert self.WIDTH == self.HEIGHT
