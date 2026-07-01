@@ -26,6 +26,7 @@ class MPCController(BaseController):
         relax_uncertainty: float = 1.,
         stability_coeff: float = 0.0,
         passive_safety: bool = True,
+        use_plan: bool = False,
     ):
         self.replan = replan_steps
         self.N = horizon
@@ -48,6 +49,7 @@ class MPCController(BaseController):
             uncertainty=uncertainty,
             relax_uncertainty=relax_uncertainty,
             passive_safety=passive_safety,
+            use_plan=use_plan,
         )
 
 
