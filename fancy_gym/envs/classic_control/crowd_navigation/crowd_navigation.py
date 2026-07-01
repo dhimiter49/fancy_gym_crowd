@@ -317,6 +317,32 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
                     self.PHYSICAL_SPACE[0])
             )
 
+        # Plan does not crash
+        self.horizon = 20
+        crowd_poss = self._crowd_poss[:, np.newaxis, :]
+        agent_traj = self.pred_current_trajectory[:self.horizon][np.newaxis, :, :]
+        crowd_future_move = self._crowd_vels[:, np.newaxis, :]
+
+        crowd_poss = np.repeat(crowd_poss, self.horizon, axis=1)
+        crowd_future_move = np.repeat(crowd_future_move, self.horizon, axis=1)
+        agent_traj = np.repeat(agent_traj, self.n_crowd, axis=0)
+        crowd_future_move = np.einsum(
+            "ijk,j->ijk", crowd_future_move, np.arange(self.horizon) * self._dt
+        )
+
+        crowd_poss += crowd_future_move
+        col_distances = np.repeat(
+            (self.PHYSICAL_SPACE[0] +
+                self.PHYSICAL_SPACE[1:1 + self.n_crowd])[:, np.newaxis],
+            self.horizon,
+            axis=1
+        )
+        Rp = -np.mean(
+            np.linalg.norm(
+                crowd_poss - agent_traj, axis=-1
+            ) < col_distances
+        )
+
         # Walls, only one of the walls is closer (irrelevant which)
         dist_walls = np.array([
             max(self.W_BORDER - abs(self._agent_pos[0]), self.PHYSICAL_SPACE[0]),
@@ -328,7 +354,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         )
 
         reward = Rg + Rc + Rw
-        return reward, dict(goal=Rg, collision=Rc, wall=Rw)
+        return reward, dict(goal=Rg, collision=Rc, wall=Rw, plan=Rp)
 
 
     def _get_intrinsic_reward(self):
