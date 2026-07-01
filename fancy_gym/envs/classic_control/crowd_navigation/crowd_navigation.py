@@ -320,7 +320,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
         # Plan does not crash
         self.horizon = 20
         crowd_poss = self._crowd_poss[:, np.newaxis, :]
-        agent_traj = self.pred_current_trajectory[:self.horizon][np.newaxis, :, :]
+        agent_traj = self.current_trajectory[:self.horizon][np.newaxis, :, :]
         crowd_future_move = self._crowd_vels[:, np.newaxis, :]
 
         crowd_poss = np.repeat(crowd_poss, self.horizon, axis=1)
