@@ -236,6 +236,8 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         self.update_state(action)
         self.exec_traj.append(self._agent_pos)
         self._goal_reached = self.check_goal_reached()
+        if self._goal_reached:
+            self.ttg()
         self._is_collided = self._check_collisions()
         self._current_reward, info = self._get_reward(action)
 
