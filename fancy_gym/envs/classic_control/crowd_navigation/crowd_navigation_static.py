@@ -358,7 +358,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
         if self._steps == 1:
-            self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
+            self.goal_point.set_data(self._goal_pos.reshape(2, -1))
             for i, member in enumerate(self._crowd_poss):
                 self.ScS_crowd[i].center = member
                 self.PrS_crowd[i].center = member

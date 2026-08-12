@@ -189,7 +189,7 @@ class NavigationEnv(BaseCrowdNavigationEnv):
         self.fig.gca().set_title(f"Iteration: {self._steps}")
 
         if self._steps == 1:
-            self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
+            self.goal_point.set_data(self._goal_pos.reshape(2, -1))
             if self.var_radius:
                 self.space_agent.radius = self.PHYSICAL_SPACE[0]
 
