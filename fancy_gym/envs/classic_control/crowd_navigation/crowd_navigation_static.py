@@ -28,6 +28,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         sequence_obs: bool = False,
         polar: bool = False,
         intrinsic_rew: bool = True,
+        obs_noise: bool = False
     ):
         assert not sequence_obs or lidar_rays == 0  # cannot be seq ob and lidar obs
         self.MAX_EPISODE_STEPS = 160
@@ -47,6 +48,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         self.seq_obs = sequence_obs
         self.intrinsic_rew = intrinsic_rew
         self.lidar = lidar_rays != 0
+        self.obs_noise = obs_noise
         max_dist = np.linalg.norm(np.array([self.WIDTH, self.HEIGHT]))
         if self.lidar:
             self.N_RAYS = lidar_rays
@@ -207,6 +209,17 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 intersect_distances > 0, intersect_distances, np.inf), axis=0
             )
             ray_distances = np.minimum(min_intersect_distances, wall_distances)
+
+            if self.obs_noise:
+                rel_goal_pos += np.random.normal(0, 0.02, size=len(rel_goal_pos))
+                agent_vel += np.random.normal(0, 0.02, size=len(agent_vel))
+                ray_distances += np.random.normal(
+                    0, 0.04, size=len(ray_distances)
+                )  # noise
+                # dropout
+                ray_distances *= np.random.random(
+                    size=len(ray_distances)
+                ) > 0.05
             self.ray_distances = ray_distances
 
             return np.concatenate([
@@ -362,7 +375,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
         )
 
         if self._steps == 1:
-            self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
+            self.goal_point.set_data(self._goal_pos.reshape(2, -1))
             for i, member in enumerate(self._crowd_poss):
                 self.ScS_crowd[i].center = member
                 self.PrS_crowd[i].center = member
