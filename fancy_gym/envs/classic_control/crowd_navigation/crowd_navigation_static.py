@@ -423,7 +423,7 @@ class CrowdNavigationStaticEnv(BaseCrowdNavigationEnv):
                 x=self.separating_planes[i][0], y=self.separating_planes[i][1],
                 dx=self.separating_planes[i][2], dy=self.separating_planes[i][3]
             )
-        self.goal_point.set_data(self._goal_pos[0], self._goal_pos[1])
+        self.goal_point.set_data(self._goal_pos.reshape(2, -1))
 
         self.traj_pos.append(self._agent_pos)
         self.fig.canvas.draw()
