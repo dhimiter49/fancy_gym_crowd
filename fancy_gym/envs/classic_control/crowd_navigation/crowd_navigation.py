@@ -873,7 +873,7 @@ class CrowdNavigationEnv(BaseCrowdNavigationEnv):
             self.PhS_crowd[i].center = member
             if not self.const_vel:
                 self.crowd_goal_points[i].set_data(
-                    self._crowd_goal_poss[i][0], self._crowd_goal_poss[i][1]
+                    self._crowd_goal_poss[i].reshape(2, -1)
                 )
         for i in range(self.n_crowd):
             self.vel_crowd[i].set_data(
