@@ -44,7 +44,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
         n_frames: int = 4,
         lidar_max: float = 0.0,
         intrinsic_rew: bool = False,
-        avoid_agent_parameter: float = 4.,
+        avoid_agent_parameter: float = 2.,
         one_goal: bool = True,
         intersect_crowd: bool = False,
         obs_noise: bool = False,
