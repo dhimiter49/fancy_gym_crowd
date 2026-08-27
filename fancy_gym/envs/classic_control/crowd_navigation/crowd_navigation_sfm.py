@@ -59,6 +59,7 @@ class CrowdNavigationSFMEnv(CrowdNavigationEnv):
             intrinsic_rew=intrinsic_rew,
             one_goal=one_goal,
         )
+        self.MAX_EPISODE_STEPS = 140
         self.Ci = -1.
         self.initial_speed = self.CROWD_MAX_VEL
         self.ped_ped = socialforce.potentials.PedPedPotential(

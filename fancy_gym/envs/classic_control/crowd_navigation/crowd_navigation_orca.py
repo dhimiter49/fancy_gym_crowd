@@ -73,6 +73,7 @@ class CrowdNavigationORCAEnv(CrowdNavigationEnv):
             one_goal=one_goal,
             obs_noise=obs_noise,
         )
+        self.MAX_EPISODE_STEPS = 140
         assert avoid_agent_parameter > 0
         self.Ci = -1.
         self.neighbor_dist = np.inf
