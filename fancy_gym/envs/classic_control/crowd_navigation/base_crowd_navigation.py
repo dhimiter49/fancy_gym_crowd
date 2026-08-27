@@ -200,7 +200,8 @@ class BaseCrowdNavigationEnv(gym.Env):
         self._traj_index = 0
         self.separating_planes = np.zeros((self.max_n_crowd, 4))
 
-        self.num_env_col = 0  # at leat one collision in environment
+        self.num_env_col = 0
+        self.num_passive_env_col = 0
         self.num_col = 0  # every collision in the environment
         self.col_vel_sum = 0.
         self.col_agent_vel_sum = 0.
@@ -682,7 +683,10 @@ class BaseCrowdNavigationEnv(gym.Env):
 
 
     def collision_metrics(self):
-        self.num_env_col += 1
+        if np.all(self._agent_vel < 1e-4):
+            self.num_passive_env_col += 1
+        else:
+            self.num_env_col += 1
         # print("Seed", self.current_seed)
         # print("Num col", self.num_env_col)
         if len(self.idx_colliding_agents) >= 1:
@@ -849,22 +853,24 @@ class BaseCrowdNavigationEnv(gym.Env):
         # print("Success instances:", len(self.all_ttg))
         if self.num_col == 0:
             return (
-                0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0,
                 self.freezing_instances,
                 np.mean(self.all_ttg),
                 len(self.all_ttg)
             )
+        tot_col = self.num_env_col + self.num_passive_env_col
         return (
             self.num_env_col,
+            self.num_passive_env_col,
             self.col_vel_sum / self.num_col,
             self.col_agent_vel_sum / self.num_col,
-            self.col_inters_sum / self.num_env_col,
+            self.col_inters_sum / tot_col,
             round(
-                (self.col_inters_sum / self.num_env_col) /
+                (self.col_inters_sum / tot_col) /
                 (np.pi * self.PHYSICAL_SPACE[0] ** 2) * 100,
                 2
             ),
-            self.col_severity_index / self.num_env_col,
+            self.col_severity_index / tot_col,
             self.freezing_instances,
             np.mean(self.all_ttg),
             len(self.all_ttg)
