@@ -48,6 +48,7 @@ class MPWrapper_Crowd(RawInterfaceWrapper):
             'agent_max_acc': 10.,
             'crowd_max_vel': 1.5,
             'crowd_max_acc': 10.,
+            'stability_coeff': 1.5,
             # 'uncertainty': 'dist',
             # 'horizon_tries': 3,
         },
@@ -112,7 +113,7 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
         },
         'trajectory_generator_kwargs': {
             'weights_scale': 1,
-            'goal_scale': 32,
+            'goal_scale': 4,
         },
         'basis_generator_kwargs': {
             'num_basis': 4,
@@ -137,6 +138,7 @@ class MPWrapper_Crowd_Vel(MPWrapper_Crowd):
             'agent_max_acc': 10.,
             'crowd_max_vel': 1.5,
             'crowd_max_acc': 10.,
+            'stability_coeff': 1.5,
             # 'uncertainty': 'dist',
             # 'horizon_tries': 3,
         },
